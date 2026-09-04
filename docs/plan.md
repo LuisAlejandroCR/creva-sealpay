@@ -96,6 +96,11 @@ bloque. Esta tabla es solo el checklist.
   mensaje — necesitan un commit de seguimiento, no reescribir el suyo. Criterio de aceptación:
   cada rama `feature-*` tiene las tres carpetas con al menos un archivo antes de que el Auditor
   la mergee.
+- [x] `2026-09-04` — **Modelo de roles v2: Main solo instruye, Solver mergea/pushea él mismo,
+  Auditor revisa después, no antes.** Reemplaza el v1 (Auditor como gate bloqueante). Motivo:
+  demasiado tiempo de coordinación en la primera corrida real — ver
+  `procedures/knowledge/_drafts/multiagent-worktree-coordination.md`. `AGENTS.md` §Colaboración
+  actualizado con el modelo completo.
 - [x] `2026-09-04` — **Las 4 ramas de feature ya están en `origin`.** `feature-logic-port`
   (agente 3) estaba commiteada localmente (`8e48bb0`) pero no pusheada — pusheada en este lote.
   Solver ya tenía las otras 3 reconciliadas y en verde (typecheck/lint/test/bundle); falta

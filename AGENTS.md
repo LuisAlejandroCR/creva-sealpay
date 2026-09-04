@@ -95,47 +95,45 @@ déjalas listas ahora para no improvisarlas bajo presión de tiempo.
    `docs/plan.md`. Si un archivo compartido (config, dependencias, `README.md`) necesita tocarse,
    se anuncia antes, no después.
 
-### Dos roles especiales — Auditor y Solver (2026-09-04, Decisión escogida)
+### Tres roles — Main, Solver, Auditor (v2, 2026-09-04, decisión escogida tras el primer caso real)
 
-Se activan **después** de que los worktrees paralelos de una tanda terminan, nunca en paralelo con
-ellos mismos.
+Reemplaza el modelo anterior de esta sección (Auditor como único gate de merge, bloqueante antes
+de tocar `main`). Motivo del cambio: en la primera corrida real, el modelo anterior generó más
+tiempo de coordinación que de trabajo — ver `procedures/knowledge/_drafts/
+multiagent-worktree-coordination.md` para el análisis completo. El reparto correcto no es "quién
+tiene permiso de pushear", es **quién decide y quién resuelve**:
 
-**Solver** — corre primero. Un worktree propio (o la rama de integración), lee las N ramas
-terminadas y **rellena lo que quedó entre agentes**: un tipo que un worktree mockeó y otro define
-de verdad, una interfaz que no calza, un import roto entre `app/lib/` y `app/features/`. No inventa
-funcionalidad nueva fuera de ese acoplamiento — si encuentra un hueco de producto (no de
-integración), lo reporta como bloque nuevo en `docs/plan.md`, no lo improvisa.
+* **Main** (esta sesión, la que el humano usa para dirigir) — **solo instruye y desbloquea.**
+  Redacta y reparte los prompts de worktree, decide el orden de dispatch, resuelve lo que ningún
+  agente puede resolver solo (pushear una rama de un agente local que no tiene permiso, arbitrar
+  entre dos decisiones que chocan). **No hace integración, no resuelve conflictos de merge, no es
+  quien mergea a `main`.** Si Main se encuentra haciendo ese trabajo, es una señal de que el Solver
+  no tiene la autoridad que necesita — ver más abajo.
+* **Solver** — el rol con más autoridad de los tres. Reconcilia las N ramas terminadas (mismo
+  trabajo que en v1: tipos que no calzan, imports rotos, mocks vs. implementación real) **y tiene
+  permiso de mergear y pushear a `main` él mismo** en cuanto termina, sin esperar a nadie —
+  local o en la nube, sin la restricción de "solo agente en la nube" de v1. Si encuentra un
+  problema real (no solo de acoplamiento — un bug, un hueco de producto), **lo resuelve ahí mismo**
+  si está dentro de lo razonable, o lo escala a Main solo si de verdad necesita una decisión que no
+  le corresponde a él tomar (cambiar de stack, cambiar el alcance de una feature). No se detiene a
+  pedir permiso por defecto — se detiene cuando la decisión no es suya.
+* **Auditor** — revisa **después** de que el Solver ya mergeó, no antes. No es un gate bloqueante:
+  es una revisión posterior que confirma lo que ya se hizo (tests corridos de verdad, `POSEES`
+  respetado, docs al día, commits limpios) y **abre bloques de corrección en `docs/plan.md`** si
+  encuentra algo mal — no deshace el merge del Solver, lo corrige hacia adelante. Esto evita el
+  problema real de v1: un merge legítimo bloqueado por horas esperando una verificación que podía
+  haber corrido en paralelo con el trabajo, no antes de él.
 
-**Auditor** — corre después del Solver, y es el **único rol autorizado a mergear y pushear a
-`main` él mismo**, sin esperar al humano — la única excepción a "nadie pushea a `main`" de todo
-este documento. Solo lo hace si **las cuatro condiciones se cumplen a la vez**, verificadas por él
-mismo, no asumidas:
+**Regla dura que no cambia:** ningún rol reescribe historia (`--amend`, `rebase -f`) ni pushea
+force a `main`. El Solver mergea hacia adelante; si algo sale mal, se corrige con un commit nuevo,
+nunca reescribiendo lo que ya está en `main`.
 
-1. El `[VERIFY]` de cada rama corrió de verdad y su salida real (no "debería pasar") quedó pegada
-   en el `[REPORT]` de esa rama.
-2. Cada agente tocó solo lo que su `[POSEES]` le asignaba — el Auditor corre
-   `git diff main...<rama> --stat` y lo compara contra `[POSEES]` de cada prompt.
-3. `docs/plan.md` y `docs/memoria.md` están actualizados en el mismo lote que el código, con qué
-   se hizo / qué no se verificó / por qué (regla dura de §Fuente y contexto).
-4. Ningún commit lleva `Co-Authored-By:` ni trailer, y el mensaje es una línea Conventional
-   Commits en inglés.
-
-**Si cualquiera falla:** el Auditor **no mergea**. Reporta qué condición falló, en qué rama, y
-deja el bloque bloqueado en `docs/plan.md` — nunca fuerza el merge "porque ya casi".
-
-**Excepción — precondición de merge faltante, no un condición fallida en la rama objetivo.**
-Regla escogida, 2026-09-04, tras el primer caso real: si el bloqueo es que `main` le falta una
-rama previa que `docs/plan.md` exige como precondición (p. ej. `scaffold-monorepo` sin mergear
-antes de mergear `integration-solver`), el Auditor **no se detiene a preguntar** — aplica las
-mismas cuatro condiciones a esa rama previa, y si las cumple, la mergea a `main` primero, y
-**después** sigue con la rama que sí tenía pedido de auditoría. Se documenta cada merge por
-separado en `docs/plan.md`/`docs/memoria.md`, con cuál rama y en qué orden. Esto sigue siendo la
-misma autoridad de la sección de arriba, aplicada dos veces en la secuencia correcta — no una
-autoridad nueva. Si la rama previa **tampoco** cumple las cuatro condiciones, ahí sí se detiene y
-reporta, igual que cualquier otro bloqueo.
-
-El Auditor es siempre un **agente en la nube** (nunca local — un agente local no pushea, ni
-siquiera con este rol). Hereda el resto de límites duros de la plantilla de abajo.
+**Aislamiento, sin excepción para ninguno de los tres.** Main, Solver y Auditor van cada uno en su
+propio worktree — nunca comparten el directorio de trabajo entre sí ni con las ramas de feature
+que están integrando. La razón exacta que forzó este cambio de modelo: en la primera corrida,
+Main/Solver/Auditor corrieron los tres en el mismo directorio, y uno de ellos leyó una edición a
+medio commitear de otro y la interpretó como una posible inyección de un agente par — un incidente
+completo que el aislamiento habría evitado de raíz.
 
 ### Plantilla de prompt para cada subagente
 
