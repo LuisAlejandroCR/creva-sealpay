@@ -69,7 +69,18 @@ bloque. Esta tabla es solo el checklist.
   liquida y llega el reporte firmado, `NotificationFeedbackType.Error` en verificación de sello
   inválida — el veredicto del sello es el producto, y el haptic lo entrega antes de que se lea el
   texto. Criterio de aceptación: los tres estados se sienten en un dispositivo real vía Expo Go, no
-  solo en simulador.
+  solo en simulador. **Actualizado 2026-09-04, worktree `feature-agent-loop`:** los tres puntos
+  quedan escritos en código (`app/features/query/QueryScreen.tsx`,
+  `app/features/verify/VerifyScreen.tsx`), `tsc --noEmit` y `jest` pasan. **⏳ pendiente real:**
+  sentirlos en un dispositivo físico vía Expo Go — sin dispositivo disponible en esa sesión, no
+  se cierra el bloque todavía. Ver `docs/memoria.md` 2026-09-04.
+- [ ] **Pantalla de query pagada + reporte sellado (bloque 4, worktree `feature-agent-loop`).**
+  `2026-09-04` — `app/features/query/**` y `app/features/verify/**` construidos: ciclo
+  402→pago→200 contra un cliente de gateway mockeado (tipado, no el gateway real todavía — bloque
+  1 sigue sin terminar), pantalla de reporte sellado con los cinco veredictos y qué NO certifica
+  (`brainstorming.md` §0.2). Tests unitarios de ambos mocks pasan. Criterio de aceptación
+  pendiente: reconciliar el shape del mock contra el gateway real cuando el bloque 1 termine (rol
+  Solver), y probar los haptics en dispositivo físico. Detalle en `docs/memoria.md` 2026-09-04.
 - [ ] **Publicación en App Store / Play Store — después del evento, no durante.** `2026-09-04`
   Decisión del humano, respaldada: la revisión de iOS puede consumir sola la ventana que queda
   (judging el 09/14, corte el 09/16). Durante el evento se demuestra con Expo Go + el video.
