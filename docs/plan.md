@@ -49,17 +49,17 @@ bloque. Esta tabla es solo el checklist.
   prueba real sigue pendiente porque no hay `.env` con llave pagadora ni gateway/JWT de Bazantic
   creado en este worktree. No hay tx hash todavía.
 
-- [ ] **Repo público creado, pero no cumple el criterio de aceptación todavía.**
-  `2026-09-04` — repo creado en https://github.com/LuisAlejandroCR/creva-sealpay, pero con **todo**
+- [x] **Repo público creado, README público reescrito.**
+  `2026-09-04` — repo creado en https://github.com/LuisAlejandroCR/creva-sealpay, con **todo**
   el contenido de esta carpeta privada pusheado tal cual (`AGENTS.md`, `docs/` completo,
   `brainstorming.md`, `LEARNINGS.md`), no solo `docs/plan.md`. Decisión escogida el
   mismo día: exposición intencional, "para dar contexto a los agentes" — no es un accidente a
   revertir. Revisado por secretos: limpio, ningún valor de key/token expuesto (ver
-  `docs/memoria.md`). Pendiente real: `README.md` público sigue siendo el README de esta carpeta
-  privada (habla de "Preparation lives here", termina con un encabezado `# creva-sealpay` suelto) —
-  no cumple la mezcla 70/30 cara al usuario / cara al desarrollador que pide `AGENTS.md` §Idioma.
-  Criterio de aceptación pendiente: `README.md` público reescrito para describir el producto de
-  submission, no esta carpeta de preparación.
+  `docs/memoria.md`). `README.md` público reescrito en el worktree `feature-public-readme`
+  (rama `feature-public-readme` sobre `main`, sin commitear todavía) para describir el producto
+  de submission — onboarding con Selfie Check, query pagada vía x402, verificación de reporte
+  sellado — en vez de esta carpeta de preparación, con la mezcla 70/30 cara al usuario / cara al
+  desarrollador que pide `AGENTS.md` §Idioma. Pendiente: mergear ese worktree a `main` y pushear.
 - [ ] **Decidir qué parte de `docs/` se vuelve pública por la regla de SDD.** Superado en la
   práctica — ya se pusheó `docs/` completo el `2026-09-04` (ver bloque de arriba), no solo
   `docs/plan.md` como preveía este ítem. Queda abierto para decidir si eso se mantiene así o se
