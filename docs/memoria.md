@@ -206,3 +206,56 @@ equivocada (`main` en vez de `scaffold-monorepo`), van a tener el mismo problema
 - `docs/plan.md` — bloque "Scaffold del repo público antes de repartir worktrees" movido a
   Cerrados, con la prueba real de Expo Go marcada `⏳` dentro del mismo bloque.
 - `docs/plan.md` — bloque abierto de README público sigue abierto, sin tocar en este lote.
+
+## 2026-09-04 — Gateway x402 sobre Hedera: reporte y sello de Creva gateados (worktree `feature-gateway-x402`, agente local)
+
+**Qué se hizo:**
+- Worktree `feature-gateway-x402` creado manualmente con `git worktree add`, en lugar de
+  `EnterWorktree name:` directo, porque el `worktree.baseRef` por defecto ("fresh") habría
+  ramificado desde `origin/main` — que todavía no tiene el scaffold (`gateway/**` no existiría
+  ahí). Se ramificó explícitamente desde `scaffold-monorepo` en su commit `f8b751d` (el que
+  agrega `gateway/`), siguiendo el mismo patrón que el worktree `feature-agent-loop` ya presente.
+  `main` sigue sin el merge del scaffold — bloque abierto correspondiente en `docs/plan.md`.
+- `gateway/src/x402-gate.ts`: middleware Express que gatea una ruta con HTTP 402. Sin header
+  `X-PAYMENT` → 402 con `PaymentRequirements` (`scheme: "exact"`, `network: "hedera-testnet"`,
+  `resource`, `payTo`, `asset`, montos en unidades atómicas vía `.env`). Con header → llama
+  `verifyPayment` y `settlePayment` del facilitador; si ambos aprueban, deja pasar la request y
+  agrega `X-PAYMENT-RESPONSE`.
+- `gateway/src/facilitator.ts`: cliente HTTP puro hacia `FACILITATOR_URL` (`/verify`, `/settle`) —
+  sin SDK de Hedera embebido, el facilitador es quien firma/liquida. Placeholder apuntando a
+  `http://localhost:4020` en `.env.example`; el facilitador real (BlockyDevs open source o
+  Bazantic, ver `brainstorming.md` §5/§8) no se conectó ni se probó contra testnet en esta sesión.
+- `gateway/src/creva-proxy.ts`: reenvía la request ya pagada a `CREVA_API_URL` (default
+  `https://creva-backend-c7as7id5jq-pv.a.run.app`, la URL real dada en el prompt) y relay del
+  body/status/content-type tal cual, sin transformar la respuesta.
+- Rutas conectadas en `gateway/src/index.ts`: `POST /creva-score/report` y
+  `POST /creva-score/verify`, ambas detrás de `createX402Gate`.
+- Tests (`gateway/test/x402-gate.test.ts`, Vitest + Supertest): mockea el módulo
+  `facilitator.ts` completo (`vi.mock`) — cero llamadas de red reales a Hedera. Cubre, para
+  ambas rutas: 402 sin pago, 402 cuando el facilitador rechaza (`invalidReason`), y 200 con el
+  body de Creva reenviado tal cual cuando el facilitador aprueba y liquida (mockeando también
+  `global.fetch` para simular la respuesta de Creva, sin llamar la API real).
+- `package.json` del gateway: agregados `test` (Vitest) y `lint` (ESLint flat config,
+  `typescript-eslint` recomendado) — no existían antes de este bloque. `"type": "module"` agregado
+  para que `NodeNext` + imports con `.js` no generen warning de Node.
+
+**Qué NO se verificó, y por qué:**
+- **Sin transacción real contra Hedera testnet** — el criterio de aceptación #2 (liquidación con
+  pago real) no se ejecutó. No hay facilitador corriendo en esta sesión (ni local ni Bazantic
+  configurado con credenciales reales) — fuera de alcance de un agente local sin acceso a esas
+  credenciales.
+- No se probó el proxy contra la API real de Creva (`creva-backend-c7as7id5jq-pv.a.run.app`) — el
+  test mockea `fetch`, nunca llamó al backend real. Los DTOs exactos de `/creva-score/report` y
+  `/creva-score/verify` tampoco se verificaron contra el spec OpenAPI real en esta sesión (ver
+  bloque previo de 2026-09-04 sobre el spec — sigue con el mismo pendiente de DTOs vacíos).
+- `npm audit` reportó vulnerabilidades (mismo patrón que el bloque de scaffold) — no revisadas,
+  fuera de alcance.
+- No se corrió `git add`/`git commit` — agente local, según `[LÍMITES DUROS]` del prompt. Comando
+  dejado listo en el reporte de esta tarea.
+
+**Dónde queda el pendiente:**
+- `docs/plan.md` — nuevo bloque abierto: "Gateway x402/Hedera: falta pago real en testnet y
+  conexión a un facilitador vivo" (ver bloque agregado en el mismo lote).
+- `docs/plan.md` — bloque existente "Scaffold del repo público antes de repartir worktrees" sigue
+  sin el merge a `main`; este worktree se creó igual, ramificando de `scaffold-monorepo`
+  directamente (mismo patrón ya usado por `feature-agent-loop`), no un cambio de política nuevo.

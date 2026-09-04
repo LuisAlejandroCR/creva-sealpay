@@ -16,6 +16,18 @@ bloque. Esta tabla es solo el checklist.
 
 ## Abiertos
 
+- [ ] **Gateway x402/Hedera: falta pago real en testnet y conexión a un facilitador vivo.**
+  `2026-09-04` — worktree `feature-gateway-x402`, agente local. `POST /creva-score/report` y
+  `POST /creva-score/verify` quedaron gateados por HTTP 402 (`gateway/src/x402-gate.ts`),
+  liquidando contra un facilitador vía HTTP (`gateway/src/facilitator.ts`, `FACILITATOR_URL`) y
+  proxyando sin modificar a la API real de Creva (`gateway/src/creva-proxy.ts`). Tests unitarios
+  cubren ambas rutas (402 sin pago, 402 rechazado, 200 con proxy) mockeando el facilitador — cero
+  llamadas reales a Hedera. Pendiente: no hay facilitador vivo conectado (ni local ni Bazantic con
+  credenciales reales), así que el criterio "una petición pagada real" que pide la pista de Hedera
+  (`brainstorming.md` §9) sigue sin ejercerse. Ver `docs/memoria.md` para el detalle completo.
+  Criterio de aceptación: una request real liquidada contra Hedera testnet (vía facilitador
+  BlockyDevs o Bazantic), grabada como evidencia.
+
 - [ ] **Repo público creado, pero no cumple el criterio de aceptación todavía.**
   `2026-09-04` — repo creado en https://github.com/LuisAlejandroCR/creva-sealpay, pero con **todo**
   el contenido de esta carpeta privada pusheado tal cual (`AGENTS.md`, `docs/` completo,
