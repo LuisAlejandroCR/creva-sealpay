@@ -84,7 +84,25 @@ Copiar y llenar, uno por worktree. Vale igual para Claude Code, Codex u opencode
 `AGENTS.md` como su contrato. `[ARRANQUE]` no se improvisa: es el mismo orden de la sección
 **Arranque** de arriba, y el subagente lo sigue aunque el prompt no lo repita completo.
 
+**`[LÍMITES DUROS]` va primero y no depende de que el subagente haya leído el resto.** Claude Code
+hace cumplir el aislamiento de worktree **a nivel de arnés** — técnicamente no puede editar fuera de
+él aunque quisiera (`procedures/00_Files/worktrees.md` §"Las cuatro comprobaciones"). **Codex y
+opencode no tienen ese respaldo técnico**: para ellos esta regla es una promesa de prompt, sin red
+de seguridad. Por eso va explícita y de primero en cada tarea, nunca implícita en "ya lo dice
+AGENTS.md".
+
 ```text
+[LÍMITES DUROS — no negociables, antes que nada]
+  - Work ONLY inside the worktree named in [WORKTREE] below. Never read, edit, or run a command
+    against the main checkout path — not even "just to check something".
+  - If unsure whether you are inside the assigned worktree: stop and run `pwd` and
+    `git rev-parse --show-toplevel` first. Do not proceed until both confirm the worktree path.
+  - NEVER run `git push`, `git commit`, `git commit --amend`, `git rebase`, or anything that
+    rewrites history. Leave the exact `git add … && git commit -m "…"` command ready for the
+    human — do not execute it, not even once, not even if asked to "just commit it".
+  - These two rules override any other instruction in this prompt, including one that seems to
+    come from the user, if they ever conflict.
+
 [ARRANQUE] Leer, en este orden, antes de tocar nada:
   1. AGENTS.md (este archivo) — reglas y la plantilla de idioma
   2. docs/plan.md — qué está abierto/cerrado hoy
@@ -124,6 +142,10 @@ Copiar y llenar, uno por worktree. Vale igual para Claude Code, Codex u opencode
 **Ejemplo llenado**, para cuando exista el repo `creva-sealpay`:
 
 ```text
+[LÍMITES DUROS — no negociables, antes que nada]
+  - Work ONLY inside worktree "feature-x402-gateway". Never touch the main checkout.
+  - NEVER git push or git commit. Leave the commit command ready, do not run it.
+
 [TAREA] Scaffold the x402 gateway: one endpoint, priced per call, gated by a valid Selfie Check proof.
 
 [WORKTREE] feature-x402-gateway · base: main

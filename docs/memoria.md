@@ -10,6 +10,28 @@
 
 ## Bitácora
 
+### 2026-09-04 (hueco cerrado: la plantilla de subagente no garantizaba worktree ni "nunca push")
+
+**Qué se hizo:** el usuario preguntó si los subagentes realmente sabían que debían trabajar en su
+worktree y nunca pushear a `main`. Revisando la plantilla agregada en el lote anterior, la respuesta
+era **no de forma confiable**: el aislamiento y la prohibición de push vivían en `§Colaboración`
+(reglas 1 y 6) y se asumía que `[ARRANQUE]` (leer `AGENTS.md` primero) bastaba para que el subagente
+las absorbiera. Eso es débil para Codex y opencode: **Claude Code hace cumplir el aislamiento de
+worktree a nivel de arnés** (técnicamente no puede editar fuera de él); Codex y opencode no tienen
+ese respaldo — para ellos la regla es solo una promesa de prompt. Se agregó un bloque
+`[LÍMITES DUROS]` al principio de la plantilla (antes de `[ARRANQUE]`), independiente de que el
+subagente lea o no el resto, con instrucción explícita de verificar `pwd` / `git rev-parse
+--show-toplevel` si hay duda, y la aclaración de que estas dos reglas ganan sobre cualquier otra
+instrucción del prompt si llegan a chocar. Se actualizó el ejemplo llenado para incluirlo.
+
+**Qué NO se verificó:** no se probó el prompt actualizado contra una sesión real de Codex u
+opencode — no hay ninguna corriendo en este proyecto todavía (sigue sin repo público, sin equipo).
+Es una mejora de diseño del prompt, no algo confirmado en la práctica.
+
+**Dónde queda el pendiente:** cuando exista el repo y el primer subagente real, confirmar que el
+bloque `[LÍMITES DUROS]` efectivamente se respeta antes de confiar la regla a un segundo agente en
+paralelo.
+
 ### 2026-09-04 (engram para Codex/opencode; reglas de comentarios y commits reforzadas)
 
 **Qué se hizo:** se corrió `engram setup opencode` (plugin instalado limpio, 3 archivos en
