@@ -19,7 +19,7 @@ bloque. Esta tabla es solo el checklist.
 - [ ] **Repo público creado, pero no cumple el criterio de aceptación todavía.**
   `2026-09-04` — repo creado en https://github.com/LuisAlejandroCR/creva-sealpay, pero con **todo**
   el contenido de esta carpeta privada pusheado tal cual (`AGENTS.md`, `docs/` completo,
-  `brainstorming.md`, `LEARNINGS.md`), no solo `docs/plan.md`. Decisión explícita del humano el
+  `brainstorming.md`, `LEARNINGS.md`), no solo `docs/plan.md`. Decisión escogida el
   mismo día: exposición intencional, "para dar contexto a los agentes" — no es un accidente a
   revertir. Revisado por secretos: limpio, ningún valor de key/token expuesto (ver
   `docs/memoria.md`). Pendiente real: `README.md` público sigue siendo el README de esta carpeta
@@ -28,7 +28,7 @@ bloque. Esta tabla es solo el checklist.
   Criterio de aceptación pendiente: `README.md` público reescrito para describir el producto de
   submission, no esta carpeta de preparación.
 - [ ] **Decidir qué parte de `docs/` se vuelve pública por la regla de SDD.** Superado en la
-  práctica — el humano ya pusheó `docs/` completo el `2026-09-04` (ver bloque de arriba), no solo
+  práctica — ya se pusheó `docs/` completo el `2026-09-04` (ver bloque de arriba), no solo
   `docs/plan.md` como preveía este ítem. Queda abierto para decidir si eso se mantiene así o se
   poda luego; no hay decisión formal todavía, solo el hecho consumado.
 - [ ] **Responder los dos check-ins de la semana del 09/07** en el hacker dashboard. Criterio de
@@ -52,14 +52,14 @@ bloque. Esta tabla es solo el checklist.
   todo `components/` y `app/` (JSX de Next con `div` + Tailwind → `View`/`StyleSheet`), mitigado con
   **NativeWind** para conservar los nombres de clase de Tailwind. Criterio de aceptación: los
   archivos de la lista viven en el repo nuevo y su suite de tests pasa ahí.
-- [ ] **Haptics con `expo-haptics`.** `2026-09-04` — pedido del humano. Tres puntos:
+- [ ] **Haptics con `expo-haptics`.** `2026-09-04` — decisión escogida. Tres puntos:
   `ImpactFeedbackStyle.Medium` en el botón de pago, `NotificationFeedbackType.Success` cuando el 402
   liquida y llega el reporte firmado, `NotificationFeedbackType.Error` en verificación de sello
   inválida — el veredicto del sello es el producto, y el haptic lo entrega antes de que se lea el
   texto. Criterio de aceptación: los tres estados se sienten en un dispositivo real vía Expo Go, no
   solo en simulador.
 - [ ] **Publicación en App Store / Play Store — después del evento, no durante.** `2026-09-04`
-  Decisión del humano, respaldada: la revisión de iOS puede consumir sola la ventana que queda
+  Decisión escogida, respaldada: la revisión de iOS puede consumir sola la ventana que queda
   (judging el 09/14, corte el 09/16). Durante el evento se demuestra con Expo Go + el video.
   Criterio de aceptación: `eas submit` corrido después del 2026-09-16; no bloquea la entrega.
 - [ ] **Dos roles nuevos definidos: Auditor y Solver.** `2026-09-04` — `AGENTS.md` §Roles
@@ -86,7 +86,7 @@ bloque. Esta tabla es solo el checklist.
   Criterio de aceptación: `scaffold-monorepo` mergeado a `main` (vía Auditor o humano) antes de
   que el Auditor mergee cualquier `feature-*`.
 - [ ] **Estructura de tests obligatoria: `unit` + `fuzz` + `invariant`.** `2026-09-04` — decisión
-  del humano, aplicada en `AGENTS.md` §Tests. Convención heredada de
+  escogida, aplicada en `AGENTS.md` §Tests. Convención heredada de
   `creva_finance/backend/test/{unit,fuzz,invariant}` (Jest + `fast-check`), replicada en
   `gateway/test/` y `app/test/`. Relayado a los 4 agentes de worktree activos (1-4) con un target
   concreto de fuzz/invariant por área. Pendiente: agentes 1 y 2 ya habían pusheado antes de este
