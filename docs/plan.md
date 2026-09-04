@@ -84,7 +84,10 @@ bloque. Esta tabla es solo el checklist.
   en `origin/scaffold-monorepo`, no en `main`. El Solver (prompt 5) y el Auditor (prompt 6) no
   arrancan hasta que las 4 ramas `feature-*` existan en `origin` con su `[REPORT]` completo.
   Criterio de aceptación: `scaffold-monorepo` mergeado a `main` (vía Auditor o humano) antes de
-  que el Auditor mergee cualquier `feature-*`.
+  que el Auditor mergee cualquier `feature-*`. **Cumplido el 2026-09-04** — mergeado a `main` vía
+  PR #1 (`9ae8452`), ejecutado por un humano tras descubrirse que ninguna de las sesiones 0/5/6
+  era en realidad un agente en la nube (todas locales) y por lo tanto ninguna tenía autoridad real
+  de push a `main` bajo la regla de `AGENTS.md` §Colaboración punto 6.
 - [ ] **Estructura de tests obligatoria: `unit` + `fuzz` + `invariant`.** `2026-09-04` — decisión
   escogida, aplicada en `AGENTS.md` §Tests. Convención heredada de
   `creva_finance/backend/test/{unit,fuzz,invariant}` (Jest + `fast-check`), replicada en
