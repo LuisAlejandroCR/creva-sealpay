@@ -4,6 +4,45 @@
 
 # Memoria — ETHOnline 2026
 
+## 2026-09-04 — Gateway conectado al formato vivo de BlockyDevs, sin tx real todavía
+
+**Qué se hizo:**
+- Worktree correcto: `.claude/worktrees/feature-hedera-facilitator`, rama `feature-hedera-facilitator`,
+  base `main` en `9cda6ac`.
+- `gateway/src/facilitator.ts` dejó de enviar el string crudo `paymentHeader` como cuerpo propietario
+  y ahora arma el envelope estándar del facilitador: `x402Version`, `paymentPayload` decodificado
+  desde `X-PAYMENT` (base64url/base64 JSON, con fallback opaco para tests) y `paymentRequirements`.
+- Para `X402_VERSION=2`, el cliente normaliza los requisitos hacia BlockyDevs/Bazantic-style v2:
+  `maxAmountRequired` se envía como `amount`, y `FACILITATOR_FEE_PAYER` se inyecta en
+  `paymentRequirements.extra.feePayer` sin tocar la interfaz pública de `gateway/src/x402-gate.ts`
+  ni las rutas que consume la app.
+- `gateway/.env.example` apunta al facilitador testnet vivo de BlockyDevs:
+  `https://api.testnet.blocky402.com`, `HEDERA_NETWORK=hedera:testnet`, `PAYMENT_ASSET=0.0.0`,
+  `X402_VERSION=2`, y `FACILITATOR_FEE_PAYER=0.0.7162784`. Ese fee payer fue leído de
+  `GET /supported` del facilitador el `2026-09-04` (respuesta 200).
+- `gateway/test/unit/facilitator.spec.ts` cubre que el cliente manda el cuerpo live-compatible y que
+  los headers opacos usados por los tests existentes siguen sin romper el gateway mockeado.
+- Verificación local real: `npx.cmd tsc --noEmit` limpio; `npx.cmd eslint src test` limpio;
+  `npx.cmd vitest run --cache=false` → 4 suites, 11 tests, todos pasan. `vitest run` sin
+  `--cache=false` había pasado los 11 tests, pero terminó con `EPERM` al intentar crear
+  `gateway/node_modules/.vite`; se reran los mismos tests con cache deshabilitado para evitar ese
+  artefacto de filesystem.
+
+**Qué NO se verificó, y por qué:**
+- No se ejecutó una petición pagada real 402→settle→200, por falta de material pagador en este
+  worktree: no hay `gateway/.env`, llave privada de cuenta Hedera, wallet/cliente x402 configurado,
+  ni gateway/JWT de Bazantic creado. La nota de Bazantic en `brainstorming.md` §8 sigue diciendo
+  que hay cuenta y crédito de prueba, pero no JWT ni gateway creados todavía.
+- No hay tx hash ni link de HashScan que registrar. El bloque de `docs/plan.md` queda abierto hasta
+  que alguien con credenciales pagadoras ejecute la request y pegue evidencia real.
+- No se probaron ambos tipos de request (`/creva-score/report` y `/creva-score/verify`) contra red
+  real; solo se verificó localmente el contrato HTTP del facilitador y las rutas mockeadas existentes.
+
+**Dónde queda el pendiente:**
+- `docs/plan.md` — el bloque "Gateway x402/Hedera" sigue abierto, actualizado con el avance parcial
+  y el bloqueo exacto: falta ejecutar una request real con credenciales pagadoras y guardar tx hash
+  + explorer link.
+
 ## 2026-09-04 — Solver (roles v2): gap de tests del gateway cerrado, merge a `main` propio
 
 **Qué se hizo:**

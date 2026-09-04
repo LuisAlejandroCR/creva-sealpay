@@ -18,6 +18,8 @@ export interface PaymentRequiredResponse {
   error?: string;
 }
 
+export type PaymentPayload = unknown;
+
 export interface FacilitatorVerifyResult {
   isValid: boolean;
   invalidReason?: string;
