@@ -96,6 +96,10 @@ bloque. Esta tabla es solo el checklist.
   mensaje — necesitan un commit de seguimiento, no reescribir el suyo. Criterio de aceptación:
   cada rama `feature-*` tiene las tres carpetas con al menos un archivo antes de que el Auditor
   la mergee.
+- [x] `2026-09-04` — **Las 4 ramas de feature ya están en `origin`.** `feature-logic-port`
+  (agente 3) estaba commiteada localmente (`8e48bb0`) pero no pusheada — pusheada en este lote.
+  Solver ya tenía las otras 3 reconciliadas y en verde (typecheck/lint/test/bundle); falta
+  reconciliar esta última contra su propio `integration-solver`.
 - [ ] **`feature-agent-loop` con base rota — necesita rebase.** `2026-09-04` — su worktree local
   quedó en el commit `b70dace` (uno de docs, previo a que el scaffold real `f8b751d` existiera),
   con un `app/` propio sin trackear en vez del scaffold real. Diverge de `feature-gateway-x402` y
