@@ -75,8 +75,8 @@ que ya existe como respuesta firmada. Ver [brainstorming.md](brainstorming.md).
 | `2026-09-01` | Pausar el ZK | Retomar `creva-zk` como eje | ETHOnline **no publicó ninguna pista de ZK**: pausarlo no cuesta premio alcanzable, y el sello firmado ya sostiene el relato de portabilidad |
 | `2026-09-01` | Eje sobre señales + sello | Colateral on-chain en Arc | Señales y sello están vivos; el colateral **nunca existió** y ya falló con dos proveedores. Un hackathon de 12 días no es donde eso se cierra |
 | `2026-09-01` | Abandonar AgentKit | Buscar un Orb | Sin Orbs en Colombia; el pasaporte NFC no sustituye. x402 nunca dependió de AgentKit |
-| `2026-09-01` | Enviar la solicitud con ENS incluido | Quitar la mención | Decisión del humano. Consecuencia asumida: **ENS pasa a ser obligatorio de entregar** |
-| `2026-09-04` | Tratar "start from scratch" como no aplicable a Continuity | Dejarlo como riesgo abierto hasta confirmación externa | Decisión del humano: la regla del track (§0.1, con fuente) es más específica que la línea genérica de la diapositiva de kickoff. **No es una confirmación de ETHGlobal** — se revierte si la sesión de feedback o el Q&A dicen lo contrario |
+| `2026-09-01` | Enviar la solicitud con ENS incluido | Quitar la mención | Decisión escogida. Consecuencia asumida: **ENS pasa a ser obligatorio de entregar** |
+| `2026-09-04` | Tratar "start from scratch" como no aplicable a Continuity | Dejarlo como riesgo abierto hasta confirmación externa | Decisión escogida: la regla del track (§0.1, con fuente) es más específica que la línea genérica de la diapositiva de kickoff. **No es una confirmación de ETHGlobal** — se revierte si la sesión de feedback o el Q&A dicen lo contrario |
 
 ## 4. ¿Qué se volvería a hacer igual?
 

@@ -1,5 +1,6 @@
 .env
 node_modules/
+.claude/worktrees/
 app/.expo/
 app/dist/
 app/.env
