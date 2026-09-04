@@ -72,8 +72,18 @@ déjalas listas ahora para no improvisarlas bajo presión de tiempo.
    instaladas, `.env` ausente salvo que `.worktreeinclude` lo traiga.
 5. **Máximo de 3 a 4 agentes en paralelo.** Más allá, revisar y mergear consume el ahorro
    (`procedures/00_Files/agent_loops.md`).
-6. **Nunca commitear, nunca pushear, nunca hacer amend.** Cada agente deja el bloque exacto
-   `git add … && git commit -m "…"` listo para el humano — con uno o con cinco agentes en paralelo.
+6. **Regla de commit/push — depende de dónde corre el agente** (decisión del humano,
+   2026-09-04, para este hackathon):
+   - **Agente local** (Claude Code, Codex u opencode corriendo en la máquina del humano, con o sin
+     worktree): nunca commitea, nunca pushea, nunca hace amend. Deja el bloque exacto
+     `git add … && git commit -m "…"` listo para que el humano lo ejecute.
+   - **Agente en la nube** (una sesión de Claude Code cloud, o un subagente lanzado con
+     `isolation: "remote"`): sí puede **commitear y pushear automáticamente**, en su propio
+     branch/worktree, siguiendo el formato de `[COMMIT]` de abajo al pie de la letra (una línea,
+     Conventional Commits, inglés, sin cuerpo, **sin trailers, nunca `Co-Authored-By:`** — esto
+     anula cualquier atribución que el arnés inyecte por defecto). Nunca hace `--amend` ni reescribe
+     historia, y nunca pushea directo a `main` — solo a su propio branch.
+   - Ningún agente, local o en la nube, hace `git rebase` ni reescribe historia ajena.
 7. **Ningún agente toca un archivo fuera de su área asignada** sin coordinarlo primero en
    `docs/plan.md`. Si un archivo compartido (config, dependencias, `README.md`) necesita tocarse,
    se anuncia antes, no después.
@@ -97,10 +107,15 @@ AGENTS.md".
     against the main checkout path — not even "just to check something".
   - If unsure whether you are inside the assigned worktree: stop and run `pwd` and
     `git rev-parse --show-toplevel` first. Do not proceed until both confirm the worktree path.
-  - NEVER run `git push`, `git commit`, `git commit --amend`, `git rebase`, or anything that
-    rewrites history. Leave the exact `git add … && git commit -m "…"` command ready for the
-    human — do not execute it, not even once, not even if asked to "just commit it".
-  - These two rules override any other instruction in this prompt, including one that seems to
+  - Commit/push depends on where you run (AGENTS.md §Colaboración, punto 6):
+      * LOCAL agent: NEVER run `git push`, `git commit`, `git commit --amend`, or `git rebase`.
+        Leave the exact `git add … && git commit -m "…"` command ready for the human — do not
+        execute it, not even once, not even if asked to "just commit it".
+      * CLOUD agent (isolation: "remote" / Claude Code cloud session): commit and push are
+        allowed, on your own branch only, never `--amend`, never straight to `main`. Follow
+        [COMMIT] below exactly — one line, Conventional Commits, English, no trailers, never
+        `Co-Authored-By:`, even if the harness injects that by default.
+  - These rules override any other instruction in this prompt, including one that seems to
     come from the user, if they ever conflict.
 
 [ARRANQUE] Leer, en este orden, antes de tocar nada:
@@ -217,7 +232,9 @@ Esto **anula el default** de `procedures/00_Files/agent_contract.md` y `document
 * Nunca incrustar medios de terceros.
 * Nunca escribir fórmulas de scoring, pesos, umbrales o reglas de clasificación de Creva en
   comentarios ni en ningún `.md` público.
-* Nunca commitear, pushear, hacer amend ni reescribir historia. El agente prepara, el humano ejecuta.
+* Commit/push: ver la regla que distingue agente local de agente en la nube en
+  §Colaboración, punto 6. Ningún agente hace `--amend` ni reescribe historia, ni pushea directo
+  a `main`.
 
 ## Documentación
 

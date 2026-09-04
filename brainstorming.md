@@ -427,8 +427,10 @@ el propio gateway x402.
 **ENS quedó comprometido.** La solicitud se envió nombrándolo, así que ahora **hay que entregarlo** —
 no es opcional. Es la pista de $500 de integración a proyecto existente; barata, pero prometida.
 
-**Decisiones abiertas:** ¿equipo o solo? (hoy sin equipo en el dashboard) · si Bazantic no contesta a
-tiempo, x402 vuelve a implementarse a mano contra un facilitador de Hedera.
+**Decisiones abiertas:** ~~¿equipo o solo?~~ **resuelto 2026-09-04: equipo humano + agentes de IA**
+(composición exacta y stakes individuales pendientes de confirmar en el dashboard — ver
+`docs/plan.md`) · si Bazantic no contesta a tiempo, x402 vuelve a implementarse a mano contra un
+facilitador de Hedera.
 
 ### Ledger, publicado el 2026-09-03 — encaje débil con el eje actual
 

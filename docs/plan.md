@@ -16,24 +16,69 @@ bloque. Esta tabla es solo el checklist.
 
 ## Abiertos
 
-- [ ] **Crear el repo público de submission.** Todavía no existe (`brainstorming.md` §8, ítem 3).
-  Criterio de aceptación: repo creado, `AGENTS.md`/`CLAUDE.md`/`docs/` gitignored desde el primer
-  commit, `README.md` en inglés con mezcla 70% cara al usuario / 30% cara al desarrollador (regla
-  nueva de este proyecto — ver `AGENTS.md` §Idioma, distinta de la tabla genérica de
-  `procedures/00_Files/agent_contract.md`).
-- [ ] **Decidir qué parte de `docs/` se vuelve pública por la regla de SDD.** El reglamento exige
-  incluir specs, prompts y artefactos de planeación en el repo de submission si se usa un flujo SDD
-  (`brainstorming.md` §9.5). Criterio de aceptación: una carpeta explícita (p. ej.
-  `docs/publico/` o `research/`) documentada en `AGENTS.md` como la única parte de `docs/` que se
-  commitea, sin lógica de negocio de Creva adentro.
+- [ ] **Repo público creado, pero no cumple el criterio de aceptación todavía.**
+  `2026-09-04` — repo creado en https://github.com/LuisAlejandroCR/creva-sealpay, pero con **todo**
+  el contenido de esta carpeta privada pusheado tal cual (`AGENTS.md`, `docs/` completo,
+  `brainstorming.md`, `LEARNINGS.md`), no solo `docs/plan.md`. Decisión explícita del humano el
+  mismo día: exposición intencional, "para dar contexto a los agentes" — no es un accidente a
+  revertir. Revisado por secretos: limpio, ningún valor de key/token expuesto (ver
+  `docs/memoria.md`). Pendiente real: `README.md` público sigue siendo el README de esta carpeta
+  privada (habla de "Preparation lives here", termina con un encabezado `# creva-sealpay` suelto) —
+  no cumple la mezcla 70/30 cara al usuario / cara al desarrollador que pide `AGENTS.md` §Idioma.
+  Criterio de aceptación pendiente: `README.md` público reescrito para describir el producto de
+  submission, no esta carpeta de preparación.
+- [ ] **Decidir qué parte de `docs/` se vuelve pública por la regla de SDD.** Superado en la
+  práctica — el humano ya pusheó `docs/` completo el `2026-09-04` (ver bloque de arriba), no solo
+  `docs/plan.md` como preveía este ítem. Queda abierto para decidir si eso se mantiene así o se
+  poda luego; no hay decisión formal todavía, solo el hecho consumado.
 - [ ] **Responder los dos check-ins de la semana del 09/07** en el hacker dashboard. Criterio de
   aceptación: ambos respondidos — el stake en ETH solo se devuelve si se responde y se entrega
   proyecto (`brainstorming.md` §9.4).
 - [ ] **Asistir a las sesiones de feedback.** Martes 09/08 2–4 PM ET y jueves 09/10 9–11 AM ET.
   Criterio de aceptación: al menos una sesión asistida.
-- [ ] **Armar equipo o confirmar que va solo.** Hoy sin equipo en el dashboard
-  (`brainstorming.md` §8). Criterio de aceptación: decisión tomada antes de repartir áreas de
-  worktree (ver `AGENTS.md` §Colaboración).
+- [x] `2026-09-04` — **Decisión: va con equipo humano + agentes de IA**, no solo. Composición
+  exacta del equipo (¿Soho, Majo, Tam, Ale, Alejo — brainstorming.md §7 — todos confirman?)
+  **sigue sin confirmarse en el dashboard de ETHGlobal** — cada integrante necesita stake propio.
+  Bloque de dashboard reabierto abajo hasta que eso se confirme.
+- [ ] **Confirmar en el dashboard de ETHGlobal quién entra al equipo, con stake propio cada
+  quien.** Decisión de "equipo vs. solo" ya tomada (ver arriba); falta el trámite. Criterio de
+  aceptación: cada integrante aparece en el dashboard con su stake pagado.
+- [ ] **Scaffold del repo público antes de repartir worktrees.** `2026-09-04` — decisión: primero
+  una pasada de scaffold, después se reparten los 4 pasos de la rebanada (`brainstorming.md` §6) en
+  worktrees — no repartir en paralelo sobre un repo vacío. **Stack decidido el 2026-09-04
+  (decisión del humano): app móvil en React Native + Expo**, para publicar en App Store y Play
+  Store **después** del evento; durante el hackathon se demuestra en **Expo Go**. Arquitectura
+  recomendada y aceptada: **dos piezas** — app Expo (UI, alta con Selfie Check, haptics) + gateway
+  Node en Cloud Run (header x402, liquidación en Hedera, llave de firma, proxy a la API de Creva).
+  Razón de partirlo: `@hashgraph/sdk` en RN exige polyfills de crypto/streams, una llave privada
+  dentro del bundle móvil es extraíble, y la pista de Hedera pide **servicio x402 vivo + plataforma
+  que lo consuma** — el gateway es el servicio, la app es la plataforma.
+  Criterio de aceptación: repo con app Expo corriendo en Expo Go + gateway con `.env.example` y
+  scripts de build/test, commiteado por un humano, antes de asignar la primera área de worktree.
+- [ ] **Reutilizar la capa de lógica de `creva_finance`, no la de UI.** `2026-09-04` — inventario
+  hecho leyendo `creva_finance/frontend/`. Reutilizable casi tal cual (TS puro, sin DOM, ~1,100
+  líneas): `lib/format-money.ts`, `format-date.ts`, `format-percent.ts`, `mx-states.ts`,
+  `report-verdicts.ts`, `report-display.ts`, `score-display.ts`, `reminders.ts`, `help-content.ts`.
+  Se porta con dos cambios: `lib/api.ts` (752 líneas, ya tipa las 46 rutas) — `NEXT_PUBLIC_API_URL`
+  → `EXPO_PUBLIC_API_URL`, y el acceso al global `window.Clerk` → `@clerk/clerk-expo`. Se reescribe:
+  todo `components/` y `app/` (JSX de Next con `div` + Tailwind → `View`/`StyleSheet`), mitigado con
+  **NativeWind** para conservar los nombres de clase de Tailwind. Criterio de aceptación: los
+  archivos de la lista viven en el repo nuevo y su suite de tests pasa ahí.
+- [ ] **Haptics con `expo-haptics`.** `2026-09-04` — pedido del humano. Tres puntos:
+  `ImpactFeedbackStyle.Medium` en el botón de pago, `NotificationFeedbackType.Success` cuando el 402
+  liquida y llega el reporte firmado, `NotificationFeedbackType.Error` en verificación de sello
+  inválida — el veredicto del sello es el producto, y el haptic lo entrega antes de que se lea el
+  texto. Criterio de aceptación: los tres estados se sienten en un dispositivo real vía Expo Go, no
+  solo en simulador.
+- [ ] **Publicación en App Store / Play Store — después del evento, no durante.** `2026-09-04`
+  Decisión del humano, respaldada: la revisión de iOS puede consumir sola la ventana que queda
+  (judging el 09/14, corte el 09/16). Durante el evento se demuestra con Expo Go + el video.
+  Criterio de aceptación: `eas submit` corrido después del 2026-09-16; no bloquea la entrega.
+- [ ] **Riesgo Expo Go: módulo nativo no soportado.** En cuanto haga falta un módulo nativo que
+  Expo Go no trae, hay que pasar a **Dev Client** (`eas build --profile development`). Mitigación:
+  medio día presupuestado para eso, y descubrirlo temprano — no el 09/13. Criterio de aceptación:
+  probado en Expo Go que Selfie Check (WebView), deep link a World App y `expo-haptics` funcionan
+  sin Dev Client, antes del día 3.
 - [ ] **Guion y grabación del video demo.** Debe caber en 3 minutos (el límite más estricto, el
   Q&A en vivo del 09/14) y servir también para el rango de 2–5 min que piden los patrocinadores
   (`brainstorming.md` §9.6). Criterio de aceptación: guion escrito, cronometrado, y video grabado
