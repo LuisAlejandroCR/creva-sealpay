@@ -88,6 +88,37 @@ déjalas listas ahora para no improvisarlas bajo presión de tiempo.
    `docs/plan.md`. Si un archivo compartido (config, dependencias, `README.md`) necesita tocarse,
    se anuncia antes, no después.
 
+### Dos roles especiales — Auditor y Solver (2026-09-04, decisión del humano)
+
+Se activan **después** de que los worktrees paralelos de una tanda terminan, nunca en paralelo con
+ellos mismos.
+
+**Solver** — corre primero. Un worktree propio (o la rama de integración), lee las N ramas
+terminadas y **rellena lo que quedó entre agentes**: un tipo que un worktree mockeó y otro define
+de verdad, una interfaz que no calza, un import roto entre `app/lib/` y `app/features/`. No inventa
+funcionalidad nueva fuera de ese acoplamiento — si encuentra un hueco de producto (no de
+integración), lo reporta como bloque nuevo en `docs/plan.md`, no lo improvisa.
+
+**Auditor** — corre después del Solver, y es el **único rol autorizado a mergear y pushear a
+`main` él mismo**, sin esperar al humano — la única excepción a "nadie pushea a `main`" de todo
+este documento. Solo lo hace si **las cuatro condiciones se cumplen a la vez**, verificadas por él
+mismo, no asumidas:
+
+1. El `[VERIFY]` de cada rama corrió de verdad y su salida real (no "debería pasar") quedó pegada
+   en el `[REPORT]` de esa rama.
+2. Cada agente tocó solo lo que su `[POSEES]` le asignaba — el Auditor corre
+   `git diff main...<rama> --stat` y lo compara contra `[POSEES]` de cada prompt.
+3. `docs/plan.md` y `docs/memoria.md` están actualizados en el mismo lote que el código, con qué
+   se hizo / qué no se verificó / por qué (regla dura de §Fuente y contexto).
+4. Ningún commit lleva `Co-Authored-By:` ni trailer, y el mensaje es una línea Conventional
+   Commits en inglés.
+
+**Si cualquiera falla:** el Auditor **no mergea**. Reporta qué condición falló, en qué rama, y
+deja el bloque bloqueado en `docs/plan.md` — nunca fuerza el merge "porque ya casi".
+
+El Auditor es siempre un **agente en la nube** (nunca local — un agente local no pushea, ni
+siquiera con este rol). Hereda el resto de límites duros de la plantilla de abajo.
+
 ### Plantilla de prompt para cada subagente
 
 Copiar y llenar, uno por worktree. Vale igual para Claude Code, Codex u opencode — todos leen este

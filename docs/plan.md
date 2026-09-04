@@ -43,18 +43,6 @@ bloque. Esta tabla es solo el checklist.
 - [ ] **Confirmar en el dashboard de ETHGlobal quién entra al equipo, con stake propio cada
   quien.** Decisión de "equipo vs. solo" ya tomada (ver arriba); falta el trámite. Criterio de
   aceptación: cada integrante aparece en el dashboard con su stake pagado.
-- [ ] **Scaffold del repo público antes de repartir worktrees.** `2026-09-04` — decisión: primero
-  una pasada de scaffold, después se reparten los 4 pasos de la rebanada (`brainstorming.md` §6) en
-  worktrees — no repartir en paralelo sobre un repo vacío. **Stack decidido el 2026-09-04
-  (decisión del humano): app móvil en React Native + Expo**, para publicar en App Store y Play
-  Store **después** del evento; durante el hackathon se demuestra en **Expo Go**. Arquitectura
-  recomendada y aceptada: **dos piezas** — app Expo (UI, alta con Selfie Check, haptics) + gateway
-  Node en Cloud Run (header x402, liquidación en Hedera, llave de firma, proxy a la API de Creva).
-  Razón de partirlo: `@hashgraph/sdk` en RN exige polyfills de crypto/streams, una llave privada
-  dentro del bundle móvil es extraíble, y la pista de Hedera pide **servicio x402 vivo + plataforma
-  que lo consuma** — el gateway es el servicio, la app es la plataforma.
-  Criterio de aceptación: repo con app Expo corriendo en Expo Go + gateway con `.env.example` y
-  scripts de build/test, commiteado por un humano, antes de asignar la primera área de worktree.
 - [ ] **Reutilizar la capa de lógica de `creva_finance`, no la de UI.** `2026-09-04` — inventario
   hecho leyendo `creva_finance/frontend/`. Reutilizable casi tal cual (TS puro, sin DOM, ~1,100
   líneas): `lib/format-money.ts`, `format-date.ts`, `format-percent.ts`, `mx-states.ts`,
@@ -74,6 +62,14 @@ bloque. Esta tabla es solo el checklist.
   Decisión del humano, respaldada: la revisión de iOS puede consumir sola la ventana que queda
   (judging el 09/14, corte el 09/16). Durante el evento se demuestra con Expo Go + el video.
   Criterio de aceptación: `eas submit` corrido después del 2026-09-16; no bloquea la entrega.
+- [ ] **Dos roles nuevos definidos: Auditor y Solver.** `2026-09-04` — `AGENTS.md` §Roles
+  especiales. Solver reconcilia las 4 ramas paralelas (worktree `integration-solver`), corre
+  primero. Auditor —**siempre agente en la nube, nunca local**— es la única excepción a "nadie
+  pushea a `main`" de todo el documento: verifica 4 condiciones él mismo (VERIFY real, `POSEES`
+  respetado, docs actualizados, sin `Co-Authored-By:`) y solo mergea/pushea si las cuatro se
+  cumplen; si alguna falla, no mergea y reporta. Prompts 5 (Solver) y 6 (Auditor) redactados,
+  sin ejecutar todavía — dependen de que los 4 worktrees paralelos (bloque de arriba) terminen
+  primero.
 - [ ] **5 prompts de subagente redactados y listos para dispatch.** `2026-09-04` — 0)
   scaffold monorepo (secuencial, bloqueante), 1) gateway x402+Hedera, 2) Selfie Check onboarding,
   3) port de lógica de `creva_finance`, 4) loop del agente + haptics. Los 4 últimos son worktrees
@@ -119,6 +115,15 @@ bloque. Esta tabla es solo el checklist.
 - [x] `2026-09-04` — `engram` wireado para **opencode** (plugin instalado, listo). Wireado para
   **Codex** solo en config MCP + instrucciones — el plugin/hooks queda como bloque abierto porque
   el CLI de Codex no está instalado aquí.
+- [x] `2026-09-04` — **Scaffold del repo público (bloque 0), rama `scaffold-monorepo`, agente
+  local, sin commitear.** `app/` (Expo SDK 57 + TypeScript + NativeWind 4, `App.tsx` con clases
+  Tailwind probadas) y `gateway/` (Node + TypeScript + Express, `GET /health`) creados. Ambos con
+  `.env.example` (valores placeholder), `typecheck` verde, y servidor levantado y probado por HTTP
+  (`curl /health` → `{"status":"ok"}`; Metro bundleó `index.ts` sin error, bundle iOS devolvió
+  200) — detalle completo en `docs/memoria.md` 2026-09-04. **⏳ pendiente dentro de este mismo
+  bloque:** prueba real en dispositivo físico vía Expo Go — esta sesión solo verificó que Metro
+  bundlea y sirve por HTTP, sin emulador ni dispositivo disponible. Comando de commit dejado listo
+  para el humano, no ejecutado (regla de agente local, `AGENTS.md` §Colaboración punto 6).
 
 ## Verify
 
