@@ -74,6 +74,12 @@ bloque. Esta tabla es solo el checklist.
   Decisión del humano, respaldada: la revisión de iOS puede consumir sola la ventana que queda
   (judging el 09/14, corte el 09/16). Durante el evento se demuestra con Expo Go + el video.
   Criterio de aceptación: `eas submit` corrido después del 2026-09-16; no bloquea la entrega.
+- [ ] **5 prompts de subagente redactados y listos para dispatch.** `2026-09-04` — 0)
+  scaffold monorepo (secuencial, bloqueante), 1) gateway x402+Hedera, 2) Selfie Check onboarding,
+  3) port de lógica de `creva_finance`, 4) loop del agente + haptics. Los 4 últimos son worktrees
+  paralelos, dentro del máximo de `AGENTS.md` §Colaboración punto 5. Prompts completos en la
+  bitácora de conversación — pendiente: nadie los ha ejecutado todavía. Criterio de aceptación:
+  bloque 0 corrido y mergeado a `main` antes de dispatch de 1-4.
 - [ ] **Riesgo Expo Go: módulo nativo no soportado.** En cuanto haga falta un módulo nativo que
   Expo Go no trae, hay que pasar a **Dev Client** (`eas build --profile development`). Mitigación:
   medio día presupuestado para eso, y descubrirlo temprano — no el 09/13. Criterio de aceptación:
