@@ -3,8 +3,53 @@ import { config } from "./config.js";
 import type {
   FacilitatorSettleResult,
   FacilitatorVerifyResult,
+  PaymentPayload,
   PaymentRequirements,
 } from "./types.js";
+
+function decodePaymentHeader(paymentHeader: string): PaymentPayload {
+  try {
+    return JSON.parse(Buffer.from(paymentHeader, "base64url").toString("utf8")) as PaymentPayload;
+  } catch {
+    try {
+      return JSON.parse(Buffer.from(paymentHeader, "base64").toString("utf8")) as PaymentPayload;
+    } catch {
+      return paymentHeader;
+    }
+  }
+}
+
+function facilitatorHeaders() {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (config.facilitatorAuthToken) {
+    headers.authorization = `Bearer ${config.facilitatorAuthToken}`;
+  }
+  return headers;
+}
+
+function facilitatorRequirements(requirements: PaymentRequirements) {
+  if (config.x402Version < 2) {
+    return requirements;
+  }
+
+  const { maxAmountRequired, ...rest } = requirements;
+  return {
+    ...rest,
+    amount: maxAmountRequired,
+    extra: {
+      ...requirements.extra,
+      ...(config.facilitatorFeePayer ? { feePayer: config.facilitatorFeePayer } : {}),
+    },
+  };
+}
+
+function facilitatorBody(paymentHeader: string, requirements: PaymentRequirements) {
+  return JSON.stringify({
+    x402Version: config.x402Version,
+    paymentPayload: decodePaymentHeader(paymentHeader),
+    paymentRequirements: facilitatorRequirements(requirements),
+  });
+}
 
 export async function verifyPayment(
   paymentHeader: string,
@@ -12,8 +57,8 @@ export async function verifyPayment(
 ): Promise<FacilitatorVerifyResult> {
   const res = await fetch(`${config.facilitatorUrl}/verify`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ paymentHeader, paymentRequirements: requirements }),
+    headers: facilitatorHeaders(),
+    body: facilitatorBody(paymentHeader, requirements),
   });
 
   if (!res.ok) {
@@ -29,8 +74,8 @@ export async function settlePayment(
 ): Promise<FacilitatorSettleResult> {
   const res = await fetch(`${config.facilitatorUrl}/settle`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ paymentHeader, paymentRequirements: requirements }),
+    headers: facilitatorHeaders(),
+    body: facilitatorBody(paymentHeader, requirements),
   });
 
   if (!res.ok) {

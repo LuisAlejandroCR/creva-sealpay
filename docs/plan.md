@@ -26,7 +26,12 @@ bloque. Esta tabla es solo el checklist.
   credenciales reales), así que el criterio "una petición pagada real" que pide la pista de Hedera
   (`brainstorming.md` §9) sigue sin ejercerse. Ver `docs/memoria.md` para el detalle completo.
   Criterio de aceptación: una request real liquidada contra Hedera testnet (vía facilitador
-  BlockyDevs o Bazantic), grabada como evidencia.
+  BlockyDevs o Bazantic), grabada como evidencia. **Actualización `2026-09-04`, worktree
+  `feature-hedera-facilitator`:** el cliente del facilitador ya habla con el formato vivo de
+  BlockyDevs testnet (`https://api.testnet.blocky402.com`, `x402Version: 2`, `hedera:testnet`,
+  `amount`, `extra.feePayer=0.0.7162784`) sin cambiar la interfaz pública de `x402-gate.ts`; la
+  prueba real sigue pendiente porque no hay `.env` con llave pagadora ni gateway/JWT de Bazantic
+  creado en este worktree. No hay tx hash todavía.
 
 - [ ] **Repo público creado, pero no cumple el criterio de aceptación todavía.**
   `2026-09-04` — repo creado en https://github.com/LuisAlejandroCR/creva-sealpay, pero con **todo**
