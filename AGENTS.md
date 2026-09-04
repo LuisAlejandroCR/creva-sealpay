@@ -123,6 +123,17 @@ mismo, no asumidas:
 **Si cualquiera falla:** el Auditor **no mergea**. Reporta qué condición falló, en qué rama, y
 deja el bloque bloqueado en `docs/plan.md` — nunca fuerza el merge "porque ya casi".
 
+**Excepción — precondición de merge faltante, no un condición fallida en la rama objetivo.**
+Regla escogida, 2026-09-04, tras el primer caso real: si el bloqueo es que `main` le falta una
+rama previa que `docs/plan.md` exige como precondición (p. ej. `scaffold-monorepo` sin mergear
+antes de mergear `integration-solver`), el Auditor **no se detiene a preguntar** — aplica las
+mismas cuatro condiciones a esa rama previa, y si las cumple, la mergea a `main` primero, y
+**después** sigue con la rama que sí tenía pedido de auditoría. Se documenta cada merge por
+separado en `docs/plan.md`/`docs/memoria.md`, con cuál rama y en qué orden. Esto sigue siendo la
+misma autoridad de la sección de arriba, aplicada dos veces en la secuencia correcta — no una
+autoridad nueva. Si la rama previa **tampoco** cumple las cuatro condiciones, ahí sí se detiene y
+reporta, igual que cualquier otro bloqueo.
+
 El Auditor es siempre un **agente en la nube** (nunca local — un agente local no pushea, ni
 siquiera con este rol). Hereda el resto de límites duros de la plantilla de abajo.
 
