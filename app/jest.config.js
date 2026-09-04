@@ -18,6 +18,5 @@ module.exports = {
     '**/test/unit/**/*.spec.ts',
     '**/test/fuzz/**/*.fuzz.spec.ts',
     '**/test/invariant/**/*.invariant.spec.ts',
-    '**/features/**/__tests__/**/*.test.ts?(x)',
   ],
 }
