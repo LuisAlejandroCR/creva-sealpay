@@ -16,6 +16,22 @@ bloque. Esta tabla es solo el checklist.
 
 ## Abiertos
 
+- [ ] **Corrección — dos commits de merge en `main` con mensaje multi-línea, viola regla de
+  cabecera de commits.** `2026-09-04` — auditoría post-merge de `integration-solver` (rol
+  Auditor, condición 4). `main` en `9cda6ac` tiene dos commits de merge con cuerpo multi-línea
+  generado automáticamente por Git al resolver conflictos: `931b4dfc` ("Merge remote-tracking
+  branch 'origin/feature-logic-port' into integration-solver" + `# Conflicts: app/package-lock.json,
+  app/package.json, app/tsconfig.json, docs/memoria.md`) y `2d73650` ("Merge remote-tracking
+  branch 'origin/main' into integration-solver" + `# Conflicts: docs/plan.md`). Ningún trailer
+  `Co-Authored-By` encontrado — eso sí pasa. No se deshace el merge (regla del rol Auditor v2):
+  esto es deuda de higiene de commits, no un problema funcional — VERIFY (tsc/eslint/jest/vitest
+  en `app/` y `gateway/`, todo verde, re-corrido por el Auditor) y POSEES (diff de 59 archivos,
+  todos dentro del alcance de las 4 ramas + trabajo de reconciliación del Solver) pasaron limpio.
+  Criterio de aceptación: el próximo agente que toque `git merge` en este repo evita el mensaje
+  por defecto de Git en merges con conflicto (`git commit` explícito de una sola línea después de
+  resolver, en vez de aceptar el template). No aplica a estos dos commits ya en `main` — quedan
+  como está, documentados aquí.
+
 - [ ] **Gateway x402/Hedera: falta pago real en testnet y conexión a un facilitador vivo.**
   `2026-09-04` — worktree `feature-gateway-x402`, agente local. `POST /creva-score/report` y
   `POST /creva-score/verify` quedaron gateados por HTTP 402 (`gateway/src/x402-gate.ts`),
