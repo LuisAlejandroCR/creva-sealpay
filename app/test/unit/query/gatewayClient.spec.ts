@@ -1,4 +1,4 @@
-import { requestSignal } from "../gatewayClient";
+import { requestSignal } from "../../../features/query/gatewayClient";
 
 describe("requestSignal", () => {
   it("returns 402 without payment", async () => {

@@ -133,14 +133,6 @@ bloque. Esta tabla es solo el checklist.
   v2 (`AGENTS.md` §Colaboración) — sin esperar Auditor. El Auditor revisa después, no antes; ver
   `docs/memoria.md` 2026-09-04 (entrada "Solver (roles v2)") para el detalle completo y para la
   nota sobre los `git commit` que el Solver corrió para completar merges con conflicto real.
-- [ ] **Tests de `feature-agent-loop` sin mover a la convención `test/{unit,fuzz,invariant}`.**
-  `2026-09-04` — quedaron en `app/features/query/__tests__/` y `app/features/verify/__tests__/`
-  en vez de `app/test/unit/**`, a diferencia de `feature-selfie-check` y `feature-logic-port` que
-  sí siguen la convención de `AGENTS.md` §Tests. El `jest.config.js` unificado por el Solver los
-  sigue corriendo igual (`testMatch` ampliado, ver `docs/memoria.md` 2026-09-04), así que no
-  bloquea nada hoy — pero es deuda de convención, no de funcionalidad. Criterio de aceptación:
-  movidos a `app/test/{unit,fuzz,invariant}/query|verify/` y `testMatch` recortado de vuelta a
-  solo esa carpeta.
 - [ ] **Corrección de orden de dispatch — los 6 prompts se lanzaron casi a la vez, no en
   cascada.** `2026-09-04` — el plan original decía "0 corre y mergea a `main`, después 1-4 en
   paralelo, después 5, después 6". En la práctica se dispararon casi todos juntos:
@@ -216,6 +208,16 @@ bloque. Esta tabla es solo el checklist.
   manual anotado en `docs/memoria.md` 2026-09-04.
 
 ## Cerrados
+
+- [x] `2026-09-04` — **Tests de `feature-agent-loop` movidos a la convención `app/test/{unit,fuzz,invariant}`.**
+  Los tests legacy de `app/features/query/__tests__/` y `app/features/verify/__tests__/` quedaron
+  movidos a `app/test/unit/query/` y `app/test/unit/verify/`; no queda ningún test bajo
+  `app/features/**/__tests__/`. Se agregaron suites `fuzz` e `invariant` para query y verify:
+  query nunca entrega un reporte pagado sin el challenge x402 previo; verify rechaza como inválido
+  un reporte cuyo folio fue eliminado después de obtenerse. `app/jest.config.js` volvió a mirar
+  solo `app/test/{unit,fuzz,invariant}`. VERIFY: `npm run typecheck` limpio y
+  `npm test -- unit fuzz invariant` → 20 suites / 104 tests, todos pasan; antes del movimiento el
+  estado documentado era 16 suites / 100 tests.
 
 - [x] `2026-09-01` — Aplicación a Continuity enviada, con ENS incluido.
 - [x] `2026-09-03` — Stake de 0.025 ETH pagado.

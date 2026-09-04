@@ -4,6 +4,23 @@
 
 # Memoria — ETHOnline 2026
 
+## 2026-09-04 — Tests de feature-agent-loop en `app/test/{unit,fuzz,invariant}`
+
+**Qué se hizo:**
+- Worktree correcto: `.claude/worktrees/feature-agent-loop-tests`, rama `feature-agent-loop-tests`, base `main` en `979f94d`.
+- `app/features/query/__tests__/gatewayClient.test.ts` y `app/features/verify/__tests__/sealClient.test.ts` se movieron a `app/test/unit/query/gatewayClient.spec.ts` y `app/test/unit/verify/sealClient.spec.ts`.
+- `app/jest.config.js` quedó con `testMatch` limitado a `**/test/unit/**/*.spec.ts`, `**/test/fuzz/**/*.fuzz.spec.ts` y `**/test/invariant/**/*.invariant.spec.ts`; ya no necesita cubrir `features/**/__tests__`.
+- Se agregaron suites `fuzz` para query y verify con `fast-check`: entradas arbitrarias de negocio siempre producen un challenge x402 bien formado antes de pago, y folios arbitrarios devuelven un reporte de sello con forma estable.
+- Se agregaron invariants para ambas pantallas: query nunca devuelve `200` sin el challenge/payment previo; verify nunca valida un reporte cuyo folio fue eliminado después de obtenerse.
+- Verificación real en `app/`: `npm run typecheck` limpio; `npm test -- unit fuzz invariant` pasó con 20 suites / 104 tests. El conteo documentado antes del movimiento era 16 suites / 100 tests, así que el conteo quedó más alto.
+
+**Qué NO se verificó, y por qué:**
+- No se verificó el flujo contra gateway real, Hedera testnet, Expo Go ni un dispositivo físico; este bloque solo movía y completaba tests de convención para los mocks de `feature-agent-loop`, sin cambios de lógica.
+- No se corrigió la limitación del mock `verifySealSignature`, que solo recibe folio y no un payload firmado completo; cambiar ese contrato tocaría lógica de `app/features/verify/**`, fuera de alcance de este lote.
+- `npm install` dejó 10 vulnerabilidades moderadas reportadas por npm audit; no se corrió `npm audit fix` porque modificar dependencias queda fuera de este bloque.
+
+**Dónde queda el pendiente:** los pendientes de integración real/Hedera/Expo Go siguen en los bloques abiertos ya existentes de `docs/plan.md`; la deuda puntual de ubicación de tests de `feature-agent-loop` quedó cerrada.
+
 ## 2026-09-04 — Gateway conectado al formato vivo de BlockyDevs, sin tx real todavía
 
 **Qué se hizo:**

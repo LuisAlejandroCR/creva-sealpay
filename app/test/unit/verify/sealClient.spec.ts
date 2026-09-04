@@ -1,4 +1,4 @@
-import { fetchSealedReport, verifySealSignature } from "../sealClient";
+import { fetchSealedReport, verifySealSignature } from "../../../features/verify/sealClient";
 
 describe("fetchSealedReport", () => {
   it("returns exactly five verdicts", async () => {
