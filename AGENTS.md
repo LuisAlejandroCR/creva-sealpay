@@ -215,6 +215,36 @@ AGENTS.md".
 [COMMIT] feat: add priced x402 endpoint gated by Selfie Check proof
 ```
 
+## Tests — estructura obligatoria, `unit` + `fuzz` + `invariant`
+
+Decisión del humano, 2026-09-04: **todo `[VERIFY]` de todo prompt de subagente corre los tres**,
+no solo unit. Convención heredada de `creva_finance/backend/test/` (mismo patrón probado, no
+inventado aquí):
+
+```text
+gateway/test/unit/<nombre>.spec.ts             — Jest, comportamiento normal
+gateway/test/fuzz/<nombre>.fuzz.spec.ts        — Jest + fast-check, entradas hostiles/aleatorias
+gateway/test/invariant/<propiedad>.invariant.spec.ts — Jest + fast-check, una propiedad que
+                                                        NUNCA puede romperse, sea cual sea la entrada
+app/test/unit/…      · app/test/fuzz/….fuzz.spec.ts      · app/test/invariant/….invariant.spec.ts
+```
+
+* **unit** — el camino feliz y los bordes conocidos. Nada nuevo respecto al resto del proyecto.
+* **fuzz** — genera entradas hostiles/aleatorias con `fast-check` (`fc.assert(fc.property(...))`)
+  contra código que toca el borde de confianza: parseo de respuestas HTTP, headers, payloads del
+  facilitador de Hedera, la carga de x402. La propiedad mínima: **nunca truena**, siempre devuelve
+  algo bien formado. Ver `croma-client.fuzz.spec.ts` como plantilla.
+* **invariant** — una propiedad de seguridad que debe sostenerse pase lo que pase, con el mismo
+  `fast-check`. Ejemplos concretos para este proyecto: *"sin pago válido de Hedera, la ruta nunca
+  responde 200"*, *"un reporte alterado nunca verifica como válido aunque la firma sea de Creva"*
+  (igual que `forger-cannot-sign.invariant.spec.ts` del backend de Creva, adaptado al gateway),
+  *"el gateway nunca reenvía la llave de firma ni el JWT del usuario en el cuerpo de la respuesta"*.
+  Nombre del archivo = la propiedad en inglés, no el módulo que la prueba.
+
+**Dónde se marca cumplido:** el `[VERIFY]` de cada prompt de subagente corre
+`npm test -- unit fuzz invariant` (o el patrón equivalente de Jest) y pega la salida real — un
+`[VERIFY]` que solo corrió `unit` no cumple esta regla, aunque los tests unitarios pasen.
+
 ## Los 8 bloques de trabajo
 
 Evaluar todo cambio no trivial contra: Seguridad · Código limpio · Código muerto · Arquitectura ·

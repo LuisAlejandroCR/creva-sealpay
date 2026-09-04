@@ -85,6 +85,14 @@ bloque. Esta tabla es solo el checklist.
   arrancan hasta que las 4 ramas `feature-*` existan en `origin` con su `[REPORT]` completo.
   Criterio de aceptación: `scaffold-monorepo` mergeado a `main` (vía Auditor o humano) antes de
   que el Auditor mergee cualquier `feature-*`.
+- [ ] **Estructura de tests obligatoria: `unit` + `fuzz` + `invariant`.** `2026-09-04` — decisión
+  del humano, aplicada en `AGENTS.md` §Tests. Convención heredada de
+  `creva_finance/backend/test/{unit,fuzz,invariant}` (Jest + `fast-check`), replicada en
+  `gateway/test/` y `app/test/`. Relayado a los 4 agentes de worktree activos (1-4) con un target
+  concreto de fuzz/invariant por área. Pendiente: agentes 1 y 2 ya habían pusheado antes de este
+  mensaje — necesitan un commit de seguimiento, no reescribir el suyo. Criterio de aceptación:
+  cada rama `feature-*` tiene las tres carpetas con al menos un archivo antes de que el Auditor
+  la mergee.
 - [ ] **`feature-agent-loop` con base rota — necesita rebase.** `2026-09-04` — su worktree local
   quedó en el commit `b70dace` (uno de docs, previo a que el scaffold real `f8b751d` existiera),
   con un `app/` propio sin trackear en vez del scaffold real. Diverge de `feature-gateway-x402` y
