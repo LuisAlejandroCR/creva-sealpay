@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Estado y hoja de ruta — ETHOnline 2026",
+    "output": "docs/estado.html",
+    "viewBox": [980, 566],
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "main", "label": "Fases del proyecto" }
+  ],
+  "states": [
+    { "id": "applied", "type": "start", "label": "Solicitud enviada", "sublabel": "Continuity, con ENS", "lane": "main", "col": 0, "step": "01", "tag": "hecho" },
+    { "id": "prep_ready", "type": "success", "label": "Prep lista", "sublabel": "stake + spec + Bazantic", "lane": "main", "col": 1, "step": "02", "tag": "hecho" },
+    { "id": "build", "type": "active", "label": "Repo y feature", "sublabel": "Selfie Check + x402", "lane": "main", "col": 2, "step": "03", "tag": "en curso" },
+    { "id": "judging_prep", "type": "waiting", "label": "Prep de judging", "sublabel": "checkpoints + feedback", "lane": "main", "col": 3, "step": "04", "tag": "pendiente" },
+    { "id": "submission", "type": "waiting", "label": "Entrega y Q&A", "sublabel": "3 min, 09/14 → 09/16", "lane": "main", "col": 4, "step": "05", "tag": "pendiente" }
+  ],
+  "transitions": [],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Hecho hasta hoy",
+      "items": [
+        "Solicitud Continuity 09-01, con ENS",
+        "Stake + spec + acceso a Bazantic"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Por hacer",
+      "items": [
+        "Crear el repo público",
+        "Selfie Check + x402 en Hedera"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Por decidir",
+      "items": [
+        "Equipo o solo — hoy sin equipo",
+        "Qué parte de docs/ se publica"
+      ]
+    }
+  ]
+}
