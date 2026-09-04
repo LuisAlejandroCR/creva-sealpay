@@ -37,8 +37,5 @@
     "typecheck": "tsc --noEmit",
     "test": "jest"
   },
-  "jest": {
-    "preset": "jest-expo"
-  },
   "private": true
 }

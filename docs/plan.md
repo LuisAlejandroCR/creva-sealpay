@@ -55,15 +55,10 @@ bloque. Esta tabla es solo el checklist.
 - [ ] **Confirmar en el dashboard de ETHGlobal quién entra al equipo, con stake propio cada
   quien.** Decisión de "equipo vs. solo" ya tomada (ver arriba); falta el trámite. Criterio de
   aceptación: cada integrante aparece en el dashboard con su stake pagado.
-- [ ] **Reutilizar la capa de lógica de `creva_finance`, no la de UI.** `2026-09-04` — inventario
-  hecho leyendo `creva_finance/frontend/`. Reutilizable casi tal cual (TS puro, sin DOM, ~1,100
-  líneas): `lib/format-money.ts`, `format-date.ts`, `format-percent.ts`, `mx-states.ts`,
-  `report-verdicts.ts`, `report-display.ts`, `score-display.ts`, `reminders.ts`, `help-content.ts`.
-  Se porta con dos cambios: `lib/api.ts` (752 líneas, ya tipa las 46 rutas) — `NEXT_PUBLIC_API_URL`
-  → `EXPO_PUBLIC_API_URL`, y el acceso al global `window.Clerk` → `@clerk/clerk-expo`. Se reescribe:
-  todo `components/` y `app/` (JSX de Next con `div` + Tailwind → `View`/`StyleSheet`), mitigado con
-  **NativeWind** para conservar los nombres de clase de Tailwind. Criterio de aceptación: los
-  archivos de la lista viven en el repo nuevo y su suite de tests pasa ahí.
+- [ ] **Reutilizar la capa de lógica de `creva_finance`, no la de UI.** — ver bloque cerrado
+  abajo (2026-09-04). Se reescribe: todo `components/` y `app/features/` de Next (JSX con `div` +
+  Tailwind → `View`/`StyleSheet`), mitigado con **NativeWind** para conservar los nombres de clase
+  de Tailwind — sigue abierto, es trabajo de otro agente/bloque.
 - [ ] **Haptics con `expo-haptics`.** `2026-09-04` — pedido del humano. Tres puntos:
   `ImpactFeedbackStyle.Medium` en el botón de pago, `NotificationFeedbackType.Success` cuando el 402
   liquida y llega el reporte firmado, `NotificationFeedbackType.Error` en verificación de sello
@@ -115,7 +110,9 @@ bloque. Esta tabla es solo el checklist.
   concreto de fuzz/invariant por área. Pendiente: agentes 1 y 2 ya habían pusheado antes de este
   mensaje — necesitan un commit de seguimiento, no reescribir el suyo. Criterio de aceptación:
   cada rama `feature-*` tiene las tres carpetas con al menos un archivo antes de que el Auditor
-  la mergee.
+  la mergee. **`feature-logic-port` cumplido** — `app/test/{unit,fuzz,invariant}` con 11 suites,
+  `npm test -- unit fuzz invariant` verde (detalle en el bloque cerrado de arriba y en
+  `docs/memoria.md`). Ramas 1, 2 y 4 sin verificar desde esta sesión.
 - [ ] **`feature-agent-loop` con base rota — necesita rebase.** `2026-09-04` — su worktree local
   quedó en el commit `b70dace` (uno de docs, previo a que el scaffold real `f8b751d` existiera),
   con un `app/` propio sin trackear en vez del scaffold real. Diverge de `feature-gateway-x402` y
@@ -190,6 +187,24 @@ bloque. Esta tabla es solo el checklist.
   bloque:** prueba real en dispositivo físico vía Expo Go — esta sesión solo verificó que Metro
   bundlea y sirve por HTTP, sin emulador ni dispositivo disponible. Comando de commit dejado listo
   para el humano, no ejecutado (regla de agente local, `AGENTS.md` §Colaboración punto 6).
+- [x] `2026-09-04` — **Bloque 3: port de la capa de lógica de `creva_finance` a `app/lib/`, rama
+  `feature-logic-port`, agente local.** Los 9 archivos puros portados byte a byte (verificado con
+  `diff`); `lib/api.ts` (752 líneas, 46 rutas) portado con los dos cambios del encargo
+  (`NEXT_PUBLIC_API_URL` → `EXPO_PUBLIC_API_URL`, fallback `window.Clerk` eliminado — no existe
+  equivalente en `@clerk/clerk-expo`, confirmado contra su documentación). 9 suites de test
+  portadas y adaptadas donde cubrían código que no existe en este repo (fallback de Clerk,
+  `localStorage`, escaneo de `app/`+`components/`, rutas de Next App Router). `npm run typecheck`
+  y `npm test -- lib` verdes: 85/85 tests, salida real en `docs/memoria.md`. Infra de test
+  (`jest`+`ts-jest`) agregada porque el scaffold no la traía. **Actualizado en el mismo bloque**
+  tras traer la regla de `AGENTS.md` §Tests (`unit`+`fuzz`+`invariant`, ver bloque de abajo):
+  tests reestructurados a `app/test/{unit,fuzz,invariant}`, `fast-check` agregado,
+  `no-stale-authorization-header.invariant.spec.ts` y `response-parsing.fuzz.spec.ts` escritos —
+  el fuzz encontró y se corrigió un `TypeError` real en `lib/api.ts` (`body.message` sobre un
+  cuerpo JSON `null`), detalle en `docs/memoria.md`. `npm test -- unit fuzz invariant` verde:
+  11 suites, 88 tests. Comando de commit dejado listo para el humano, no ejecutado.
+  **⏳ pendiente:** integración real de `@clerk/clerk-expo` (paquete + `AuthGuard` +
+  `setSessionSource`) es de `app/features/**`, no de este bloque; merge de `scaffold-monorepo` a
+  `main` sigue sin ocurrir, este branch se basó directo en `scaffold-monorepo`.
 
 ## Verify
 

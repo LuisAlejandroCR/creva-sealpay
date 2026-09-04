@@ -358,3 +358,140 @@ equivocada (`main` en vez de `scaffold-monorepo`), van a tener el mismo problema
 - `fast-check` agregado a `app/package.json` devDependencies.
 - `npm test -- unit fuzz invariant` → `Test Suites: 3 passed, Tests: 5 passed` (salida real
   pegada en el reporte de la conversación, no repetida aquí).
+
+## 2026-09-04 — Bloque 3: port de la capa de lógica de `creva_finance` (rama `feature-logic-port`, agente local)
+
+**Qué se hizo:**
+- Worktree `feature-logic-port` creado en esta sesión, base `scaffold-monorepo` (confirmado en la
+  bitácora anterior como la base correcta, no `main` — el merge de `scaffold-monorepo` a `main`
+  sigue sin ocurrir).
+- Los 9 archivos puros de `creva_finance/frontend/lib/` copiados a `app/lib/` **byte a byte,
+  verificado con `diff`**: `format-money.ts`, `format-date.ts`, `format-percent.ts`,
+  `mx-states.ts`, `report-verdicts.ts`, `report-display.ts`, `score-display.ts`, `reminders.ts`,
+  `help-content.ts`.
+- `app/lib/api.ts` (752 líneas) portado con exactamente los dos cambios del encargo:
+  `NEXT_PUBLIC_API_URL` → `EXPO_PUBLIC_API_URL`, y el fallback a `window.Clerk` global eliminado
+  (`clerkGlobal()` y su uso en `getToken()`/`cacheKey()` borrados) — investigado con `WebFetch`
+  contra la documentación de Expo de Clerk: `@clerk/clerk-expo` no expone ningún singleton global
+  equivalente a `window.Clerk` de Next, solo hooks de React (`useAuth`, `useUser`, `useClerk`).
+  `sessionSource` (patrón `SessionSource`, registrado por el futuro `AuthGuard` de
+  `app/features/**`) queda como única fuente de token; sin sesión registrada, sin encabezado — el
+  mismo comportamiento de "sesión muerta → 401", solo sin el atajo pre-mount que Next necesitaba y
+  RN no tiene.
+- `app/tsconfig.json`: agregado `"paths": { "@/*": ["./*"] }` (sin `baseUrl`, deprecado en TS 6) y
+  `"types": ["jest", "node"]` — el primero para que `report-verdicts.ts` importe `@/lib/api` sin
+  tocarlo (import no listado entre los dos cambios permitidos), el segundo porque sin él `tsc
+  --noEmit` no resolvía los globals de Jest en los `.test.ts` pese a tener `@types/jest` instalado.
+- Infraestructura de test añadida (no existía en el scaffold): `jest` + `ts-jest` + `@types/jest`
+  como devDependencies, `app/jest.config.js` (`testEnvironment: 'node'`, sin renderer de RN — todo
+  lo portado es TS puro), script `test` en `app/package.json`.
+- 9 suites de test portadas de `creva_finance/frontend/test/lib/`, adaptadas donde el código que
+  cubrían no existe en este port:
+  - `api.test.ts`: se quitaron los casos de `window.Clerk` global y de purga de `localStorage`
+    (`creva_token`) — no hay navegador ni `lib/legacy-session.ts` en este repo. La cobertura de
+    `SessionSource` y aislamiento de caché por usuaria quedó intacta.
+  - `format-money.test.ts` y `format-date.test.ts`: se quitó el escaneo cruzado de
+    `app/`+`components/`+`lib/` buscando formateadores duplicados — `app/features` (las pantallas)
+    no existe todavía, es de otro agente.
+  - `score-display.test.ts`: el test "sin cortes de negocio" ahora lee `lib/score-display.ts` de
+    este repo en vez de `../../lib/score-display.ts` del original.
+  - `help-content.test.ts`: se quitó la verificación de rutas contra `app/<href>/page.tsx`
+    (convención de Next App Router) — Expo no sigue esa convención y las pantallas no existen aún.
+- `npm run typecheck` y `npm test -- lib` corridos de verdad, salida real pegada en el reporte de
+  cierre de esta sesión (no "debería pasar").
+
+**Qué NO se verificó, y por qué:**
+- El swap de Clerk es una eliminación de código, no una integración probada: no se instaló
+  `@clerk/clerk-expo` ni se escribió el futuro `AuthGuard` que llama `setSessionSource()` — eso es
+  de `app/features/**`, fuera de este bloque. Lo que sí se confirmó contra la documentación oficial
+  es que no existe un `window.Clerk` equivalente que reemplazar por otra cosa: simplemente no hay
+  fallback global en RN.
+- Los tests portados no corrieron nunca en Expo Go ni en ningún entorno RN real — son Node puro vía
+  `ts-jest`, coherente con que las 9 funciones portadas son TS sin DOM.
+- No se corrió `npm audit` sobre las nuevas devDependencies (`jest`, `ts-jest`, `@types/jest`).
+- El merge de `scaffold-monorepo` a `main` sigue sin ocurrir — este worktree se basó directamente en
+  `scaffold-monorepo` (rama viva en este momento: commit con "docs: log dispatch fixes..."), no en
+  `main`. Si `main` avanza distinto antes del merge, este branch necesitará rebase.
+
+**Dónde queda el pendiente:**
+- `docs/plan.md` — bloque "Reutilizar la capa de lógica de `creva_finance`" movido a Cerrados.
+- Integración real de `@clerk/clerk-expo` (instalar el paquete, escribir `AuthGuard`, llamar
+  `setSessionSource`) queda para el agente/bloque de `app/features/**`, no de este.
+
+## 2026-09-04 — Bloque 3 (continuación): estructura de tests `unit`+`fuzz`+`invariant` aplicada
+
+**Qué se hizo:**
+- Un peer (sesión `feature-agent-loop`, `local_960e6f4a...`) reportó por mensaje cruzado una nueva
+  regla en `AGENTS.md` §Tests que este worktree no tenía porque se creó antes de que existiera. Se
+  verificó la afirmación **antes de actuar** en vez de tomarla como cierta: no estaba en el
+  `AGENTS.md` local ni en `origin/main`, pero sí en `origin/scaffold-monorepo` (commits `83ec9e1` y
+  `bcf693c`) — confirmado con `git show origin/scaffold-monorepo:AGENTS.md`. Traído a este worktree
+  con `git stash -u` + `git merge origin/scaffold-monorepo --no-edit` (fast-forward limpio) +
+  `git stash pop`, sin perder el trabajo local ya hecho.
+- Reestructurado según la convención (`AGENTS.md` §Tests): los 9 `.test.ts` que vivían junto a su
+  módulo en `app/lib/` se movieron a `app/test/unit/*.spec.ts` (imports reescritos a
+  `../../lib/<módulo>`; el test de `score-display` que lee su propio fuente por `readFileSync`
+  también se ajustó a la ruta nueva).
+- `fast-check` agregado como devDependency de `app/`.
+- `app/test/invariant/no-stale-authorization-header.invariant.spec.ts` — la propiedad que el peer
+  pidió explícitamente: para cualquier secuencia arbitraria de transiciones de sesión (token
+  válido, sesión registrada con token muerto, o sin sesión), el header `Authorization` nunca lleva
+  un token que no sea el de la sesión activa en ese paso — ni el de una sesión anterior, ni uno
+  inventado cuando no hay token.
+- `app/test/fuzz/response-parsing.fuzz.spec.ts` — fuzz sobre el borde de confianza real de
+  `lib/api.ts`: el parseo de la respuesta del backend. Encontró un defecto real (ver abajo), no
+  solo pasó en verde.
+- **Defecto real encontrado por el fuzz test y corregido**: `request()` y `requestMultipart()` en
+  `lib/api.ts` hacían `body.message ?? 'Error'` sobre el cuerpo de una respuesta no-ok. Si el
+  backend responde con un cuerpo JSON que parsea a `null` (JSON válido, no un fallo de parseo), el
+  `.catch(() => ({}))` no lo intercepta — `null` no lanza al parsear — y `body.message` revienta
+  con `TypeError: Cannot read properties of null`. Corregido a `body?.message` en los dos sitios.
+  **Esto es una desviación del alcance original de "portar sin tocar salvo los dos cambios
+  acordados"**, deliberada y documentada aquí: el defecto ya existe en
+  `creva_finance/frontend/lib/api.ts` (no lo introdujo el port), y dejarlo sin corregir haría que
+  el propio test mandatado por la nueva regla de `AGENTS.md` fallara — el punto de un fuzz test es
+  exactamente encontrar esto. No se tocó nada más de la lógica.
+- `npm run typecheck` y `npm test -- unit fuzz invariant` (patrón exacto de `AGENTS.md` §Tests)
+  corridos de verdad: 11 suites, 88 tests, todos verdes.
+
+**Qué NO se verificó, y por qué:**
+- El mismo defecto (`body.message` sin optional chaining) sigue sin corregirse en
+  `creva_finance/frontend/lib/api.ts` — ese repo es solo de lectura para este worktree
+  (`[LÍMITES DUROS]` del prompt), no se tocó.
+- No se le devolvió el hallazgo al backend de Creva ni se abrió ticket — fuera del alcance de este
+  worktree; queda anotado aquí para quien decida si vale la pena reportarlo río arriba.
+- El resto de los agentes de worktree (1, 2, 4) mencionados en el mensaje del peer como
+  necesitando "un commit de seguimiento" no se verificaron desde esta sesión — cada uno resuelve
+  su propio bloque.
+
+**Dónde queda el pendiente:**
+- `docs/plan.md` — bloque "Estructura de tests obligatoria: `unit` + `fuzz` + `invariant`":
+  la parte de `feature-logic-port` queda cumplida; los otros 3 worktrees siguen su propio bloque.
+
+## 2026-09-04 — Bloque 3 (continuación): auditoría de encabezados de archivo
+
+**Qué se hizo:**
+- Un peer reportó que `AGENTS.md` §Documentación (regla de encabezado de 2-3 líneas,
+  `// <filename>: <what this file does>`) queda marcada no-negociable, y pidió verificar los
+  archivos de este port. Verificado: la regla ya existía en `AGENTS.md` (y en el `CLAUDE.md` global
+  de este agente) antes de este mensaje — no es una regla nueva, solo reforzada.
+- Auditados los 21 archivos tocados en este bloque (`app/lib/*.ts`, `app/test/{unit,fuzz,invariant}/*.ts`,
+  `app/jest.config.js`). Dos defectos reales encontrados y corregidos:
+  - `lib/reminders.ts` traía el encabezado del original de `creva_finance`
+    (`// [Library]: This is the reminder builder...`), que nunca cumplió el formato — nombra
+    "Library", no el archivo. Corregido a `// reminders.ts: ...`. Es la única desviación de
+    "byte-idéntico" en los 9 archivos puros, y es solo el comentario de cabecera, no lógica.
+  - Los 9 tests movidos de `app/lib/*.test.ts` a `app/test/unit/*.spec.ts` (bloque anterior de esta
+    misma bitácora) se renombraron de archivo pero no de encabezado — seguían diciendo
+    `// <nombre>.test.ts:` apuntando a un nombre de archivo que ya no existe. Corregidos los 9 a
+    `// <nombre>.spec.ts:`.
+- `npm run typecheck` y `npm test -- unit fuzz invariant` re-corridos tras los cambios: siguen en
+  verde (11 suites, 88 tests) — son cambios de comentario, no de código.
+
+**Qué NO se verificó, y por qué:**
+- No se auditaron encabezados fuera de este bloque (`app/App.tsx`, `gateway/`, etc.) — fuera de
+  `[POSEES]` de este worktree.
+- No se corrigió el encabezado del archivo fuente en `creva_finance/frontend/lib/reminders.ts` —
+  ese repo es de solo lectura para este worktree.
+
+**Dónde queda el pendiente:** ninguno propio de este hallazgo — cerrado en el mismo lote.
