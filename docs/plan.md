@@ -16,6 +16,18 @@ bloque. Esta tabla es solo el checklist.
 
 ## Abiertos
 
+- [ ] **Gateway x402/Hedera: falta pago real en testnet y conexión a un facilitador vivo.**
+  `2026-09-04` — worktree `feature-gateway-x402`, agente local. `POST /creva-score/report` y
+  `POST /creva-score/verify` quedaron gateados por HTTP 402 (`gateway/src/x402-gate.ts`),
+  liquidando contra un facilitador vía HTTP (`gateway/src/facilitator.ts`, `FACILITATOR_URL`) y
+  proxyando sin modificar a la API real de Creva (`gateway/src/creva-proxy.ts`). Tests unitarios
+  cubren ambas rutas (402 sin pago, 402 rechazado, 200 con proxy) mockeando el facilitador — cero
+  llamadas reales a Hedera. Pendiente: no hay facilitador vivo conectado (ni local ni Bazantic con
+  credenciales reales), así que el criterio "una petición pagada real" que pide la pista de Hedera
+  (`brainstorming.md` §9) sigue sin ejercerse. Ver `docs/memoria.md` para el detalle completo.
+  Criterio de aceptación: una request real liquidada contra Hedera testnet (vía facilitador
+  BlockyDevs o Bazantic), grabada como evidencia.
+
 - [ ] **Repo público creado, pero no cumple el criterio de aceptación todavía.**
   `2026-09-04` — repo creado en https://github.com/LuisAlejandroCR/creva-sealpay, pero con **todo**
   el contenido de esta carpeta privada pusheado tal cual (`AGENTS.md`, `docs/` completo,
@@ -51,13 +63,27 @@ bloque. Esta tabla es solo el checklist.
   → `EXPO_PUBLIC_API_URL`, y el acceso al global `window.Clerk` → `@clerk/clerk-expo`. Se reescribe:
   todo `components/` y `app/` (JSX de Next con `div` + Tailwind → `View`/`StyleSheet`), mitigado con
   **NativeWind** para conservar los nombres de clase de Tailwind. Criterio de aceptación: los
-  archivos de la lista viven en el repo nuevo y su suite de tests pasa ahí.
+  archivos de la lista viven en el repo nuevo y su suite de tests pasa ahí. **Actualización
+  `2026-09-04`: puerto commiteado (`feature-logic-port`, `8e48bb0`), mergeado en
+  `integration-solver` — `app/lib/**` completo, tests en verde. Ver `docs/memoria.md` 2026-09-04
+  (entrada del Solver) para el detalle de integración.**
 - [ ] **Haptics con `expo-haptics`.** `2026-09-04` — decisión escogida. Tres puntos:
   `ImpactFeedbackStyle.Medium` en el botón de pago, `NotificationFeedbackType.Success` cuando el 402
   liquida y llega el reporte firmado, `NotificationFeedbackType.Error` en verificación de sello
   inválida — el veredicto del sello es el producto, y el haptic lo entrega antes de que se lea el
   texto. Criterio de aceptación: los tres estados se sienten en un dispositivo real vía Expo Go, no
-  solo en simulador.
+  solo en simulador. **Actualizado 2026-09-04, worktree `feature-agent-loop`:** los tres puntos
+  quedan escritos en código (`app/features/query/QueryScreen.tsx`,
+  `app/features/verify/VerifyScreen.tsx`), `tsc --noEmit` y `jest` pasan. **⏳ pendiente real:**
+  sentirlos en un dispositivo físico vía Expo Go — sin dispositivo disponible en esa sesión, no
+  se cierra el bloque todavía. Ver `docs/memoria.md` 2026-09-04.
+- [ ] **Pantalla de query pagada + reporte sellado (bloque 4, worktree `feature-agent-loop`).**
+  `2026-09-04` — `app/features/query/**` y `app/features/verify/**` construidos: ciclo
+  402→pago→200 contra un cliente de gateway mockeado (tipado, no el gateway real todavía — bloque
+  1 sigue sin terminar), pantalla de reporte sellado con los cinco veredictos y qué NO certifica
+  (`brainstorming.md` §0.2). Tests unitarios de ambos mocks pasan. Criterio de aceptación
+  pendiente: reconciliar el shape del mock contra el gateway real cuando el bloque 1 termine (rol
+  Solver), y probar los haptics en dispositivo físico. Detalle en `docs/memoria.md` 2026-09-04.
 - [ ] **Publicación en App Store / Play Store — después del evento, no durante.** `2026-09-04`
   Decisión escogida, respaldada: la revisión de iOS puede consumir sola la ventana que queda
   (judging el 09/14, corte el 09/16). Durante el evento se demuestra con Expo Go + el video.
@@ -67,9 +93,33 @@ bloque. Esta tabla es solo el checklist.
   primero. Auditor —**siempre agente en la nube, nunca local**— es la única excepción a "nadie
   pushea a `main`" de todo el documento: verifica 4 condiciones él mismo (VERIFY real, `POSEES`
   respetado, docs actualizados, sin `Co-Authored-By:`) y solo mergea/pushea si las cuatro se
-  cumplen; si alguna falla, no mergea y reporta. Prompts 5 (Solver) y 6 (Auditor) redactados,
-  sin ejecutar todavía — dependen de que los 4 worktrees paralelos (bloque de arriba) terminen
-  primero.
+  cumplen; si alguna falla, no mergea y reporta. **Actualización `2026-09-04`: Solver corrido,
+  las 4 ramas mergeadas.** `feature-gateway-x402`, `feature-selfie-check`, `feature-agent-loop`
+  y (después de que se pusheó, `8e48bb0`) `feature-logic-port` — todas mergeadas en
+  `integration-solver`. 6 gaps de integración encontrados y fijados (shape del mock de gateway,
+  `SessionSource` verificado sin cambios, dependencias de `app/package.json` en conflicto entre
+  ramas, dependencias nativas de Clerk sin declarar, `tsconfig.json` unido, **dos configuraciones
+  de Jest en conflicto** — `package.json` inline vs. `jest.config.js` de `feature-logic-port`,
+  unificadas en un solo `jest.config.js`) — detalle completo en `docs/memoria.md` 2026-09-04
+  (dos entradas, una por tanda de merges). `App.tsx` ensamblado con las 3 pantallas.
+  `tsc`/`jest` (16 suites, 100 tests) / `vitest` en verde; `expo export` bundlea sin error.
+  Sigue bloqueado: prueba en Expo Go real (sin dispositivo ni credenciales de Clerk/World en
+  esta sesión). **Actualización `2026-09-04` (roles v2):** gap 7 cerrado —
+  `gateway/test/` no tenía la estructura `unit`/`fuzz`/`invariant`, movido y completado (ver
+  bloque "Estructura de tests obligatoria" abajo, cerrado para `gateway/`). VERIFY final:
+  `app/` 16 suites/100 tests, `gateway/` 3 suites/9 tests, ambos `tsc`+`lint` limpios, `expo
+  export` bundlea. **Mergeado y pusheado a `main` por el Solver mismo**, bajo el modelo de roles
+  v2 (`AGENTS.md` §Colaboración) — sin esperar Auditor. El Auditor revisa después, no antes; ver
+  `docs/memoria.md` 2026-09-04 (entrada "Solver (roles v2)") para el detalle completo y para la
+  nota sobre los `git commit` que el Solver corrió para completar merges con conflicto real.
+- [ ] **Tests de `feature-agent-loop` sin mover a la convención `test/{unit,fuzz,invariant}`.**
+  `2026-09-04` — quedaron en `app/features/query/__tests__/` y `app/features/verify/__tests__/`
+  en vez de `app/test/unit/**`, a diferencia de `feature-selfie-check` y `feature-logic-port` que
+  sí siguen la convención de `AGENTS.md` §Tests. El `jest.config.js` unificado por el Solver los
+  sigue corriendo igual (`testMatch` ampliado, ver `docs/memoria.md` 2026-09-04), así que no
+  bloquea nada hoy — pero es deuda de convención, no de funcionalidad. Criterio de aceptación:
+  movidos a `app/test/{unit,fuzz,invariant}/query|verify/` y `testMatch` recortado de vuelta a
+  solo esa carpeta.
 - [ ] **Corrección de orden de dispatch — los 6 prompts se lanzaron casi a la vez, no en
   cascada.** `2026-09-04` — el plan original decía "0 corre y mergea a `main`, después 1-4 en
   paralelo, después 5, después 6". En la práctica se dispararon casi todos juntos:
@@ -92,7 +142,13 @@ bloque. Esta tabla es solo el checklist.
   concreto de fuzz/invariant por área. Pendiente: agentes 1 y 2 ya habían pusheado antes de este
   mensaje — necesitan un commit de seguimiento, no reescribir el suyo. Criterio de aceptación:
   cada rama `feature-*` tiene las tres carpetas con al menos un archivo antes de que el Auditor
-  la mergee.
+  la mergee. **`feature-logic-port` cumplido** — `app/test/{unit,fuzz,invariant}` con 11 suites,
+  `npm test -- unit fuzz invariant` verde (detalle en el bloque cerrado de arriba y en
+  `docs/memoria.md`). **`gateway/` (rama 1) cumplido por el Solver `2026-09-04`** — no lo tenía
+  al pushear, cerrado en el merge a `integration-solver`/`main`:
+  `gateway/test/{unit,fuzz,invariant}`, 3 suites / 9 tests, `fast-check` agregado. `feature-selfie-
+  check` (rama 2) y `feature-agent-loop` (rama 4) sin verificar desde esta sesión — ver bloque
+  siguiente para el caso puntual de `feature-agent-loop`.
 - [ ] **`feature-agent-loop` con base rota — necesita rebase.** `2026-09-04` — su worktree local
   quedó en el commit `b70dace` (uno de docs, previo a que el scaffold real `f8b751d` existiera),
   con un `app/` propio sin trackear en vez del scaffold real. Diverge de `feature-gateway-x402` y
@@ -101,6 +157,24 @@ bloque. Esta tabla es solo el checklist.
   descartarlo a ciegas), `git stash -u` si hay algo que vale la pena conservar, después
   `git rebase scaffold-monorepo`, reaplicar el stash y resolver a mano. Criterio de aceptación:
   `feature-agent-loop` contiene el commit `f8b751d` en su historia antes de seguir trabajando ahí.
+- [ ] **5 prompts de subagente redactados y listos para dispatch.** `2026-09-04` — 0)
+  scaffold monorepo (secuencial, bloqueante), 1) gateway x402+Hedera, 2) Selfie Check onboarding,
+  3) port de lógica de `creva_finance`, 4) loop del agente + haptics. Los 4 últimos son worktrees
+  paralelos, dentro del máximo de `AGENTS.md` §Colaboración punto 5. Prompts completos en la
+  bitácora de conversación — pendiente: nadie los ha ejecutado todavía. Criterio de aceptación:
+  bloque 0 corrido y mergeado a `main` antes de dispatch de 1-4.
+- [ ] **Selfie Check en el alta (rebanada §6, paso 1) — implementado, falta probar en
+  dispositivo real.** `2026-09-04` — worktree `feature-selfie-check`. `app/features/onboarding/`
+  (flujo `WebView` contra `id.worldcoin.org/verify`, degrada a `identity_unavailable` sin
+  `EXPO_PUBLIC_WORLD_APP_ID`) y `app/features/auth/` (`session-source.ts` con la forma
+  `SessionSource` de `creva_finance/frontend/lib/api.ts:17-25`, `ClerkAppProvider.tsx`).
+  `npm run typecheck` y `npm test -- onboarding` pasan. Criterio de aceptación pendiente:
+  probarlo en Expo Go real (no hay dispositivo en esta sesión), montar `ClerkAppProvider` +
+  `SelfieCheckScreen` en `App.tsx` (paso de integración, no de este bloque), y ejercer el
+  Sandbox real de World en vez de solo la forma de la URL. Detalle completo en
+  `docs/memoria.md` 2026-09-04. **Actualización:** `unit`+`fuzz`+`invariant` agregados por
+  `AGENTS.md` §Tests (`app/test/{unit,fuzz,invariant}/onboarding/`), `npm test -- unit fuzz
+  invariant` pasa (3 suites, 5 tests) — sigue faltando solo la prueba en Expo Go real.
 - [ ] **Riesgo Expo Go: módulo nativo no soportado.** En cuanto haga falta un módulo nativo que
   Expo Go no trae, hay que pasar a **Dev Client** (`eas build --profile development`). Mitigación:
   medio día presupuestado para eso, y descubrirlo temprano — no el 09/13. Criterio de aceptación:
@@ -149,6 +223,24 @@ bloque. Esta tabla es solo el checklist.
   bloque:** prueba real en dispositivo físico vía Expo Go — esta sesión solo verificó que Metro
   bundlea y sirve por HTTP, sin emulador ni dispositivo disponible. Comando de commit dejado listo
   para el humano, no ejecutado (regla de agente local, `AGENTS.md` §Colaboración punto 6).
+- [x] `2026-09-04` — **Bloque 3: port de la capa de lógica de `creva_finance` a `app/lib/`, rama
+  `feature-logic-port`, agente local.** Los 9 archivos puros portados byte a byte (verificado con
+  `diff`); `lib/api.ts` (752 líneas, 46 rutas) portado con los dos cambios del encargo
+  (`NEXT_PUBLIC_API_URL` → `EXPO_PUBLIC_API_URL`, fallback `window.Clerk` eliminado — no existe
+  equivalente en `@clerk/clerk-expo`, confirmado contra su documentación). 9 suites de test
+  portadas y adaptadas donde cubrían código que no existe en este repo (fallback de Clerk,
+  `localStorage`, escaneo de `app/`+`components/`, rutas de Next App Router). `npm run typecheck`
+  y `npm test -- lib` verdes: 85/85 tests, salida real en `docs/memoria.md`. Infra de test
+  (`jest`+`ts-jest`) agregada porque el scaffold no la traía. **Actualizado en el mismo bloque**
+  tras traer la regla de `AGENTS.md` §Tests (`unit`+`fuzz`+`invariant`, ver bloque de abajo):
+  tests reestructurados a `app/test/{unit,fuzz,invariant}`, `fast-check` agregado,
+  `no-stale-authorization-header.invariant.spec.ts` y `response-parsing.fuzz.spec.ts` escritos —
+  el fuzz encontró y se corrigió un `TypeError` real en `lib/api.ts` (`body.message` sobre un
+  cuerpo JSON `null`), detalle en `docs/memoria.md`. `npm test -- unit fuzz invariant` verde:
+  11 suites, 88 tests. Comando de commit dejado listo para el humano, no ejecutado.
+  **⏳ pendiente:** integración real de `@clerk/clerk-expo` (paquete + `AuthGuard` +
+  `setSessionSource`) es de `app/features/**`, no de este bloque; merge de `scaffold-monorepo` a
+  `main` sigue sin ocurrir, este branch se basó directo en `scaffold-monorepo`.
 
 ## Verify
 
