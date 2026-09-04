@@ -70,12 +70,29 @@ bloque. Esta tabla es solo el checklist.
   cumplen; si alguna falla, no mergea y reporta. Prompts 5 (Solver) y 6 (Auditor) redactados,
   sin ejecutar todavía — dependen de que los 4 worktrees paralelos (bloque de arriba) terminen
   primero.
-- [ ] **5 prompts de subagente redactados y listos para dispatch.** `2026-09-04` — 0)
-  scaffold monorepo (secuencial, bloqueante), 1) gateway x402+Hedera, 2) Selfie Check onboarding,
-  3) port de lógica de `creva_finance`, 4) loop del agente + haptics. Los 4 últimos son worktrees
-  paralelos, dentro del máximo de `AGENTS.md` §Colaboración punto 5. Prompts completos en la
-  bitácora de conversación — pendiente: nadie los ha ejecutado todavía. Criterio de aceptación:
-  bloque 0 corrido y mergeado a `main` antes de dispatch de 1-4.
+- [ ] **Corrección de orden de dispatch — los 6 prompts se lanzaron casi a la vez, no en
+  cascada.** `2026-09-04` — el plan original decía "0 corre y mergea a `main`, después 1-4 en
+  paralelo, después 5, después 6". En la práctica se dispararon casi todos juntos:
+  `scaffold-monorepo` existe en `origin` pero **no mergeado a `main`** (`git branch -r` confirma
+  solo `origin/main` y `origin/scaffold-monorepo`, ningún `feature-*` todavía). Consecuencia
+  observada:
+  - Agente 3 (`feature-logic-port`) preguntó su base al no encontrar `app/` en `main` — se
+    confirmó basar en `scaffold-monorepo`, no en `main` (correcto: `main` no tiene código todavía).
+  - Agente 5 (Solver) arrancó sin que existiera ninguna de las 4 ramas `feature-*` — se le indicó
+    **detenerse y esperar** a que existan y estén pusheadas antes de reconciliar nada.
+  **Corrección para el resto de la tanda:** cualquier `feature-*` que arranque ahora debe basarse
+  en `origin/scaffold-monorepo`, no en `main`. El Solver (prompt 5) y el Auditor (prompt 6) no
+  arrancan hasta que las 4 ramas `feature-*` existan en `origin` con su `[REPORT]` completo.
+  Criterio de aceptación: `scaffold-monorepo` mergeado a `main` (vía Auditor o humano) antes de
+  que el Auditor mergee cualquier `feature-*`.
+- [ ] **`feature-agent-loop` con base rota — necesita rebase.** `2026-09-04` — su worktree local
+  quedó en el commit `b70dace` (uno de docs, previo a que el scaffold real `f8b751d` existiera),
+  con un `app/` propio sin trackear en vez del scaffold real. Diverge de `feature-gateway-x402` y
+  `feature-selfie-check`, que sí parten de `f8b751d` — riesgo de conflicto grande al integrar.
+  Corrección: `git status --short` primero para ver qué hay en ese `app/` sin trackear (no
+  descartarlo a ciegas), `git stash -u` si hay algo que vale la pena conservar, después
+  `git rebase scaffold-monorepo`, reaplicar el stash y resolver a mano. Criterio de aceptación:
+  `feature-agent-loop` contiene el commit `f8b751d` en su historia antes de seguir trabajando ahí.
 - [ ] **Riesgo Expo Go: módulo nativo no soportado.** En cuanto haga falta un módulo nativo que
   Expo Go no trae, hay que pasar a **Dev Client** (`eas build --profile development`). Mitigación:
   medio día presupuestado para eso, y descubrirlo temprano — no el 09/13. Criterio de aceptación:

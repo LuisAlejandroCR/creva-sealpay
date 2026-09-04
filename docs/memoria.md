@@ -115,6 +115,45 @@
 **Dónde queda el pendiente:**
 - `docs/plan.md` — cinco bloques nuevos: scaffold con el stack ya decidido, reutilización de la capa
   de lógica, haptics, publicación post-evento, y el riesgo de Expo Go / Dev Client.
+## 2026-09-04 — Dispatch salió de orden, corregido en vivo
+
+**Qué se hizo:**
+- Los 6 prompts (scaffold, 4 worktrees paralelos, Solver, Auditor) se lanzaron casi simultáneos
+  en vez de en cascada. `git fetch origin && git branch -r` confirmó el estado real: solo
+  `origin/main` y `origin/scaffold-monorepo` existen, ningún `feature-*` todavía.
+- Agente 3 (`feature-logic-port`) preguntó su base al no encontrar `app/` en `main` — confirmado
+  basar en `scaffold-monorepo`.
+- Agente 5 (Solver) arrancó sin que existiera ninguna rama `feature-*` — indicado detenerse.
+
+**Qué NO se verificó, y por qué:** no se confirmó el estado de los agentes 1, 2 y 4 en esta
+sesión — solo se corrigió a los que preguntaron (3 y 5). Si están corriendo con la misma base
+equivocada (`main` en vez de `scaffold-monorepo`), van a tener el mismo problema sin preguntar.
+
+**Dónde queda el pendiente:** `docs/plan.md` — bloque "Corrección de orden de dispatch".
+
+## 2026-09-04 — Estado real de las 4 ramas, `feature-gateway-x402` pusheada
+
+**Qué se hizo:**
+- Verificado el estado real con `git fetch` + `git branch -r` + `git status` en cada worktree
+  local: `feature-selfie-check` ya estaba pusheada (el humano la pusheó tras la guía anterior),
+  `feature-gateway-x402` tenía commits locales sin pushear — **pusheada en este lote**
+  (`origin/feature-gateway-x402` ahora existe).
+- Encontrado: `feature-agent-loop` está basada en `b70dace` (commit de docs, anterior al scaffold
+  real `f8b751d`), con un `app/` propio sin trackear en vez del scaffold. Mismo síntoma que el
+  problema original de agente 3, pero sin que el agente lo haya preguntado — se detectó por
+  inspección, no porque el agente lo reportara.
+- `feature-logic-port` (agente 3) no tiene worktree local en esta máquina — corre en otra sesión/
+  entorno, no inspeccionable desde aquí.
+
+**Qué NO se verificó, y por qué:**
+- No se corrió el rebase de `feature-agent-loop` — se dejó documentado como bloque abierto con el
+  procedimiento exacto, a la espera de que el humano confirme qué hay en el `app/` sin trackear
+  antes de tocarlo (podría ser trabajo real, no descartar a ciegas).
+- No se verificó el estado de `feature-logic-port` (agente 3) más allá de lo que mostró su propia
+  captura de pantalla — sin acceso a su entorno desde esta sesión.
+
+**Dónde queda el pendiente:** `docs/plan.md` — bloque "`feature-agent-loop` con base rota".
+
 - **Conflicto resuelto.** El humano confirmó la excepción: `AGENTS.md` §Colaboración punto 6 ahora
   distingue agente local (nunca commitea/pushea, deja el comando listo) de agente en la nube
   (`isolation: "remote"` / sesión de Claude Code cloud — sí commitea y pushea, en su propio branch,
