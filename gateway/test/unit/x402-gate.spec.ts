@@ -1,8 +1,8 @@
-// test/x402-gate.test.ts: covers the 402-unpaid and paid-then-proxied paths for both gated routes.
+// x402-gate.spec.ts: covers the 402-unpaid and paid-then-proxied paths for both gated routes.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 
-vi.mock("../src/facilitator.js", () => ({
+vi.mock("../../src/facilitator.js", () => ({
   verifyPayment: vi.fn(),
   settlePayment: vi.fn(),
 }));
@@ -10,14 +10,14 @@ vi.mock("../src/facilitator.js", () => ({
 const originalFetch = global.fetch;
 
 describe("x402-gated creva-score routes", () => {
-  let app: typeof import("../src/index.js")["app"];
-  let facilitator: typeof import("../src/facilitator.js");
+  let app: typeof import("../../src/index.js")["app"];
+  let facilitator: typeof import("../../src/facilitator.js");
 
   beforeEach(async () => {
     vi.resetModules();
     process.env.NODE_ENV = "test";
-    ({ app } = await import("../src/index.js"));
-    facilitator = await import("../src/facilitator.js");
+    ({ app } = await import("../../src/index.js"));
+    facilitator = await import("../../src/facilitator.js");
   });
 
   afterEach(() => {

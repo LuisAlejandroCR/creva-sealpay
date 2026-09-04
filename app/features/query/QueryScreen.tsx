@@ -46,8 +46,8 @@ export function QueryScreen({ onVerify }: { onVerify: () => void }) {
       {phase === "payment_required" && pendingPayment && (
         <View className="items-center gap-3">
           <Text className="text-amber-700" testID="payment-required">
-            402 Payment Required — {pendingPayment.amount} {pendingPayment.asset} on{" "}
-            {pendingPayment.network}
+            402 Payment Required — {pendingPayment.accepts[0].maxAmountRequired}{" "}
+            {pendingPayment.accepts[0].asset} on {pendingPayment.accepts[0].network}
           </Text>
           <Pressable className="rounded-lg bg-emerald-700 px-6 py-3" onPress={pay} testID="pay-button">
             <Text className="font-semibold text-white">Pay and continue</Text>
@@ -59,9 +59,9 @@ export function QueryScreen({ onVerify }: { onVerify: () => void }) {
 
       {phase === "paid" && result?.status === 200 && (
         <View className="items-center gap-2" testID="query-result">
-          <Text className="text-slate-900">{result.businessName}</Text>
-          <Text className="text-slate-600">{result.signalsFound} signals found</Text>
-          <Text className="text-slate-500 text-xs">tx {result.paidWith.txHash}</Text>
+          <Text className="text-slate-900">{String(result.signal.businessName)}</Text>
+          <Text className="text-slate-600">{String(result.signal.signalsFound)} signals found</Text>
+          <Text className="text-slate-500 text-xs">tx {result.settlement.transaction}</Text>
           <Pressable className="mt-4 rounded-lg bg-slate-900 px-6 py-3" onPress={onVerify}>
             <Text className="font-semibold text-white">View sealed report</Text>
           </Pressable>

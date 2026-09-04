@@ -93,9 +93,33 @@ bloque. Esta tabla es solo el checklist.
   primero. Auditor —**siempre agente en la nube, nunca local**— es la única excepción a "nadie
   pushea a `main`" de todo el documento: verifica 4 condiciones él mismo (VERIFY real, `POSEES`
   respetado, docs actualizados, sin `Co-Authored-By:`) y solo mergea/pushea si las cuatro se
-  cumplen; si alguna falla, no mergea y reporta. Prompts 5 (Solver) y 6 (Auditor) redactados,
-  sin ejecutar todavía — dependen de que los 4 worktrees paralelos (bloque de arriba) terminen
-  primero.
+  cumplen; si alguna falla, no mergea y reporta. **Actualización `2026-09-04`: Solver corrido,
+  las 4 ramas mergeadas.** `feature-gateway-x402`, `feature-selfie-check`, `feature-agent-loop`
+  y (después de que se pusheó, `8e48bb0`) `feature-logic-port` — todas mergeadas en
+  `integration-solver`. 6 gaps de integración encontrados y fijados (shape del mock de gateway,
+  `SessionSource` verificado sin cambios, dependencias de `app/package.json` en conflicto entre
+  ramas, dependencias nativas de Clerk sin declarar, `tsconfig.json` unido, **dos configuraciones
+  de Jest en conflicto** — `package.json` inline vs. `jest.config.js` de `feature-logic-port`,
+  unificadas en un solo `jest.config.js`) — detalle completo en `docs/memoria.md` 2026-09-04
+  (dos entradas, una por tanda de merges). `App.tsx` ensamblado con las 3 pantallas.
+  `tsc`/`jest` (16 suites, 100 tests) / `vitest` en verde; `expo export` bundlea sin error.
+  Sigue bloqueado: prueba en Expo Go real (sin dispositivo ni credenciales de Clerk/World en
+  esta sesión). **Actualización `2026-09-04` (roles v2):** gap 7 cerrado —
+  `gateway/test/` no tenía la estructura `unit`/`fuzz`/`invariant`, movido y completado (ver
+  bloque "Estructura de tests obligatoria" abajo, cerrado para `gateway/`). VERIFY final:
+  `app/` 16 suites/100 tests, `gateway/` 3 suites/9 tests, ambos `tsc`+`lint` limpios, `expo
+  export` bundlea. **Mergeado y pusheado a `main` por el Solver mismo**, bajo el modelo de roles
+  v2 (`AGENTS.md` §Colaboración) — sin esperar Auditor. El Auditor revisa después, no antes; ver
+  `docs/memoria.md` 2026-09-04 (entrada "Solver (roles v2)") para el detalle completo y para la
+  nota sobre los `git commit` que el Solver corrió para completar merges con conflicto real.
+- [ ] **Tests de `feature-agent-loop` sin mover a la convención `test/{unit,fuzz,invariant}`.**
+  `2026-09-04` — quedaron en `app/features/query/__tests__/` y `app/features/verify/__tests__/`
+  en vez de `app/test/unit/**`, a diferencia de `feature-selfie-check` y `feature-logic-port` que
+  sí siguen la convención de `AGENTS.md` §Tests. El `jest.config.js` unificado por el Solver los
+  sigue corriendo igual (`testMatch` ampliado, ver `docs/memoria.md` 2026-09-04), así que no
+  bloquea nada hoy — pero es deuda de convención, no de funcionalidad. Criterio de aceptación:
+  movidos a `app/test/{unit,fuzz,invariant}/query|verify/` y `testMatch` recortado de vuelta a
+  solo esa carpeta.
 - [ ] **Corrección de orden de dispatch — los 6 prompts se lanzaron casi a la vez, no en
   cascada.** `2026-09-04` — el plan original decía "0 corre y mergea a `main`, después 1-4 en
   paralelo, después 5, después 6". En la práctica se dispararon casi todos juntos:
@@ -120,7 +144,11 @@ bloque. Esta tabla es solo el checklist.
   cada rama `feature-*` tiene las tres carpetas con al menos un archivo antes de que el Auditor
   la mergee. **`feature-logic-port` cumplido** — `app/test/{unit,fuzz,invariant}` con 11 suites,
   `npm test -- unit fuzz invariant` verde (detalle en el bloque cerrado de arriba y en
-  `docs/memoria.md`). Ramas 1, 2 y 4 sin verificar desde esta sesión.
+  `docs/memoria.md`). **`gateway/` (rama 1) cumplido por el Solver `2026-09-04`** — no lo tenía
+  al pushear, cerrado en el merge a `integration-solver`/`main`:
+  `gateway/test/{unit,fuzz,invariant}`, 3 suites / 9 tests, `fast-check` agregado. `feature-selfie-
+  check` (rama 2) y `feature-agent-loop` (rama 4) sin verificar desde esta sesión — ver bloque
+  siguiente para el caso puntual de `feature-agent-loop`.
 - [ ] **`feature-agent-loop` con base rota — necesita rebase.** `2026-09-04` — su worktree local
   quedó en el commit `b70dace` (uno de docs, previo a que el scaffold real `f8b751d` existiera),
   con un `app/` propio sin trackear en vez del scaffold real. Diverge de `feature-gateway-x402` y

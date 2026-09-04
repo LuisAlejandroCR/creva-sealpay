@@ -13,8 +13,8 @@ describe("requestSignal", () => {
     const paid = await requestSignal("Panaderia La Espiga", challenge);
     expect(paid.status).toBe(200);
     if (paid.status !== 200) throw new Error("expected 200");
-    expect(paid.businessName).toBe("Panaderia La Espiga");
-    expect(paid.paidWith.amount).toBe(challenge.amount);
-    expect(paid.paidWith.txHash).toMatch(/^0xmock/);
+    expect(paid.signal.businessName).toBe("Panaderia La Espiga");
+    expect(challenge.accepts[0].asset).toBe("USDC");
+    expect(paid.settlement.transaction).toMatch(/^0xmock/);
   });
 });
