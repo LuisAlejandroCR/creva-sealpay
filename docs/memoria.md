@@ -4,6 +4,48 @@
 
 # Memoria — ETHOnline 2026
 
+## 2026-09-04 — Worktree `feature-agent-loop`: pantallas de query pagada y sello verificado
+
+**Qué se hizo:**
+- Worktree `feature-agent-loop` creado desde `main` (`git worktree add`). `main` todavía no
+  tiene el scaffold Expo — sigue solo en la rama `scaffold-monorepo`, sin commitear (regla de
+  agente local, `AGENTS.md` §Colaboración punto 6). Para no bloquear la tarea, se copió `app/`
+  (sin `node_modules`, `.expo`, `dist`) al worktree; queda pendiente de reconciliar cuando el
+  bloque 0 (scaffold) se commitee y mergee a `main` de verdad.
+- `app/features/query/gatewayClient.ts` + `QueryScreen.tsx`: mock tipado del endpoint de señales
+  pagadas — primera llamada devuelve 402 con términos de pago (monto, asset, red `hedera-testnet`,
+  facilitador), la app paga (haptic `ImpactFeedbackStyle.Medium`) y reintenta, recibe 200 con las
+  señales y el hash de la transacción. Forma basada en `brainstorming.md` §1 y §8 (x402 sobre
+  Hedera vía Bazantic); el gateway real (bloque 1, worktree paralelo) todavía no define el shape
+  exacto — este mock es el contrato a reconciliar por el Solver.
+- `app/features/verify/sealClient.ts` + `VerifyScreen.tsx`: mock tipado del reporte sellado —
+  folio, firma Ed25519, cinco veredictos (`DOF`, `CNBV`, `SAT`, dirección, beneficiario final) y
+  la lista explícita de qué NO certifica (`brainstorming.md` §0.2). Haptic `Success` si la firma
+  valida, `Error` si no.
+- `App.tsx` reescrito como selector simple entre las dos pantallas (sin librería de navegación,
+  para no sumar una dependencia que el resto del equipo no pidió).
+- `expo-haptics`, `jest`, `jest-expo`, `@types/jest` agregados a `app/package.json`; `tsconfig.json`
+  con `"types": ["jest"]` para que `tsc --noEmit` no choque con los globals de test.
+- Tests unitarios de las dos funciones mock (`__tests__/gatewayClient.test.ts`,
+  `__tests__/sealClient.test.ts`): ciclo 402→pago→200, y que el reporte trae exactamente cinco
+  veredictos más la lista de qué no certifica.
+
+**Qué NO se verificó, y por qué:**
+- Haptics no se sintieron en dispositivo real vía Expo Go — sin dispositivo disponible en esta
+  sesión. Solo se verificó que las tres llamadas (`impactAsync`/`notificationAsync` con los
+  valores pedidos) están en el código, en los tres puntos exactos (pagar, reporte firmado
+  recibido, verificación inválida).
+- El gateway es un mock tipado, no la integración real (bloque 1 de `docs/plan.md` sigue sin
+  ejecutar) — el shape puede cambiar cuando ese worktree termine; el Solver deberá reconciliar.
+- No se corrió `expo start` ni se probó el bundle en Metro esta sesión — solo `tsc --noEmit` y
+  `jest`.
+
+**Dónde queda el pendiente:**
+- `docs/plan.md` — bloque de haptics: agregar la nota de "sentido en Expo Go real" como pendiente
+  explícito, no cerrar el bloque todavía.
+- Reconciliación del `app/` copiado al worktree vs. el scaffold real de `main` una vez el humano
+  commitee el bloque 0 — tarea del Solver, no de este worktree.
+
 ## 2026-09-04 — Revisión del repo público recién creado
 
 **Qué se hizo:**
