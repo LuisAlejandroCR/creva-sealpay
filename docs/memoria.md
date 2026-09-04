@@ -120,3 +120,50 @@
   (`isolation: "remote"` / sesión de Claude Code cloud — sí commitea y pushea, en su propio branch,
   nunca a `main`, nunca `--amend`, formato de `[COMMIT]` sin excepción). Reflejado también en la
   plantilla `[LÍMITES DUROS]` y en §Reglas del repositorio público.
+
+## 2026-09-04 — Bloque 0: scaffold del monorepo (rama `scaffold-monorepo`, agente local)
+
+**Qué se hizo:**
+- Rama `scaffold-monorepo` creada desde `main` en el mismo checkout (esta carpeta es la raíz del
+  repo público).
+- `app/` — Expo SDK 57 + TypeScript, generado con `create-expo-app@latest --template
+  blank-typescript`. NativeWind 4.2.6 configurado: `tailwind.config.js` (preset `nativewind/preset`),
+  `global.css`, `babel.config.js` (`babel-preset-expo` con `jsxImportSource: nativewind` +
+  `nativewind/babel`), `metro.config.js` (`withNativeWind`), `nativewind-env.d.ts`, `css.d.ts`
+  (declaración de módulo para el import de `global.css`). `App.tsx` reescrito con una `View`/`Text`
+  usando clases Tailwind (`className`) para probar que NativeWind funciona. `babel-preset-expo` no
+  quedó como dependencia explícita tras `expo install nativewind tailwindcss ...` — se agregó a mano
+  (`npm install --save-dev babel-preset-expo`) porque Metro fallaba con `Cannot find module
+  'babel-preset-expo'` al arrancar sin ella.
+- `gateway/` — servicio Node + TypeScript nuevo (Express), una sola ruta `GET /health` devolviendo
+  `{ status: "ok" }`. `tsx watch` para dev, `tsc` para build, `tsconfig.json` con `NodeNext`.
+- `.env.example` en ambas carpetas: `app/.env.example` con `EXPO_PUBLIC_API_URL` y
+  `EXPO_PUBLIC_GATEWAY_URL`; `gateway/.env.example` con `CREVA_API_URL`, `HEDERA_ACCOUNT_ID`,
+  `HEDERA_PRIVATE_KEY` — todos valores placeholder, ninguno real.
+- `.gitignore` raíz ampliado: `node_modules/`, `app/.expo/`, `app/dist/`, `app/.env`,
+  `gateway/dist/`, `gateway/.env`. `gateway/.gitignore` propio con lo mismo para esa carpeta.
+- Archivos ruido del scaffolder de Expo eliminados: `app/CLAUDE.md`, `app/AGENTS.md` (ambos
+  redundantes con el `AGENTS.md` raíz que ya gobierna todo el repo), `app/LICENSE`.
+- `npm run typecheck` (`tsc --noEmit`) verde en ambas carpetas.
+- `gateway`: `npm run dev` levantado, `curl http://localhost:8787/health` devolvió
+  `{"status":"ok"}`, servidor detenido después (puerto liberado, verificado con `netstat`).
+- `app`: `npx expo start` levantado, Metro bundleó `index.ts` sin errores (1132 módulos), bundle
+  iOS pedido por HTTP devolvió 200. Servidor detenido después (puerto liberado, verificado con
+  `netstat`).
+
+**Qué NO se verificó, y por qué:**
+- **No se probó en un dispositivo real vía Expo Go** — solo se verificó que Metro bundlea sin
+  error y sirve el bundle por HTTP (`curl` al puerto de Metro). No hay dispositivo/emulador
+  disponible en esta sesión. Queda como pendiente explícito del criterio de aceptación #1.
+- No se instalaron `react-dom`/`react-native-web` — el criterio de aceptación pide Expo Go, no
+  soporte web; se dejó fuera para no agregar dependencias sin uso planeado.
+- No se corrió `npm audit fix` sobre las vulnerabilidades moderadas reportadas por `npm install`
+  (10 en `app/`, 3 en `gateway/`) — fuera de alcance de este bloque, quedan como ruido normal de
+  scaffolding reciente de Expo/Express, revisar antes de shippear si importa.
+- No se tocó `README.md` — su reescritura (mezcla 70/30) es un bloque abierto propio en
+  `docs/plan.md`, distinto del scaffold.
+
+**Dónde queda el pendiente:**
+- `docs/plan.md` — bloque "Scaffold del repo público antes de repartir worktrees" movido a
+  Cerrados, con la prueba real de Expo Go marcada `⏳` dentro del mismo bloque.
+- `docs/plan.md` — bloque abierto de README público sigue abierto, sin tocar en este lote.
