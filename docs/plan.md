@@ -76,6 +76,18 @@ bloque. Esta tabla es solo el checklist.
   paralelos, dentro del máximo de `AGENTS.md` §Colaboración punto 5. Prompts completos en la
   bitácora de conversación — pendiente: nadie los ha ejecutado todavía. Criterio de aceptación:
   bloque 0 corrido y mergeado a `main` antes de dispatch de 1-4.
+- [ ] **Selfie Check en el alta (rebanada §6, paso 1) — implementado, falta probar en
+  dispositivo real.** `2026-09-04` — worktree `feature-selfie-check`. `app/features/onboarding/`
+  (flujo `WebView` contra `id.worldcoin.org/verify`, degrada a `identity_unavailable` sin
+  `EXPO_PUBLIC_WORLD_APP_ID`) y `app/features/auth/` (`session-source.ts` con la forma
+  `SessionSource` de `creva_finance/frontend/lib/api.ts:17-25`, `ClerkAppProvider.tsx`).
+  `npm run typecheck` y `npm test -- onboarding` pasan. Criterio de aceptación pendiente:
+  probarlo en Expo Go real (no hay dispositivo en esta sesión), montar `ClerkAppProvider` +
+  `SelfieCheckScreen` en `App.tsx` (paso de integración, no de este bloque), y ejercer el
+  Sandbox real de World en vez de solo la forma de la URL. Detalle completo en
+  `docs/memoria.md` 2026-09-04. **Actualización:** `unit`+`fuzz`+`invariant` agregados por
+  `AGENTS.md` §Tests (`app/test/{unit,fuzz,invariant}/onboarding/`), `npm test -- unit fuzz
+  invariant` pasa (3 suites, 5 tests) — sigue faltando solo la prueba en Expo Go real.
 - [ ] **Riesgo Expo Go: módulo nativo no soportado.** En cuanto haga falta un módulo nativo que
   Expo Go no trae, hay que pasar a **Dev Client** (`eas build --profile development`). Mitigación:
   medio día presupuestado para eso, y descubrirlo temprano — no el 09/13. Criterio de aceptación:

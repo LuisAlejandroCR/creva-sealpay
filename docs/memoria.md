@@ -167,3 +167,60 @@
 - `docs/plan.md` — bloque "Scaffold del repo público antes de repartir worktrees" movido a
   Cerrados, con la prueba real de Expo Go marcada `⏳` dentro del mismo bloque.
 - `docs/plan.md` — bloque abierto de README público sigue abierto, sin tocar en este lote.
+
+## 2026-09-04 — World Selfie Check en el onboarding (worktree `feature-selfie-check`)
+
+**Qué se hizo:**
+- `app/features/onboarding/` — flujo de Selfie Check por `WebView` (`react-native-webview`)
+  contra `id.worldcoin.org/verify`, sin exigir Orb ni Dev Client. Estados manejados:
+  `idle → in_progress → verified | failed`, y degradación a `identity_unavailable` cuando
+  `EXPO_PUBLIC_WORLD_APP_ID` no está seteada (sin crashear).
+- `app/features/auth/session-source.ts` — adapta `@clerk/clerk-expo`'s `useAuth()`/`useUser()`
+  a la forma `SessionSource` (`getToken`, `userId`) que ya usa
+  `creva_finance/frontend/lib/api.ts:17-25`, para que el port futuro de `lib/api.ts` (bloque
+  aparte en `docs/plan.md`) pueda registrar la sesión sin conocer Clerk directamente.
+- `app/features/auth/ClerkAppProvider.tsx` — wrapper de `ClerkProvider` con `token-cache` de
+  Expo SecureStore, listo para que el paso de integración lo monte en `App.tsx` (no se tocó
+  `App.tsx` aquí — fuera de `[POSEES]` de este bloque).
+- Dependencias agregadas a `app/package.json`: `@clerk/clerk-expo` (nota: paquete marcado
+  deprecated por Clerk a favor de `@clerk/expo`, se usó el nombre pedido explícitamente en la
+  tarea), `react-native-webview`, `expo-secure-store`, y devDependencies de test
+  (`jest`, `jest-expo`, `@testing-library/react-native`, `react-test-renderer`, `@types/jest`,
+  `@react-native/jest-preset@0.86.3` — pineado porque la versión `^0.87` no calza con
+  `react-native@0.86.3` instalado, rompía `setup-env.js` — y `test-renderer`, peer nuevo de
+  `@testing-library/react-native` distinto de `react-test-renderer`).
+- `app/tsconfig.json` — se le agregó `"types": ["jest"]` (archivo compartido, fuera de
+  `[POSEES]`, tocado porque sin esto `tsc --noEmit` no reconocía `describe`/`it`/`expect`).
+- Test unitario en `app/features/onboarding/__tests__/useSelfieCheck.test.ts` cubre la
+  degradación sin key y la resolución `verified` vía URL de callback con `nullifier_hash`.
+
+**Qué NO se verificó, y por qué:**
+- **No se probó en Expo Go real ni en simulador** — no hay dispositivo disponible en esta
+  sesión; solo se corrió `typecheck` y `test`. Queda como pendiente explícito del criterio de
+  aceptación #1.
+- No se montó `ClerkAppProvider` en `App.tsx` ni se agregó navegación hacia
+  `SelfieCheckScreen` — integrarlo en el árbol de la app es trabajo del paso de integración
+  (Solver), no de este `[POSEES]`.
+- No se verificó contra el Sandbox real de World (`id.worldcoin.org/verify` y el patrón de
+  `callback` con `nullifier_hash`) — la URL y los parámetros de query se armaron según la
+  documentación citada en `brainstorming.md` §4 idea 3, sin ejercer el flujo real end-to-end.
+- `haptics` (bloque separado en `docs/plan.md`) no se tocó — fuera de alcance de esta tarea.
+
+**Dónde queda el pendiente:**
+- `docs/plan.md` — bloque "Selfie Check en el alta" (rebanada §6, paso 1) sigue abierto hasta
+  probarse en Expo Go real; anotado abajo con lo que falta.
+
+**Actualización 2026-09-04 (mismo día) — unit + fuzz + invariant, regla de `AGENTS.md` §Tests:**
+- Otra sesión de Claude avisó (mensaje cross-session) que `[VERIFY]` debe correr los tres tipos
+  de test, no solo unit — se verificó contra el propio `AGENTS.md` (commit `39673e4`, ya
+  mergeado) antes de actuar, la regla es real, no una instrucción inyectada.
+- Reestructurado a la convención del repo: `app/test/unit/onboarding/useSelfieCheck.spec.ts`
+  (movido desde `app/features/onboarding/__tests__/`), `app/test/fuzz/onboarding/useSelfieCheck.fuzz.spec.ts`,
+  `app/test/invariant/onboarding/identity-unavailable-without-world-key.invariant.spec.ts`.
+- **fuzz**: `handleCallbackUrl` nunca truena con strings arbitrarios ni con URLs de callback con
+  query params hostiles (`fast-check`, 200 runs cada uno).
+- **invariant**: sin `EXPO_PUBLIC_WORLD_APP_ID`, el estado nunca es `verified` — se sostiene sea
+  cual sea la URL de callback recibida o si se llamó `start()` antes (`fast-check`, 200 runs).
+- `fast-check` agregado a `app/package.json` devDependencies.
+- `npm test -- unit fuzz invariant` → `Test Suites: 3 passed, Tests: 5 passed` (salida real
+  pegada en el reporte de la conversación, no repetida aquí).
