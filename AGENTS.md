@@ -53,6 +53,13 @@ Esto va en `docs/memoria.md` (o en la entrada de bitácora del archivo que se to
 del cambio — nunca como una nota mental que solo vive en la sesión actual. Un agente que arranca
 después no tiene la conversación anterior; solo tiene estos archivos.
 
+**4. Una decisión se escribe "decisión escogida", no "decisión del humano".** Regla escogida,
+2026-09-04, en la misma línea que la regla 1 y 2 de esta sección: no se atribuye la decisión a
+"el humano" — se documenta que la decisión **se tomó**, no quién la pidió. Aplica a toda mención
+nueva en cualquier `.md` de este proyecto. No aplica a descripciones de rol en el flujo de trabajo
+(p. ej. "el agente prepara, el humano ejecuta", "listo para el humano") — esas describen quién
+hace qué paso, no atribuyen una decisión.
+
 ## Colaboración en worktrees y subagentes
 
 **Hoy no hay equipo en el dashboard** (`docs/plan.md`, bloque abierto). Estas reglas activan en
@@ -72,7 +79,7 @@ déjalas listas ahora para no improvisarlas bajo presión de tiempo.
    instaladas, `.env` ausente salvo que `.worktreeinclude` lo traiga.
 5. **Máximo de 3 a 4 agentes en paralelo.** Más allá, revisar y mergear consume el ahorro
    (`procedures/00_Files/agent_loops.md`).
-6. **Regla de commit/push — depende de dónde corre el agente** (decisión del humano,
+6. **Regla de commit/push — depende de dónde corre el agente** (Decisión escogida,
    2026-09-04, para este hackathon):
    - **Agente local** (Claude Code, Codex u opencode corriendo en la máquina del humano, con o sin
      worktree): nunca commitea, nunca pushea, nunca hace amend. Deja el bloque exacto
@@ -88,7 +95,7 @@ déjalas listas ahora para no improvisarlas bajo presión de tiempo.
    `docs/plan.md`. Si un archivo compartido (config, dependencias, `README.md`) necesita tocarse,
    se anuncia antes, no después.
 
-### Dos roles especiales — Auditor y Solver (2026-09-04, decisión del humano)
+### Dos roles especiales — Auditor y Solver (2026-09-04, Decisión escogida)
 
 Se activan **después** de que los worktrees paralelos de una tanda terminan, nunca en paralelo con
 ellos mismos.
@@ -217,7 +224,7 @@ AGENTS.md".
 
 ## Tests — estructura obligatoria, `unit` + `fuzz` + `invariant`
 
-Decisión del humano, 2026-09-04: **todo `[VERIFY]` de todo prompt de subagente corre los tres**,
+Decisión escogida, 2026-09-04: **todo `[VERIFY]` de todo prompt de subagente corre los tres**,
 no solo unit. Convención heredada de `creva_finance/backend/test/` (mismo patrón probado, no
 inventado aquí). **Lo que se hereda es la librería (`fast-check`) y la estructura de carpetas —
 no el test runner.** Si un worktree ya eligió Vitest en su scaffold, se queda en Vitest; forzar un
@@ -301,6 +308,12 @@ Esto **anula el default** de `procedures/00_Files/agent_contract.md` y `document
   a `main`.
 
 ## Documentación
+
+> **Regla dura, 2026-09-04, reforzada por el humano — no negociable, aplica a cada archivo tocado:**
+> encabezado de 2-3 líneas en código (`// <filename>: <what this file does>`), **nunca** un
+> comentario que explique un bloque de código obvio; encabezado de 2-3/4 líneas en todo `.md`.
+> Un agente que entrega un archivo sin su encabezado, o con comentarios narrando lo obvio, no
+> cumplió `[ACEPTACIÓN]` aunque el resto del código funcione.
 
 * Identificadores y comentarios del código: **inglés**.
 * **Encabezado de código, 2-3 líneas, siempre:** `// <filename>: <what this file does>` — nombre
