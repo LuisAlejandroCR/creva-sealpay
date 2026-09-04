@@ -113,6 +113,24 @@ bloque. Esta tabla es solo el checklist.
   descartarlo a ciegas), `git stash -u` si hay algo que vale la pena conservar, después
   `git rebase scaffold-monorepo`, reaplicar el stash y resolver a mano. Criterio de aceptación:
   `feature-agent-loop` contiene el commit `f8b751d` en su historia antes de seguir trabajando ahí.
+- [ ] **5 prompts de subagente redactados y listos para dispatch.** `2026-09-04` — 0)
+  scaffold monorepo (secuencial, bloqueante), 1) gateway x402+Hedera, 2) Selfie Check onboarding,
+  3) port de lógica de `creva_finance`, 4) loop del agente + haptics. Los 4 últimos son worktrees
+  paralelos, dentro del máximo de `AGENTS.md` §Colaboración punto 5. Prompts completos en la
+  bitácora de conversación — pendiente: nadie los ha ejecutado todavía. Criterio de aceptación:
+  bloque 0 corrido y mergeado a `main` antes de dispatch de 1-4.
+- [ ] **Selfie Check en el alta (rebanada §6, paso 1) — implementado, falta probar en
+  dispositivo real.** `2026-09-04` — worktree `feature-selfie-check`. `app/features/onboarding/`
+  (flujo `WebView` contra `id.worldcoin.org/verify`, degrada a `identity_unavailable` sin
+  `EXPO_PUBLIC_WORLD_APP_ID`) y `app/features/auth/` (`session-source.ts` con la forma
+  `SessionSource` de `creva_finance/frontend/lib/api.ts:17-25`, `ClerkAppProvider.tsx`).
+  `npm run typecheck` y `npm test -- onboarding` pasan. Criterio de aceptación pendiente:
+  probarlo en Expo Go real (no hay dispositivo en esta sesión), montar `ClerkAppProvider` +
+  `SelfieCheckScreen` en `App.tsx` (paso de integración, no de este bloque), y ejercer el
+  Sandbox real de World en vez de solo la forma de la URL. Detalle completo en
+  `docs/memoria.md` 2026-09-04. **Actualización:** `unit`+`fuzz`+`invariant` agregados por
+  `AGENTS.md` §Tests (`app/test/{unit,fuzz,invariant}/onboarding/`), `npm test -- unit fuzz
+  invariant` pasa (3 suites, 5 tests) — sigue faltando solo la prueba en Expo Go real.
 - [ ] **Riesgo Expo Go: módulo nativo no soportado.** En cuanto haga falta un módulo nativo que
   Expo Go no trae, hay que pasar a **Dev Client** (`eas build --profile development`). Mitigación:
   medio día presupuestado para eso, y descubrirlo temprano — no el 09/13. Criterio de aceptación:
