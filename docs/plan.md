@@ -19,7 +19,7 @@ bloque. Esta tabla es solo el checklist.
 - [ ] **Repo público creado, pero no cumple el criterio de aceptación todavía.**
   `2026-09-04` — repo creado en https://github.com/LuisAlejandroCR/creva-sealpay, pero con **todo**
   el contenido de esta carpeta privada pusheado tal cual (`AGENTS.md`, `docs/` completo,
-  `brainstorming.md`, `LEARNINGS.md`), no solo `docs/plan.md`. Decisión explícita del humano el
+  `brainstorming.md`, `LEARNINGS.md`), no solo `docs/plan.md`. Decisión escogida el
   mismo día: exposición intencional, "para dar contexto a los agentes" — no es un accidente a
   revertir. Revisado por secretos: limpio, ningún valor de key/token expuesto (ver
   `docs/memoria.md`). Pendiente real: `README.md` público sigue siendo el README de esta carpeta
@@ -28,7 +28,7 @@ bloque. Esta tabla es solo el checklist.
   Criterio de aceptación pendiente: `README.md` público reescrito para describir el producto de
   submission, no esta carpeta de preparación.
 - [ ] **Decidir qué parte de `docs/` se vuelve pública por la regla de SDD.** Superado en la
-  práctica — el humano ya pusheó `docs/` completo el `2026-09-04` (ver bloque de arriba), no solo
+  práctica — ya se pusheó `docs/` completo el `2026-09-04` (ver bloque de arriba), no solo
   `docs/plan.md` como preveía este ítem. Queda abierto para decidir si eso se mantiene así o se
   poda luego; no hay decisión formal todavía, solo el hecho consumado.
 - [ ] **Responder los dos check-ins de la semana del 09/07** en el hacker dashboard. Criterio de
@@ -43,18 +43,6 @@ bloque. Esta tabla es solo el checklist.
 - [ ] **Confirmar en el dashboard de ETHGlobal quién entra al equipo, con stake propio cada
   quien.** Decisión de "equipo vs. solo" ya tomada (ver arriba); falta el trámite. Criterio de
   aceptación: cada integrante aparece en el dashboard con su stake pagado.
-- [ ] **Scaffold del repo público antes de repartir worktrees.** `2026-09-04` — decisión: primero
-  una pasada de scaffold, después se reparten los 4 pasos de la rebanada (`brainstorming.md` §6) en
-  worktrees — no repartir en paralelo sobre un repo vacío. **Stack decidido el 2026-09-04
-  (decisión del humano): app móvil en React Native + Expo**, para publicar en App Store y Play
-  Store **después** del evento; durante el hackathon se demuestra en **Expo Go**. Arquitectura
-  recomendada y aceptada: **dos piezas** — app Expo (UI, alta con Selfie Check, haptics) + gateway
-  Node en Cloud Run (header x402, liquidación en Hedera, llave de firma, proxy a la API de Creva).
-  Razón de partirlo: `@hashgraph/sdk` en RN exige polyfills de crypto/streams, una llave privada
-  dentro del bundle móvil es extraíble, y la pista de Hedera pide **servicio x402 vivo + plataforma
-  que lo consuma** — el gateway es el servicio, la app es la plataforma.
-  Criterio de aceptación: repo con app Expo corriendo en Expo Go + gateway con `.env.example` y
-  scripts de build/test, commiteado por un humano, antes de asignar la primera área de worktree.
 - [ ] **Reutilizar la capa de lógica de `creva_finance`, no la de UI.** `2026-09-04` — inventario
   hecho leyendo `creva_finance/frontend/`. Reutilizable casi tal cual (TS puro, sin DOM, ~1,100
   líneas): `lib/format-money.ts`, `format-date.ts`, `format-percent.ts`, `mx-states.ts`,
@@ -64,22 +52,55 @@ bloque. Esta tabla es solo el checklist.
   todo `components/` y `app/` (JSX de Next con `div` + Tailwind → `View`/`StyleSheet`), mitigado con
   **NativeWind** para conservar los nombres de clase de Tailwind. Criterio de aceptación: los
   archivos de la lista viven en el repo nuevo y su suite de tests pasa ahí.
-- [ ] **Haptics con `expo-haptics`.** `2026-09-04` — pedido del humano. Tres puntos:
+- [ ] **Haptics con `expo-haptics`.** `2026-09-04` — decisión escogida. Tres puntos:
   `ImpactFeedbackStyle.Medium` en el botón de pago, `NotificationFeedbackType.Success` cuando el 402
   liquida y llega el reporte firmado, `NotificationFeedbackType.Error` en verificación de sello
   inválida — el veredicto del sello es el producto, y el haptic lo entrega antes de que se lea el
   texto. Criterio de aceptación: los tres estados se sienten en un dispositivo real vía Expo Go, no
   solo en simulador.
 - [ ] **Publicación en App Store / Play Store — después del evento, no durante.** `2026-09-04`
-  Decisión del humano, respaldada: la revisión de iOS puede consumir sola la ventana que queda
+  Decisión escogida, respaldada: la revisión de iOS puede consumir sola la ventana que queda
   (judging el 09/14, corte el 09/16). Durante el evento se demuestra con Expo Go + el video.
   Criterio de aceptación: `eas submit` corrido después del 2026-09-16; no bloquea la entrega.
-- [ ] **5 prompts de subagente redactados y listos para dispatch.** `2026-09-04` — 0)
-  scaffold monorepo (secuencial, bloqueante), 1) gateway x402+Hedera, 2) Selfie Check onboarding,
-  3) port de lógica de `creva_finance`, 4) loop del agente + haptics. Los 4 últimos son worktrees
-  paralelos, dentro del máximo de `AGENTS.md` §Colaboración punto 5. Prompts completos en la
-  bitácora de conversación — pendiente: nadie los ha ejecutado todavía. Criterio de aceptación:
-  bloque 0 corrido y mergeado a `main` antes de dispatch de 1-4.
+- [ ] **Dos roles nuevos definidos: Auditor y Solver.** `2026-09-04` — `AGENTS.md` §Roles
+  especiales. Solver reconcilia las 4 ramas paralelas (worktree `integration-solver`), corre
+  primero. Auditor —**siempre agente en la nube, nunca local**— es la única excepción a "nadie
+  pushea a `main`" de todo el documento: verifica 4 condiciones él mismo (VERIFY real, `POSEES`
+  respetado, docs actualizados, sin `Co-Authored-By:`) y solo mergea/pushea si las cuatro se
+  cumplen; si alguna falla, no mergea y reporta. Prompts 5 (Solver) y 6 (Auditor) redactados,
+  sin ejecutar todavía — dependen de que los 4 worktrees paralelos (bloque de arriba) terminen
+  primero.
+- [ ] **Corrección de orden de dispatch — los 6 prompts se lanzaron casi a la vez, no en
+  cascada.** `2026-09-04` — el plan original decía "0 corre y mergea a `main`, después 1-4 en
+  paralelo, después 5, después 6". En la práctica se dispararon casi todos juntos:
+  `scaffold-monorepo` existe en `origin` pero **no mergeado a `main`** (`git branch -r` confirma
+  solo `origin/main` y `origin/scaffold-monorepo`, ningún `feature-*` todavía). Consecuencia
+  observada:
+  - Agente 3 (`feature-logic-port`) preguntó su base al no encontrar `app/` en `main` — se
+    confirmó basar en `scaffold-monorepo`, no en `main` (correcto: `main` no tiene código todavía).
+  - Agente 5 (Solver) arrancó sin que existiera ninguna de las 4 ramas `feature-*` — se le indicó
+    **detenerse y esperar** a que existan y estén pusheadas antes de reconciliar nada.
+  **Corrección para el resto de la tanda:** cualquier `feature-*` que arranque ahora debe basarse
+  en `origin/scaffold-monorepo`, no en `main`. El Solver (prompt 5) y el Auditor (prompt 6) no
+  arrancan hasta que las 4 ramas `feature-*` existan en `origin` con su `[REPORT]` completo.
+  Criterio de aceptación: `scaffold-monorepo` mergeado a `main` (vía Auditor o humano) antes de
+  que el Auditor mergee cualquier `feature-*`.
+- [ ] **Estructura de tests obligatoria: `unit` + `fuzz` + `invariant`.** `2026-09-04` — decisión
+  escogida, aplicada en `AGENTS.md` §Tests. Convención heredada de
+  `creva_finance/backend/test/{unit,fuzz,invariant}` (Jest + `fast-check`), replicada en
+  `gateway/test/` y `app/test/`. Relayado a los 4 agentes de worktree activos (1-4) con un target
+  concreto de fuzz/invariant por área. Pendiente: agentes 1 y 2 ya habían pusheado antes de este
+  mensaje — necesitan un commit de seguimiento, no reescribir el suyo. Criterio de aceptación:
+  cada rama `feature-*` tiene las tres carpetas con al menos un archivo antes de que el Auditor
+  la mergee.
+- [ ] **`feature-agent-loop` con base rota — necesita rebase.** `2026-09-04` — su worktree local
+  quedó en el commit `b70dace` (uno de docs, previo a que el scaffold real `f8b751d` existiera),
+  con un `app/` propio sin trackear en vez del scaffold real. Diverge de `feature-gateway-x402` y
+  `feature-selfie-check`, que sí parten de `f8b751d` — riesgo de conflicto grande al integrar.
+  Corrección: `git status --short` primero para ver qué hay en ese `app/` sin trackear (no
+  descartarlo a ciegas), `git stash -u` si hay algo que vale la pena conservar, después
+  `git rebase scaffold-monorepo`, reaplicar el stash y resolver a mano. Criterio de aceptación:
+  `feature-agent-loop` contiene el commit `f8b751d` en su historia antes de seguir trabajando ahí.
 - [ ] **Riesgo Expo Go: módulo nativo no soportado.** En cuanto haga falta un módulo nativo que
   Expo Go no trae, hay que pasar a **Dev Client** (`eas build --profile development`). Mitigación:
   medio día presupuestado para eso, y descubrirlo temprano — no el 09/13. Criterio de aceptación:
@@ -119,6 +140,15 @@ bloque. Esta tabla es solo el checklist.
 - [x] `2026-09-04` — `engram` wireado para **opencode** (plugin instalado, listo). Wireado para
   **Codex** solo en config MCP + instrucciones — el plugin/hooks queda como bloque abierto porque
   el CLI de Codex no está instalado aquí.
+- [x] `2026-09-04` — **Scaffold del repo público (bloque 0), rama `scaffold-monorepo`, agente
+  local, sin commitear.** `app/` (Expo SDK 57 + TypeScript + NativeWind 4, `App.tsx` con clases
+  Tailwind probadas) y `gateway/` (Node + TypeScript + Express, `GET /health`) creados. Ambos con
+  `.env.example` (valores placeholder), `typecheck` verde, y servidor levantado y probado por HTTP
+  (`curl /health` → `{"status":"ok"}`; Metro bundleó `index.ts` sin error, bundle iOS devolvió
+  200) — detalle completo en `docs/memoria.md` 2026-09-04. **⏳ pendiente dentro de este mismo
+  bloque:** prueba real en dispositivo físico vía Expo Go — esta sesión solo verificó que Metro
+  bundlea y sirve por HTTP, sin emulador ni dispositivo disponible. Comando de commit dejado listo
+  para el humano, no ejecutado (regla de agente local, `AGENTS.md` §Colaboración punto 6).
 
 ## Verify
 

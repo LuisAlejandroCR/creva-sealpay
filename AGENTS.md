@@ -53,6 +53,13 @@ Esto va en `docs/memoria.md` (o en la entrada de bitácora del archivo que se to
 del cambio — nunca como una nota mental que solo vive en la sesión actual. Un agente que arranca
 después no tiene la conversación anterior; solo tiene estos archivos.
 
+**4. Una decisión se escribe "decisión escogida", no "decisión del humano".** Regla escogida,
+2026-09-04, en la misma línea que la regla 1 y 2 de esta sección: no se atribuye la decisión a
+"el humano" — se documenta que la decisión **se tomó**, no quién la pidió. Aplica a toda mención
+nueva en cualquier `.md` de este proyecto. No aplica a descripciones de rol en el flujo de trabajo
+(p. ej. "el agente prepara, el humano ejecuta", "listo para el humano") — esas describen quién
+hace qué paso, no atribuyen una decisión.
+
 ## Colaboración en worktrees y subagentes
 
 **Hoy no hay equipo en el dashboard** (`docs/plan.md`, bloque abierto). Estas reglas activan en
@@ -72,7 +79,7 @@ déjalas listas ahora para no improvisarlas bajo presión de tiempo.
    instaladas, `.env` ausente salvo que `.worktreeinclude` lo traiga.
 5. **Máximo de 3 a 4 agentes en paralelo.** Más allá, revisar y mergear consume el ahorro
    (`procedures/00_Files/agent_loops.md`).
-6. **Regla de commit/push — depende de dónde corre el agente** (decisión del humano,
+6. **Regla de commit/push — depende de dónde corre el agente** (Decisión escogida,
    2026-09-04, para este hackathon):
    - **Agente local** (Claude Code, Codex u opencode corriendo en la máquina del humano, con o sin
      worktree): nunca commitea, nunca pushea, nunca hace amend. Deja el bloque exacto
@@ -87,6 +94,48 @@ déjalas listas ahora para no improvisarlas bajo presión de tiempo.
 7. **Ningún agente toca un archivo fuera de su área asignada** sin coordinarlo primero en
    `docs/plan.md`. Si un archivo compartido (config, dependencias, `README.md`) necesita tocarse,
    se anuncia antes, no después.
+
+### Dos roles especiales — Auditor y Solver (2026-09-04, Decisión escogida)
+
+Se activan **después** de que los worktrees paralelos de una tanda terminan, nunca en paralelo con
+ellos mismos.
+
+**Solver** — corre primero. Un worktree propio (o la rama de integración), lee las N ramas
+terminadas y **rellena lo que quedó entre agentes**: un tipo que un worktree mockeó y otro define
+de verdad, una interfaz que no calza, un import roto entre `app/lib/` y `app/features/`. No inventa
+funcionalidad nueva fuera de ese acoplamiento — si encuentra un hueco de producto (no de
+integración), lo reporta como bloque nuevo en `docs/plan.md`, no lo improvisa.
+
+**Auditor** — corre después del Solver, y es el **único rol autorizado a mergear y pushear a
+`main` él mismo**, sin esperar al humano — la única excepción a "nadie pushea a `main`" de todo
+este documento. Solo lo hace si **las cuatro condiciones se cumplen a la vez**, verificadas por él
+mismo, no asumidas:
+
+1. El `[VERIFY]` de cada rama corrió de verdad y su salida real (no "debería pasar") quedó pegada
+   en el `[REPORT]` de esa rama.
+2. Cada agente tocó solo lo que su `[POSEES]` le asignaba — el Auditor corre
+   `git diff main...<rama> --stat` y lo compara contra `[POSEES]` de cada prompt.
+3. `docs/plan.md` y `docs/memoria.md` están actualizados en el mismo lote que el código, con qué
+   se hizo / qué no se verificó / por qué (regla dura de §Fuente y contexto).
+4. Ningún commit lleva `Co-Authored-By:` ni trailer, y el mensaje es una línea Conventional
+   Commits en inglés.
+
+**Si cualquiera falla:** el Auditor **no mergea**. Reporta qué condición falló, en qué rama, y
+deja el bloque bloqueado en `docs/plan.md` — nunca fuerza el merge "porque ya casi".
+
+**Excepción — precondición de merge faltante, no un condición fallida en la rama objetivo.**
+Regla escogida, 2026-09-04, tras el primer caso real: si el bloqueo es que `main` le falta una
+rama previa que `docs/plan.md` exige como precondición (p. ej. `scaffold-monorepo` sin mergear
+antes de mergear `integration-solver`), el Auditor **no se detiene a preguntar** — aplica las
+mismas cuatro condiciones a esa rama previa, y si las cumple, la mergea a `main` primero, y
+**después** sigue con la rama que sí tenía pedido de auditoría. Se documenta cada merge por
+separado en `docs/plan.md`/`docs/memoria.md`, con cuál rama y en qué orden. Esto sigue siendo la
+misma autoridad de la sección de arriba, aplicada dos veces en la secuencia correcta — no una
+autoridad nueva. Si la rama previa **tampoco** cumple las cuatro condiciones, ahí sí se detiene y
+reporta, igual que cualquier otro bloqueo.
+
+El Auditor es siempre un **agente en la nube** (nunca local — un agente local no pushea, ni
+siquiera con este rol). Hereda el resto de límites duros de la plantilla de abajo.
 
 ### Plantilla de prompt para cada subagente
 
@@ -184,6 +233,39 @@ AGENTS.md".
 [COMMIT] feat: add priced x402 endpoint gated by Selfie Check proof
 ```
 
+## Tests — estructura obligatoria, `unit` + `fuzz` + `invariant`
+
+Decisión escogida, 2026-09-04: **todo `[VERIFY]` de todo prompt de subagente corre los tres**,
+no solo unit. Convención heredada de `creva_finance/backend/test/` (mismo patrón probado, no
+inventado aquí). **Lo que se hereda es la librería (`fast-check`) y la estructura de carpetas —
+no el test runner.** Si un worktree ya eligió Vitest en su scaffold, se queda en Vitest; forzar un
+cambio a Jest solo por igualar a `creva_finance` es scope creep no pedido. Aclarado 2026-09-04
+después de que el agente del gateway preguntara.
+
+```text
+gateway/test/unit/<nombre>.spec.ts             — Jest, comportamiento normal
+gateway/test/fuzz/<nombre>.fuzz.spec.ts        — Jest + fast-check, entradas hostiles/aleatorias
+gateway/test/invariant/<propiedad>.invariant.spec.ts — Jest + fast-check, una propiedad que
+                                                        NUNCA puede romperse, sea cual sea la entrada
+app/test/unit/…      · app/test/fuzz/….fuzz.spec.ts      · app/test/invariant/….invariant.spec.ts
+```
+
+* **unit** — el camino feliz y los bordes conocidos. Nada nuevo respecto al resto del proyecto.
+* **fuzz** — genera entradas hostiles/aleatorias con `fast-check` (`fc.assert(fc.property(...))`)
+  contra código que toca el borde de confianza: parseo de respuestas HTTP, headers, payloads del
+  facilitador de Hedera, la carga de x402. La propiedad mínima: **nunca truena**, siempre devuelve
+  algo bien formado. Ver `croma-client.fuzz.spec.ts` como plantilla.
+* **invariant** — una propiedad de seguridad que debe sostenerse pase lo que pase, con el mismo
+  `fast-check`. Ejemplos concretos para este proyecto: *"sin pago válido de Hedera, la ruta nunca
+  responde 200"*, *"un reporte alterado nunca verifica como válido aunque la firma sea de Creva"*
+  (igual que `forger-cannot-sign.invariant.spec.ts` del backend de Creva, adaptado al gateway),
+  *"el gateway nunca reenvía la llave de firma ni el JWT del usuario en el cuerpo de la respuesta"*.
+  Nombre del archivo = la propiedad en inglés, no el módulo que la prueba.
+
+**Dónde se marca cumplido:** el `[VERIFY]` de cada prompt de subagente corre
+`npm test -- unit fuzz invariant` (o el patrón equivalente de Jest) y pega la salida real — un
+`[VERIFY]` que solo corrió `unit` no cumple esta regla, aunque los tests unitarios pasen.
+
 ## Los 8 bloques de trabajo
 
 Evaluar todo cambio no trivial contra: Seguridad · Código limpio · Código muerto · Arquitectura ·
@@ -237,6 +319,12 @@ Esto **anula el default** de `procedures/00_Files/agent_contract.md` y `document
   a `main`.
 
 ## Documentación
+
+> **Regla dura, 2026-09-04, reforzada por el humano — no negociable, aplica a cada archivo tocado:**
+> encabezado de 2-3 líneas en código (`// <filename>: <what this file does>`), **nunca** un
+> comentario que explique un bloque de código obvio; encabezado de 2-3/4 líneas en todo `.md`.
+> Un agente que entrega un archivo sin su encabezado, o con comentarios narrando lo obvio, no
+> cumplió `[ACEPTACIÓN]` aunque el resto del código funcione.
 
 * Identificadores y comentarios del código: **inglés**.
 * **Encabezado de código, 2-3 líneas, siempre:** `// <filename>: <what this file does>` — nombre
