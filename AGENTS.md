@@ -219,7 +219,10 @@ AGENTS.md".
 
 Decisión del humano, 2026-09-04: **todo `[VERIFY]` de todo prompt de subagente corre los tres**,
 no solo unit. Convención heredada de `creva_finance/backend/test/` (mismo patrón probado, no
-inventado aquí):
+inventado aquí). **Lo que se hereda es la librería (`fast-check`) y la estructura de carpetas —
+no el test runner.** Si un worktree ya eligió Vitest en su scaffold, se queda en Vitest; forzar un
+cambio a Jest solo por igualar a `creva_finance` es scope creep no pedido. Aclarado 2026-09-04
+después de que el agente del gateway preguntara.
 
 ```text
 gateway/test/unit/<nombre>.spec.ts             — Jest, comportamiento normal
