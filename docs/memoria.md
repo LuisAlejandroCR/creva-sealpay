@@ -154,6 +154,36 @@ equivocada (`main` en vez de `scaffold-monorepo`), van a tener el mismo problema
 
 **Dónde queda el pendiente:** `docs/plan.md` — bloque "`feature-agent-loop` con base rota".
 
+## 2026-09-04 — Falsa alarma del Auditor, causa real encontrada y corregida
+
+**Qué se hizo:**
+- El Auditor (sesión "6 Auditor integration-solver") reportó `AGENTS.md` con una edición sin
+  commitear justo cuando se le pidió proceder con el merge de precondición — se negó a tratarlo
+  como autorización, correctamente, y pidió confirmación directa en vez de confiar en el mensaje
+  de una sesión par. Investigado: **no era inyección ni manipulación** — era una carrera de
+  tiempos. El commit (`6ff9f67`) ya existía localmente cuando se revisó, solo faltaba pushear.
+- Hallazgo real, no relacionado con la alarma: las carpetas de `.claude/worktrees/` estaban
+  commiteadas como **gitlinks** (modo `160000`, referencia tipo submódulo) en vez de estar en
+  `.gitignore` — violaba la propia regla 3 de `AGENTS.md` §Colaboración. Esto explicaba el ruido
+  de `git status` mostrando esas carpetas como "modificadas" en cada sesión.
+- Corregido: `.claude/worktrees/` agregado a `.gitignore`, `git rm -r --cached` para destrackear
+  las 5 referencias (los worktrees siguen en disco, solo dejan de vivir en el índice de git).
+  Pusheado a `origin/scaffold-monorepo` (`4c1a8c6`), junto con los commits pendientes de push
+  desde `bcf693c` (incluida la excepción del Auditor sobre merges de precondición).
+- Hallazgo estructural sin resolver: las sesiones 0 (Scaffold), 5 (Solver) y 6 (Auditor) corren
+  en el **mismo directorio** que esta sesión principal — no en worktrees aislados como 1-4. Es la
+  causa estructural de la carrera de tiempos que originó la falsa alarma.
+
+**Qué NO se verificó, y por qué:**
+- No se confirmó si las sesiones 0/5/6 compartiendo directorio es intencional o un descuido de
+  cómo se lanzaron — reportado, sin decisión tomada todavía.
+- No se corrió el merge de `scaffold-monorepo` → `main` en este lote — eso queda para el Auditor,
+  ahora que puede verificarlo contra `origin` en vez de disco local compartido.
+
+**Dónde queda el pendiente:** `docs/plan.md` — nuevo bloque sobre sesiones compartiendo
+directorio, y el merge de `scaffold-monorepo` → `main` sigue pendiente de que el Auditor lo
+verifique y ejecute.
+
 - **Conflicto resuelto.** Decisión escogida: excepción confirmada. `AGENTS.md` §Colaboración punto 6 ahora
   distingue agente local (nunca commitea/pushea, deja el comando listo) de agente en la nube
   (`isolation: "remote"` / sesión de Claude Code cloud — sí commitea y pushea, en su propio branch,
