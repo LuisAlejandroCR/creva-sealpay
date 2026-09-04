@@ -1,51 +1,67 @@
-<!-- README.md: what this folder is, what's inside, and in what order to read it. -->
+<!-- README.md: what this submission is and how to run it — the public face of the repo, not the private prep notes. -->
 
-# ETHOnline 2026
-
-> **Hard rule for every agent — see [`AGENTS.md`](AGENTS.md):** check the repo and the `main`
-> branch before touching anything, and always close out by documenting what was done, what was
-> not verified, and why — that's the context the other agents rely on.
-
-Working folder for the ETHGlobal hackathon, **September 4–16, 2026**, online and asynchronous.
-Preparation lives here; **the event's code does not** — it goes into a separate public repo that
-doesn't exist yet.
-
-## What's here
-
-| File | What it is |
-|---|---|
-| [AGENTS.md](AGENTS.md) | The constitution: worktree/subagent collaboration rules, the language rule, and the ruleset's SDD exception — **read it before touching any file** |
-| [docs/plan.md](docs/plan.md) | The actionable checklist: what's missing today, with acceptance criteria per block |
-| [docs/estado.html](docs/estado.html) | Interactive status + roadmap map (built with `archify`) — regenerated from `docs/estado.lifecycle.json` each time a block closes |
-| [brainstorming.md](brainstorming.md) | The central document: rules, Creva's real inventory, eight scored ideas, the recommendation, the slice, the kickoff status, and the finalist calendar (§8-9) |
-| [LEARNINGS.md](LEARNINGS.md) | What was learned while the project is alive — filled in the day something costs, not at the end |
-| `.env` | Working keys. **Never committed** |
-
-## In one line
-
-Creva enters through a **Continuity** track — which allows extending an existing product — with a
-payments angle: the entrepreneur proves she's human once, and from then on **every signal query
-and every seal verification is paid via x402**, instead of drawing on Creva's shared quota.
-
-## Before touching anything
-
-1. **Read all of [brainstorming.md](brainstorming.md)**, starting with §0 (the findings that drive
-   everything) and §2 (the corrected inventory — three pieces Creva's `.md` files assumed were live
-   don't exist).
-2. **§8 is the real kickoff status.** Everything else is analysis; that table is what's missing
-   today.
-3. Submission rules come from `procedures/00_Files/sponsor_track_rules.md` and
-   `slice_demo_hackathon.md`, not from here.
-
-## Rules specific to this folder
-
-- **Nothing built during the event lives here.** It goes to the public repo, and consumes Creva
-  through its API — the same way `creva-zk` did in the Midnight hackathon.
-- **Don't build the integration ahead of time.** Continuity allows bringing prior code, but **the
-  work being judged is built during the event.** Writing the x402 layer or the Selfie Check
-  adapter beforehand is what disqualifies an entry.
-- **Every figure carries a source and a date.** A prize, a deadline, or a requirement without both
-  is an assumption, and gets marked `⏳`.
-- **State only what the code actually does.** A README describing a feature that isn't there is
-  the cheapest way to get disqualified.
 # creva-sealpay
+
+**ETHGlobal Online 2026 submission**, built on Creva's existing product through its Continuity
+track. Creva scores a business's real-world signals (reviews, complaints, formality) into a single
+trust report. This submission adds a payments and identity layer on top: a person proves they're
+human once, and after that every signal query and every sealed-report verification is paid
+individually via [x402](https://www.x402.org/), instead of drawing on Creva's shared API quota.
+
+## How it works
+
+1. **Onboarding — Selfie Check.** The mobile app authenticates the user with
+   [Clerk](https://clerk.com/) and runs a liveness check via World's Selfie Check (no Orb
+   hardware required). If World isn't configured, onboarding degrades to an
+   `identity_unavailable` state instead of blocking the flow.
+2. **Paid query.** The app requests a Creva signal report through a local gateway. The gateway
+   gates the request behind x402: it returns a `402 Payment Required` with the price and payment
+   details, and only proxies the request to Creva's API once a valid payment is presented.
+3. **Sealed verification.** A previously issued report can be re-verified as authentic (not
+   tampered with) via a separate, also x402-gated, endpoint.
+
+```
+app (Expo/React Native)  --x402-->  gateway (Express)  -->  Creva API
+```
+
+## What's in this repo
+
+| Path | What it is |
+|---|---|
+| [`app/`](app/) | Expo/React Native client — three screens: `SelfieCheckScreen` (onboarding), `QueryScreen` (paid signal query), `VerifyScreen` (sealed-report verification) |
+| [`gateway/`](gateway/) | Express server that gates `/creva-score/report` and `/creva-score/verify` behind x402 payment and proxies verified requests to Creva's API |
+
+## Running it locally
+
+### Gateway
+
+```bash
+cd gateway
+npm install
+cp .env.example .env   # fill in HEDERA_ACCOUNT_ID / HEDERA_PRIVATE_KEY / PAY_TO_ADDRESS
+npm run dev
+```
+
+Runs on `http://localhost:8787` by default (`PORT` in `.env`). `GET /health` returns `{"status":"ok"}`.
+Payments are checked against a Hedera testnet facilitator (`FACILITATOR_URL`, default
+`http://localhost:4020`).
+
+### App
+
+```bash
+cd app
+npm install
+cp .env.example .env   # fill in EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY and, optionally, World app id
+npm start
+```
+
+Opens the Expo dev tools; scan the QR code with **Expo Go** on a device, or press `a`/`i`/`w` for
+Android/iOS/web. The app expects the gateway to be reachable — see `app/lib/api.ts` for the base
+URL it targets.
+
+## Status
+
+Both pieces run locally against a Hedera testnet facilitator. What has **not** yet been exercised
+is a payment settled end-to-end against a live facilitator with real credentials — see this repo's
+commit history and issue tracker for current status rather than this file, which describes the
+architecture, not a point-in-time completion percentage.
