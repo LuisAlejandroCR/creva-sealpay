@@ -24,7 +24,7 @@ sourced) — nunca con un número inventado para sonar completo |
 | 6 | Camino | **Lo que se construyó en el evento** | Las 3 pantallas reales de la app (capturas de Expo Go): onboarding, query pagada, reporte verificado |
 | 7 | Camino | **Tracción agregada** | Cifras verificables: repo público, 4 ramas de feature integradas, suite unit+fuzz+invariant en verde, spec OpenAPI con 46 rutas desplegada antes del evento |
 | 8 | Camino | **Arquitectura** | `app (Expo/RN) --x402--> gateway (Express) --> Creva API` — el mismo diagrama del README, una sola fuente de verdad |
-| 9 | Compromiso | **Honestidad + el ask** | Qué falta (Selfie Check contra sandbox real de World, bloqueado en aprobación de Tools for Humanity — la liquidación real de Hedera ya cerró, con hash) + pistas objetivo: Hedera AI & Agentic Payments ($6k), World Selfie Check ($3.5k), ENS ($500, entregado), Arc de Circle ($10k) y Uniswap Foundation ($5k), track Continuity |
+| 9 | Compromiso | **Honestidad + el ask** | Qué falta (Selfie Check contra sandbox real de World, bloqueado en aprobación de Tools for Humanity — Hedera, ENS, Arc y Bazantic ya cerraron, cada uno con evidencia real) + pistas objetivo: Hedera AI & Agentic Payments ($6k, entregado), World Selfie Check ($3.5k), ENS ($500, entregado), Arc de Circle ($10k, entregado), Bazantic ($3k, entregado) y Uniswap Foundation ($5k), track Continuity |
 | 10 | Compromiso | **Cierre + siguiente paso** | Hacia dónde va (creva-zk, mismo puerto distinta implementación) + repo público en pantalla + folio del reporte de demo, legible en voz alta |
 
 ## Regla de consistencia con el video

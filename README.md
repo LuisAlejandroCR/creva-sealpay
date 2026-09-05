@@ -37,8 +37,9 @@ app (Expo/React Native)  --x402-->  gateway (Express)  -->  Creva API
 
 **Prize tracks targeted:** Hedera (AI & Agentic Payments — a live x402 service with a real
 settled payment), World (Selfie Check, blocked on Sandbox approval), ENS (`negocio.creva.eth`,
-delivered on Sepolia), Arc by Circle, and Uniswap Foundation (stack contribution). Continuity
-track for the ETHGlobal submission itself.
+delivered on Sepolia), Arc by Circle (report hash anchored on-chain, delivered), Bazantic
+(delivered — a real Creva report generated through its Recipe), and Uniswap Foundation (stack
+contribution, open). Continuity track for the ETHGlobal submission itself.
 
 ## Try it
 
@@ -58,9 +59,12 @@ the base URL in `app/lib/api.ts`. Details: [`app/`](app/), [`gateway/`](gateway/
 
 ## Status
 
-Both pieces run locally and speak the live BlockyDevs testnet payment format. A real payment has
-settled end-to-end on Hedera testnet (2026-09-05): tx
-[`0.0.7162784-1788585962-768194628`](https://hashscan.io/testnet/transaction/0.0.7162784-1788585962-768194628),
-`result: SUCCESS`. World's Selfie Check is wired to real server-side verification but still
-blocked on World ID Sandbox approval — see commit history for current status rather than this
-file.
+Both pieces run locally and speak the live BlockyDevs testnet payment format. Real, on-chain
+evidence exists for three tracks (2026-09-05): a Hedera testnet payment settled end-to-end
+(tx [`0.0.7162784-1788585962-768194628`](https://hashscan.io/testnet/transaction/0.0.7162784-1788585962-768194628),
+`result: SUCCESS`, exercised twice — once from the gateway's own facilitator client, once signed
+directly by the mobile app); a sealed report's canonical hash anchored on Arc testnet
+(tx `0x285ea670c9fe31f06d90daeed15b3ec76b0253ca22783b6cfcff1756e15e6014`); and a real Creva report
+generated through Bazantic's Recipe. World's Selfie Check is wired to real server-side
+verification but still blocked on World ID Sandbox approval — see commit history for current
+status rather than this file.
