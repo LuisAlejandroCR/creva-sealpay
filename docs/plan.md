@@ -121,6 +121,38 @@ checklist.
   `creva_verify_business`, `creva_report`) con Recipes de Bazantic — cero plomería nueva. **Si esto
   no se resuelve, no podemos avanzar:** sin cuenta de Bazantic confirmada, este bloque completo
   (las 3 pistas, $3k) se descarta del roadmap — no hay integración parcial posible.
+  **Estado 2026-09-05 — 3 Recipes ya en DRAFT del lado de Bazantic** (`creva-report`,
+  `creva-verify-business`, `creva-regulatory-radar`). Quedan dos criterios para pasar a Cerrados:
+  - [ ] **Auth resuelta:** una petición real a `radar`/`verification`/`report` pasa `JwtAuthGuard`
+    del backend de Creva (no "debería funcionar" — un 2xx real documentado).
+  - [ ] **1 Recipe publicado + 1 llamada paga real** contra el crédito de prueba de 0.30 USDC, con
+    evidencia (request/response + id de transacción/receipt de Bazantic).
+  **Bloqueado en el punto 1 — hallazgo técnico, decisión pendiente del humano:**
+  `JwtAuthGuard` no existe en este repo (`gateway/`, `app/`) ni en ningún worktree o repo hermano
+  accesible desde esta sesión — solo `luisalejandrocr/creva-sealpay` está en scope aquí, y no hay
+  otro checkout local (`git worktree list` solo muestra este). Vive en el backend de Creva detrás
+  de `crevaApiUrl` (`gateway/src/config.ts:6`, default apuntando a un Cloud Run:
+  `https://creva-backend-c7as7id5jq-pv.a.run.app`), cuyo código fuente no está en ningún repo de
+  este proyecto — es un servicio externo desplegado, no inspeccionable desde aquí.
+  Lo que sí se pudo confirmar leyendo este repo: `gateway/src/creva-proxy.ts` (`proxyToCreva`)
+  reenvía la petición pagada al backend de Creva **sin cabecera `Authorization` ni JWT alguno** —
+  solo `content-type` (`creva-proxy.ts:8`). Es decir, con el código actual, cualquier llamada de
+  Bazantic a `radar`/`verification`/`report` llegaría sin credencial y `JwtAuthGuard` la rechazaría
+  tal cual (asumiendo que valida un JWT en `Authorization`, patrón estándar de Nest/Passport que da
+  nombre al guard) — no es "probablemente falle", es que hoy no se envía nada que autenticar.
+  **Pregunta para el humano, sin la cual no se puede seguir:** ¿el guard exige autenticar como una
+  cuenta específica de Creva (cuenta de servicio dedicada vs. reusar una cuenta de usuario real)?
+  Si la respuesta es "cuenta de servicio dedicada", falta crearla — no se va a fabricar aquí. Lo
+  que se necesitaría en ese caso: una env var nueva (ej. `CREVA_SERVICE_JWT` o similar, nombre por
+  definir junto con el humano) en `gateway/.env`, con el JWT/API key de esa cuenta pegado
+  directamente en el `.env` por el humano — nunca por chat — más el cambio de una línea en
+  `creva-proxy.ts` para añadir el header `Authorization` al fetch. Sin esa decisión y esa
+  credencial, el punto 1 no se puede cerrar, y por ende tampoco el punto 2 (correr una llamada
+  paga real requiere que la petición ya pase el guard). En este entorno de ejecución tampoco hay
+  `BAZANTIC_GATEWAY_URL`/`BAZANTIC_MCP_TOKEN` configurados (`gateway/.env` local solo trae
+  `CREVA_API_URL=https://placeholder-creva-api.example.com` de ejemplo), así que la llamada paga
+  real contra Bazantic tampoco es ejecutable desde aquí hasta que el humano provea esas credenciales
+  igual que hizo con Hedera/World (ver tabla de variables de entorno más abajo).
 
 - [ ] **Ledger — $5,000, 2 pistas (AI Agents x Ledger $3.5k + Continuity $1.5k).** Prerrequisito:
   **Ledger Key Ring CLI** (`wallet-cli ring`) del Ledger Agent Stack, publicado 2026-09-03 en
