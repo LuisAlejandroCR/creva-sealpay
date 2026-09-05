@@ -16,4 +16,8 @@ export const config = {
   worldApiKey: process.env.WORLD_API_KEY,
   worldAppId: process.env.WORLD_APP_ID,
   worldVerifyUrl: process.env.WORLD_VERIFY_URL ?? "https://developer.world.org/api/v4/verify",
+  arcRpcUrl: process.env.ARC_RPC_URL,
+  arcNetwork: process.env.ARC_NETWORK ?? "arc:testnet",
+  arcSignerAddress: process.env.ARC_SIGNER_ADDRESS,
+  arcSignerPrivateKey: process.env.ARC_SIGNER_PRIVATE_KEY,
 };
