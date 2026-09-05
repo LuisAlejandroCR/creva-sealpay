@@ -4,6 +4,47 @@
 
 # Memoria — ETHOnline 2026
 
+## 2026-09-04 — Port visual de query pagada y verificación sellada (worktree `feature-ui-port`)
+
+**Qué se hizo:**
+- Worktree correcto: `.claude/worktrees/feature-ui-port`, rama `feature-ui-port`, base `main` en
+  `cd393c9`.
+- `app/features/query/QueryScreen.tsx` dejó de ser una pantalla centrada de texto plano y ahora usa
+  la composición visual de `creva_finance/frontend`: header, secciones, cards, chip de pago, barra
+  de progreso del flujo 402→payment→response, gauge/ring de score adaptado a React Native y preview
+  de reporte sellado con señal, fuentes y evidencia de settlement.
+- `app/features/verify/VerifyScreen.tsx` dejó de listar texto suelto y ahora renderiza una tarjeta
+  principal de sello, folio, estado Ed25519, una tarjeta con los cinco veredictos y una sección
+  visible de "Qué este sello NO certifica", alineada con `brainstorming.md` §0.2.
+- Componentes RN creados dentro del alcance permitido:
+  `app/features/query/components/VisualPrimitives.tsx`,
+  `app/features/query/components/ScoreGauge.tsx`,
+  `app/features/query/components/ReportPreviewCard.tsx` y
+  `app/features/verify/components/VerifyReportCard.tsx`.
+- No se tocó `app/lib/**`; `report-display.ts`, `score-display.ts` y `report-verdicts.ts` siguen
+  siendo la fuente de verdad para el port de lógica. En este lote solo se cambió cómo se muestra el
+  mock tipado que ya existía en `gatewayClient.ts` y `sealClient.ts`.
+- Verificación real en `app/`: `npm run typecheck` limpio; `npm test -- unit fuzz invariant` pasó
+  con 20 suites / 104 tests; `npx expo start --web --port 8082` levantó Metro, y una request al
+  bundle iOS (`/index.bundle?platform=ios&dev=true&minify=false`) respondió 200. El servidor Metro
+  se detuvo antes de cerrar.
+
+**Qué NO se verificó, y por qué:**
+- No se verificó en Expo Go real ni en un dispositivo físico; no hay dispositivo/emulador disponible
+  en esta sesión. Solo se confirmó que Metro bundlea y sirve el bundle.
+- No se verificó soporte web visual: Expo avisó que `react-native-web` no está instalado. No se
+  agregó porque el criterio de este bloque pide Expo Go/simulador móvil, no web.
+- No se ejerció el gateway real ni Hedera testnet; `QueryScreen` sigue usando el cliente mockeado
+  tipado hasta que el bloque de x402/Hedera cierre con facilitador vivo y credenciales reales.
+- No se corrió `npm audit fix`; `npm install` reportó 10 vulnerabilidades moderadas, pero corregir
+  dependencias queda fuera de este bloque visual.
+
+**Dónde queda el pendiente:**
+- `docs/plan.md` — el bloque "Pantalla de query pagada + reporte sellado" sigue abierto por gateway
+  real/Hedera y prueba física en Expo Go, pero ya registra que la UI visual fue portada.
+- `docs/plan.md` — los bloques "Gateway x402/Hedera" y "Haptics con `expo-haptics`" mantienen los
+  pendientes reales de credenciales/dispositivo físico.
+
 ## 2026-09-04 — Tests de feature-agent-loop en `app/test/{unit,fuzz,invariant}`
 
 **Qué se hizo:**
