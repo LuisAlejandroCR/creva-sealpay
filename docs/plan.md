@@ -196,7 +196,15 @@ bloque. Esta tabla es solo el checklist.
 - [ ] **Guion y grabación del video demo.** Debe caber en 3 minutos (el límite más estricto, el
   Q&A en vivo del 09/14) y servir también para el rango de 2–5 min que piden los patrocinadores
   (`brainstorming.md` §9.6). Criterio de aceptación: guion escrito, cronometrado, y video grabado
-  antes del corte del evento (16 sep 2026).
+  antes del corte del evento (16 sep 2026). **Guion escrito 2026-09-04** —
+  [`docs/video-script.md`](video-script.md), armado con el framework Pitch Deck (jurado como quien
+  decide, no la usuaria como cliente). Pendiente: cronometrar contra reloj real, verificar la
+  sección 1:45–2:05 contra el estado real de Hedera el día de grabar (no overclaim de una tx que
+  no exista todavía), y grabar.
+- [ ] **`slides.html` — outline escrito, falta construir el artefacto.** `2026-09-04` —
+  [`docs/slides-outline.md`](slides-outline.md), Pitch Deck de 10 slides, mapeado 1:1 contra
+  `video-script.md` (misma fuente para cada cifra). Criterio de aceptación: `slides.html`
+  construido a partir de este outline, cifras revisadas contra `docs/plan.md` el día de presentar.
 
 - [ ] **`codegraph` no instalado — no aplica todavía.** No hay Go ni un repo de código real que
   indexar (esta carpeta tiene 6 `.md`, sin repo público). Su propia regla ("Cuándo no",
