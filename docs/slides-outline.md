@@ -12,7 +12,7 @@ historias distintas.
 
 | # | Acto | Slide | Contenido |
 |---|---|---|---|
-| 1 | Contexto | **Título + gancho** | El radar regulatorio de Creva respondiendo solo con la disposición CNBV exacta — captura de pantalla real, no mockup |
+| 1 | Contexto | **Portada — la promesa, no el logo** | Título: *"Verifica que un negocio es real en segundos — no en semanas de llamadas y referencias."* (mismo gancho del README, una sola fuente). Debajo, no antes: el radar regulatorio de Creva respondiendo solo con la disposición CNBV exacta — captura de pantalla real, no mockup, como prueba de la promesa, no como el gancho en sí |
 | 2 | Contexto | **El problema — mercado** | México sin Open Finance: artículo 76 de la Ley Fintech, 2,170+ días de retraso, fuente y fecha (`brainstorming.md` §3) |
 | 3 | Contexto | **Por qué ahora** | El sello firmado ya existe y ya sostiene el relato de portabilidad — ZK sería upgrade, no cimiento (`brainstorming.md` §0.2) |
 | 4 | Costo | **Qué le cuesta seguir así** | Sin el sello: verificar un negocio mexicano cuesta llamadas, referencias, semanas — el costo que paga quien confía a ciegas |
