@@ -17,17 +17,6 @@ checklist.
 
 ## Abiertos
 
-- [ ] **2026-09-05 — `facilitator.ts` no envuelve su `fetch` en try/catch: un facilitador
-  caído tumba el proceso del gateway entero, no solo la request.** Sobrevive del bloque de abajo
-  (ya resuelto el gap de config que lo disparó): con `FACILITATOR_URL` apuntando a
-  `http://localhost:4020` (default sin nada corriendo ahí) el `ECONNREFUSED` de
-  `verifyPayment`/`settlePayment` sale como unhandled rejection y mata el proceso Node completo
-  (reproducido dos veces, mismo punto, antes de configurar `FACILITATOR_URL` real). **No se tocó**
-  para no ensanchar el alcance del bloque de signer — sigue como hardening pendiente: que un
-  facilitador caído devuelva 402 `settlement_failed`/`facilitator_verify_http_*` en vez de
-  tumbar el proceso, para cualquier despliegue futuro donde `FACILITATOR_URL` vuelva a
-  desconfigurarse o el facilitador externo caiga en medio del evento.
-
 - [ ] **2026-09-05 — Paridad móvil, tercera revisión; coordinación Codex en
   `codex/mobile-parity-audit`.** Navegación: `codex/mobile-parity-foundation`;
   Ayuda: `codex/mobile-parity-help`; Inicio: `codex/mobile-parity-dashboard`.
@@ -170,6 +159,29 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
 
 ## Cerrados
+
+- [x] `2026-09-05` — **`facilitator.ts` ya no tumba el proceso del gateway cuando el
+  facilitador de Hedera cae o responde con un cuerpo no-JSON.** El bloque abierto describía
+  `ECONNREFUSED`/`fetch` sin `try/catch` en `verifyPayment`/`settlePayment` saliendo como
+  unhandled rejection y matando el proceso Node completo. Estado real verificado en el commit
+  `0be4576` (ya en `main` al abrir este worktree): ambas funciones envuelven su llamada a
+  `fetch` en `try/catch` (error de red → `facilitator_unreachable`) y su `res.json()` en un
+  segundo `try/catch` (cuerpo no-JSON → `facilitator_bad_response`), reusando la misma forma de
+  "fallo limpio" que ya existía para un HTTP no-200 del facilitador
+  (`facilitator_verify_http_*`/`facilitator_settle_http_*`), sin inventar un shape nuevo.
+  **Verificado en este cierre:** `npx tsc --noEmit` en `gateway/` limpio (sin salida); suite
+  completa `npx vitest run` → 17 archivos, 44 tests pasan, 4 skipped (integración contra
+  servicios en vivo, no aplica aquí) — incluye `test/unit/facilitator.spec.ts` y el invariante
+  `test/invariant/facilitator-failure-never-crashes.invariant.spec.ts` (fast-check, 25 corridas,
+  cubre `fetch` rechazado y cuerpo `bad-json`, exige 402 en todos los casos). Verificación manual
+  end-to-end: gateway levantado con `FACILITATOR_URL=http://localhost:19999` (puerto sin nada
+  escuchando) y `POST /creva-score/report` con `X-PAYMENT` — respuesta `402` con
+  `"error":"facilitator_unreachable"`, proceso Node sigue vivo; servidor detenido después y
+  puerto confirmado libre (`netstat` sin `LISTENING` en 8799 tras `taskkill`).
+  **No se verificó:** el caso de settle (`settlePayment`) end-to-end contra un facilitador
+  caído — solo se ejercitó `verifyPayment` manualmente; el unit test `facilitator.spec.ts` sí
+  cubre `settlePayment` por separado. Tampoco se probó contra un facilitador real que responda
+  con timeout (solo ECONNREFUSED y JSON malformado, que es lo que pedía el bloque abierto).
 
 - [x] `2026-09-05` — **Wallet Hedera de demo cableada en `QueryScreen.tsx` (worktree/branch
   `feature-hedera-mobile-signer`): decisión tomada con el humano, opción (b) — signer
