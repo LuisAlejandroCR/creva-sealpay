@@ -102,6 +102,11 @@ function TabBar({ step, onNavigate }: { step: Step; onNavigate: (step: Step) => 
         {TABS.map((tab) => {
           const active = isTabActive(tab.key, step);
           return (
+            // Active state reproduces all three signals from creva_finance/frontend/app/globals.css
+            // lines 176-199 (.cr-nav-item / [aria-current='page']): the top edge indicator
+            // (border-top: 3px solid transparent -> var(--cr-crimson)), the weight jump
+            // (font-weight 600 -> 800), and the icon's own fill/stroke switch to crimson
+            // (BottomNav.tsx icon functions take `active` and swap fill/stroke, not just color).
             <Pressable
               key={tab.key}
               onPress={() => !tab.disabled && tab.step && onNavigate(tab.step)}
@@ -110,10 +115,14 @@ function TabBar({ step, onNavigate }: { step: Step; onNavigate: (step: Step) => 
               accessibilityState={{ disabled: tab.disabled, selected: active }}
               accessibilityLabel={tab.disabled ? `${tab.label} — aún no disponible` : tab.label}
               testID={`tab-${tab.key}`}
-              className={`flex-1 items-center gap-1 py-3 ${tab.disabled ? "opacity-40" : ""}`}
+              className={`flex-1 items-center gap-1 border-t-[3px] py-3 ${
+                active ? "border-crimson" : "border-transparent"
+              } ${tab.disabled ? "opacity-40" : ""}`}
             >
-              <Icon name={tab.icon} size={20} color={active ? "crimson" : "text-secondary"} />
-              <Text className={`text-xs font-semibold ${active ? "text-crimson" : "text-text-secondary"}`}>
+              <Icon name={tab.icon} size={20} color={active ? "crimson" : "text-secondary"} filled={active} />
+              <Text
+                className={`text-xs ${active ? "font-extrabold text-crimson" : "font-semibold text-text-secondary"}`}
+              >
                 {tab.label}
               </Text>
               {tab.disabled ? (
@@ -239,12 +248,12 @@ function AppFlow() {
       />
     );
   } else if (step === "profile-fiscal") {
-    screen = <StubScreen title="Información fiscal" icon="statement" onBack={() => setStep("profile")} />;
+    screen = <StubScreen title="Información fiscal" icon="fiscal" onBack={() => setStep("profile")} />;
   } else if (step === "profile-security") {
     screen = (
       <StubScreen
         title="Seguridad"
-        icon="shield"
+        icon="security"
         body={findArticle("entrar", "cambiar-contrasena")?.article.answer}
         onBack={() => setStep("profile")}
       />

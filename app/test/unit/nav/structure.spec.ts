@@ -45,4 +45,11 @@ describe("App.tsx bottom nav structure", () => {
     expect(source).toMatch(/import \{ Icon, type IconName \} from "\.\/features\/shared\/icons\/Icon"/);
     expect(source).toMatch(/<Icon name=\{tab\.icon\}/);
   });
+
+  it("reproduces creva_finance's three active-tab signals (globals.css lines 176-199): the icon's own fill switch, the bold weight jump, and the top edge indicator — not color alone", () => {
+    expect(source).toMatch(/filled=\{active\}/);
+    expect(source).toMatch(/font-extrabold/);
+    expect(source).toMatch(/border-t-\[3px\]/);
+    expect(source).toMatch(/active \? "border-crimson" : "border-transparent"/);
+  });
 });
