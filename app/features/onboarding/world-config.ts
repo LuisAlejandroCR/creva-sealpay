@@ -6,15 +6,18 @@ export function isWorldConfigured(): boolean {
   return typeof appId === 'string' && appId.length > 0
 }
 
+export function getWorldActionId(): string {
+  return process.env.EXPO_PUBLIC_WORLD_ACTION_ID ?? 'selfie-check-onboarding'
+}
+
 export function buildSelfieCheckUrl(): string {
   const appId = process.env.EXPO_PUBLIC_WORLD_APP_ID
   if (!appId) {
     throw new Error('EXPO_PUBLIC_WORLD_APP_ID is not set')
   }
-  const actionId = process.env.EXPO_PUBLIC_WORLD_ACTION_ID ?? 'selfie-check-onboarding'
   const params = new URLSearchParams({
     app_id: appId,
-    action: actionId,
+    action: getWorldActionId(),
     verification_level: 'device',
   })
   return `https://id.worldcoin.org/verify?${params.toString()}`

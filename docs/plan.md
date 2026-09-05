@@ -37,9 +37,12 @@ checklist.
   (`expo-haptics`, 3 estados), `tsc`/`jest` pasan. Falta sentirlos en Expo Go real — sin
   dispositivo disponible hasta ahora.
 
-- [ ] **Selfie Check en dispositivo físico.** `app/features/onboarding/` y `app/features/auth/`
-  implementados, tests unit/fuzz/invariant pasan. Falta Expo Go real y ejercer el Sandbox real de
-  World (no solo la forma de la URL).
+- [ ] **Selfie Check: verificación server-side real agregada, falta confirmar el payload v4 contra
+  sandbox real.** `gateway/src/world-verify.ts` llama a la Developer Portal API de World con
+  `WORLD_API_KEY`; el WebView ya no decide `verified` por su cuenta. Bloqueo preciso: la API v4
+  espera un `nonce` que el flujo de redirect WebView no produce — el mapeo a `protocol_version:
+  "3.0"` es mejor esfuerzo, sin ejercer contra sandbox real (mismo criterio que Hedera: no gastar
+  cuota real sin confirmar con el humano). Falta también Expo Go real en dispositivo físico.
 
 - [ ] **Publicación en App Store / Play Store — después del evento.** Decisión escogida: la
   revisión de iOS consumiría la ventana que queda. Se demuestra con Expo Go + video durante el

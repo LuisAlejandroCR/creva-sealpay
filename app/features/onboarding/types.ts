@@ -2,6 +2,7 @@
 export type SelfieCheckStatus =
   | 'idle'
   | 'in_progress'
+  | 'verifying'
   | 'verified'
   | 'failed'
   | 'identity_unavailable'

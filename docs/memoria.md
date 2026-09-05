@@ -893,3 +893,64 @@ verifique y ejecute.
   ese repo es de solo lectura para este worktree.
 
 **Dónde queda el pendiente:** ninguno propio de este hallazgo — cerrado en el mismo lote.
+
+## 2026-09-04 — Verificación server-side real del proof de World ID (worktree `feature-selfie-check-real-verify`)
+
+**Qué se hizo:**
+- Confirmado el endpoint real de la Developer Portal API de World antes de escribir código
+  (`docs.world.org`, vía WebFetch — el MCP `worldcoin-developer-portal` se agregó a mitad de
+  sesión pero no cargó sus tools sin reiniciar la sesión, así que no se usó): la API vigente es
+  **v4** — `POST https://developer.world.org/api/v4/verify/{rp_id o app_id}` — con un envoltorio
+  `protocol_version` ("3.0" legacy vs "4.0") y un arreglo `responses[]`. La cabecera de
+  autenticación no está documentada explícitamente en las páginas consultadas.
+- Agregado `gateway/src/world-verify.ts`: `verifyWorldIdProof()` llama a esa API real con
+  `WORLD_API_KEY` (Bearer) y `WORLD_APP_ID` desde el entorno del gateway (nunca desde el cliente).
+  Mapea los campos legacy que el flujo de WebView sí produce (`merkle_root`, `nullifier_hash`,
+  `proof`, `verification_level`) a un cuerpo `protocol_version: "3.0"`. `isValidProofPayload()`
+  rechaza cualquier cuerpo mal formado antes de llamar a la API. Nueva ruta en
+  `gateway/src/index.ts`: `POST /onboarding/verify-world-id`.
+- Lado app: `useSelfieCheck.ts` ya no marca `verified` al leer el redirect de la WebView — extrae
+  el proof completo (no solo `nullifier_hash`), pasa por un estado nuevo `verifying`, y llama a
+  `world-verify-client.ts` (que pega al gateway, nunca a World directamente — la key vive solo en
+  el servidor). Solo si el gateway responde `{ verified: true }` el estado pasa a `verified`.
+  `world-config.ts` expone `getWorldActionId()` para reusar el mismo `action` en cliente y en el
+  fallback del payload de verificación.
+- Tests agregados siguiendo `AGENTS.md` §Tests: gateway
+  `test/{unit,fuzz,invariant}/world-verify*` (mock de `fetch`, nunca una key real) y app
+  `test/{unit,fuzz,invariant}/onboarding/*` actualizados para el nuevo flujo asíncrono. Invariante
+  clave verificada en ambos lados: *"onboarding nunca reporta éxito sin una respuesta verificada
+  de la API de World"* — cubre proof bien formado con API real que rechaza, cuerpo malformado, y
+  falla de red, todos resolviendo a `failed`/`401`, nunca a `verified`/200.
+- Descubrimiento técnico real durante el TDD: `vi.mock` en Vitest no intercepta una función que se
+  llama a sí misma dentro del **mismo módulo** (el binding interno no pasa por la tabla de exports
+  mockeada) — el primer diseño ponía el handler de la ruta dentro de `world-verify.ts` llamando a
+  su propio `verifyWorldIdProof`, y el mock nunca se activaba. Se movió el handler a `index.ts`,
+  que sí importa `verifyWorldIdProof` como binding cruzado de módulo — ahí el mock funciona. Vale
+  la pena recordarlo para cualquier otro módulo de este proyecto que exponga una función pública y
+  la use internamente en el mismo archivo.
+- `gateway`: `npm run typecheck`, `npm run lint`, `npm test` (`vitest run`, incluye
+  unit+fuzz+invariant en una sola corrida) — 10 suites, 26 tests, todo verde.
+- `app`: `npm run typecheck`, `npm test -- unit fuzz invariant` — 21 suites, 109 tests, todo verde.
+
+**Qué NO se verificó, y por qué:**
+- **No se ejerció un llamado real contra el sandbox de World.** Se decidió no gastar cuota real de
+  la API sin confirmar primero con el humano — mismo criterio aplicado al bloqueo de credenciales
+  de Hedera. Todo lo probado usa un mock de `fetch`.
+- **La forma exacta del payload real para un proof de WebView no está confirmada.** La API v4
+  documentada espera un `nonce` (y, para protocolo 4.0, `issuer_schema_id`/`session_id`) que el
+  flujo actual (redirect de WebView, no el SDK de IDKit) no produce. El mapeo a
+  `protocol_version: "3.0"` en `world-verify.ts` es la mejor interpretación posible de la
+  documentación pública, no un contrato confirmado — la API real podría rechazarlo por un campo
+  faltante (`nonce`) que ningún mock local puede detectar. Este es el bloqueo real y preciso que
+  reemplaza al genérico "falta ejercer el sandbox real" — ver actualización en `docs/plan.md`.
+  Cuando exista una llamada real confirmada con el humano, o el MCP `worldcoin-developer-portal`
+  esté disponible (requiere reiniciar la sesión para cargar sus tools), corresponde volver a este
+  archivo y a `world-verify.ts` para ajustar el payload según la respuesta real.
+- No se montó `SelfieCheckScreen` contra un dispositivo real ni Expo Go — sigue siendo el mismo
+  pendiente heredado de `feature-selfie-check` (sin dispositivo en esta sesión).
+- `EXPO_PUBLIC_GATEWAY_URL` es una variable nueva sin valor de producción confirmado — el cliente
+  usa `http://localhost:8787` como default de desarrollo; falta que un humano confirme la URL del
+  gateway desplegado antes de una demo real.
+
+**Dónde queda el pendiente:** `docs/plan.md`, bloque "Selfie Check en el alta" — dejado abierto con
+el detalle preciso del nuevo bloqueo (forma del payload v4 sin confirmar contra sandbox real).
