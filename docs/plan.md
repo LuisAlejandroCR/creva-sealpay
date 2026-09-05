@@ -47,7 +47,11 @@ bloque. Esta tabla es solo el checklist.
   BlockyDevs testnet (`https://api.testnet.blocky402.com`, `x402Version: 2`, `hedera:testnet`,
   `amount`, `extra.feePayer=0.0.7162784`) sin cambiar la interfaz pública de `x402-gate.ts`; la
   prueba real sigue pendiente porque no hay `.env` con llave pagadora ni gateway/JWT de Bazantic
-  creado en este worktree. No hay tx hash todavía. **Actualización `2026-09-04` (rol Auditor):**
+  creado en este worktree. No hay tx hash todavía. **Actualización `2026-09-04` (2), mismo
+  worktree:** `gateway/.env` ya tiene el JWT real de Bazantic (`FACILITATOR_AUTH_TOKEN`), pero el
+  bloqueador real no era ese — es que no existe en el repo ningún cliente que arme y firme un
+  payload de pago Hedera (el header `X-PAYMENT`). Confirmado por agente 13
+  (`feature-hedera-facilitator`, prueba de pago real). **Actualización `2026-09-04` (rol Auditor):**
   agente 13 (`feature-hedera-facilitator`, prueba de pago real) reportó el bloqueo exacto —
   ninguna parte del repo construía ni firmaba un `X-PAYMENT` real, `PaymentPayload` era solo
   `unknown`, y no había SDK de Hedera instalado. Añadido `gateway/src/hedera-signer.ts`

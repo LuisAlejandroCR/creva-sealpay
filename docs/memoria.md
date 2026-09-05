@@ -104,6 +104,41 @@
   `gateway/node_modules/.vite`; se reran los mismos tests con cache deshabilitado para evitar ese
   artefacto de filesystem.
 
+## 2026-09-04 — Bloqueo: falta un firmante de pago Hedera, no solo credenciales
+
+**Qué se hizo:**
+- Worktree correcto verificado de nuevo: `.claude/worktrees/feature-hedera-facilitator`,
+  rama `feature-hedera-facilitator`. `gateway/.env` presente (421 bytes), confirmado
+  `git check-ignore -v gateway/.env` → ignorado por `gateway/.gitignore:3:.env`, y
+  `git ls-files gateway/.env` vacío (no trackeado). Contenido del archivo no leído.
+- Se intentó ejercer el criterio de aceptación pendiente (petición real 402→pay→200 contra el
+  facilitador vivo de Bazantic). Antes de escribir el test de integración se auditó el código
+  existente para ver qué construye el header `X-PAYMENT`:
+  `gateway/src/facilitator.ts` solo reenvía un `paymentHeader` ya existente al
+  `/verify` y `/settle` del facilitador — nunca lo construye ni lo firma.
+  `gateway/src/types.ts:21` tipa `PaymentPayload = unknown` (placeholder, no una firma real).
+  `grep` de `hedera|@hashgraph|PrivateKey` en `gateway/src` y `gateway/test` no encuentra ningún
+  cliente Hedera ni SDK de firma — solo el nombre de variable de entorno `HEDERA_NETWORK` en
+  `config.ts`. `gateway/package.json` no trae ninguna dependencia de Hedera.
+- Conclusión: no es un problema de credenciales (el `.env` ya tiene el JWT real de Bazantic) sino
+  de capacidad — no existe, en ningún worktree de este repo, código que arme y firme un
+  `X-PAYMENT` real. Sin eso, no hay ninguna petición HTTP real que enviar; escribirlo requeriría
+  tocar `facilitator.ts`/`x402-gate.ts` o añadir un cliente de firma nuevo — decisión de producto/
+  interfaz pública, fuera de `[POSEES]` de este bloque (ver `AGENTS.md` "STOP y reportar el
+  desajuste, no parchear el cliente").
+
+**Qué NO se verificó, y por qué:**
+- No se ejecutó ninguna petición HTTP real contra `https://api.testnet.blocky402.com` — no hay
+  payload de pago válido que enviar.
+- No se leyó el contenido de `gateway/.env` en ningún momento (regla dura de `[LÍMITES DUROS]`).
+- No se escribió `gateway/test/integration/**` — un test de integración sin firmante real solo
+  probaría un 402 sin pago, que ya cubre la suite `unit` existente; no aporta evidencia nueva.
+
+**Dónde queda el pendiente:**
+- `docs/plan.md` — bloque "Gateway x402/Hedera": permanece abierto, bloqueador actualizado a
+  "falta un cliente/SDK que arme y firme el payload de pago Hedera (`X-PAYMENT`)", no las
+  credenciales del facilitador (esas ya están resueltas en este worktree).
+
 **Qué NO se verificó, y por qué:**
 - No se ejecutó una petición pagada real 402→settle→200, por falta de material pagador en este
   worktree: no hay `gateway/.env`, llave privada de cuenta Hedera, wallet/cliente x402 configurado,
