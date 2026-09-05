@@ -43,6 +43,13 @@ checklist.
   espera un `nonce` que el flujo de redirect WebView no produce — el mapeo a `protocol_version:
   "3.0"` es mejor esfuerzo, sin ejercer contra sandbox real (mismo criterio que Hedera: no gastar
   cuota real sin confirmar con el humano). Falta también Expo Go real en dispositivo físico.
+  **Actualización `2026-09-05`:** enrollment al World ID Sandbox solicitado para
+  `bankingluisalejandro@gmail.com`, iOS (TestFlight) y Android (Google Play internal test) — ambas
+  solicitudes en estado "pending", aprobación por correo de Tools for Humanity todavía no llega.
+  Primer intento de contacto rebotó (`sandbox.access@toolsforhumanity.org` no resuelve; dominio
+  real es `toolsforhumanity.com`), reenviado a la dirección correcta. Bloquea este bloque y el de
+  "Riesgo Expo Go" de abajo hasta que llegue la aprobación — nada más que avanzar aquí mientras se
+  espera.
 
 - [ ] **Publicación en App Store / Play Store — después del evento.** Decisión escogida: la
   revisión de iOS consumiría la ventana que queda. Se demuestra con Expo Go + video durante el
