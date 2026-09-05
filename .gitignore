@@ -6,3 +6,4 @@ app/dist/
 app/.env
 gateway/dist/
 gateway/.env
+.codegraph/

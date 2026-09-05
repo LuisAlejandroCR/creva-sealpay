@@ -4,6 +4,35 @@
 
 # Memoria — ETHOnline 2026
 
+## 2026-09-04 — `codegraph init` sobre el repo real (`app/` + `gateway/`)
+
+**Qué se hizo:**
+- Worktree correcto: `.claude/worktrees/codegraph-init`, rama `codegraph-init`, base `main` en `9881bfc`.
+- El paquete correcto en npm es `@colbymchenry/codegraph` (no `codegraph` a secas — ese nombre en
+  npm es de otro autor y no tiene relación con esta herramienta). Instalado global con
+  `npm install -g @colbymchenry/codegraph`, versión `1.6.0`.
+- `codegraph init` corrido en la raíz del worktree: indexó 59 archivos (49 TypeScript, 5 JavaScript,
+  5 TSX), 438 nodos, 1,002 aristas, 1.37 MB de SQLite en `.codegraph/`.
+- `codegraph telemetry off` corrido de inmediato (default para trabajo de cliente, por regla del
+  procedimiento).
+- `.codegraph/` agregado a `.gitignore` de la raíz del repo — el índice es generado y desechable, no
+  se commitea.
+- Smoke-test de verificación: `codegraph explore` sobre "main exported functions in gateway" ubicó
+  `config` (`gateway/src/config.ts:2`) con 3 callers reales listados
+  (`creva-proxy.ts`, `facilitator.ts`, `index.ts`); `codegraph impact config` devolvió esos mismos 3
+  archivos más `app/metro.config.js` (un `config` homónimo, correctamente distinguido) y el propio
+  archivo — 5 símbolos afectados en total, consistente con lo que un grep manual encontraría.
+
+**Qué NO se verificó:**
+- No se corrió `codegraph install` (cablear el agente vía MCP) — la tarea pedía solo `init` y
+  confirmar que funciona, no wirear el flujo completo.
+- No se midieron las cifras de benchmark del proveedor (88%/53%/62%/44%) contra este repo — quedan
+  como afirmación del autor hasta medirlas en uso real, tal como ya advierte
+  `procedures/00_Files/codegraph.md`.
+
+**Dónde queda:** bloque cerrado en `docs/plan.md` (antes en Abiertos como "no aplica todavía",
+ahora movido a Cerrados con la fecha de hoy).
+
 ## 2026-09-04 — Tests de feature-agent-loop en `app/test/{unit,fuzz,invariant}`
 
 **Qué se hizo:**
