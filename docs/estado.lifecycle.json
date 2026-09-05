@@ -13,8 +13,8 @@
   "states": [
     { "id": "applied", "type": "start", "label": "Solicitud enviada", "sublabel": "Continuity, con ENS", "lane": "main", "col": 0, "step": "01", "tag": "hecho" },
     { "id": "prep_ready", "type": "success", "label": "Prep lista", "sublabel": "stake + spec + Bazantic", "lane": "main", "col": 1, "step": "02", "tag": "hecho" },
-    { "id": "build", "type": "active", "label": "Repo y feature", "sublabel": "Selfie Check + x402", "lane": "main", "col": 2, "step": "03", "tag": "en curso" },
-    { "id": "judging_prep", "type": "waiting", "label": "Prep de judging", "sublabel": "checkpoints + feedback", "lane": "main", "col": 3, "step": "04", "tag": "pendiente" },
+    { "id": "build", "type": "success", "label": "Repo y feature", "sublabel": "repo público + 4 ramas", "lane": "main", "col": 2, "step": "03", "tag": "hecho" },
+    { "id": "judging_prep", "type": "active", "label": "Prep de judging", "sublabel": "faltan credenciales", "lane": "main", "col": 3, "step": "04", "tag": "en curso" },
     { "id": "submission", "type": "waiting", "label": "Entrega y Q&A", "sublabel": "3 min, 09/14 → 09/16", "lane": "main", "col": 4, "step": "05", "tag": "pendiente" }
   ],
   "transitions": [],
@@ -23,24 +23,24 @@
       "dot": "cyan",
       "title": "Hecho hasta hoy",
       "items": [
-        "Solicitud Continuity 09-01, con ENS",
-        "Stake + spec + acceso a Bazantic"
+        "Repo público creado, equipo confirmado (humano + agentes)",
+        "4 ramas feature mergeadas a main (Solver, roles v2)"
       ]
     },
     {
       "dot": "amber",
       "title": "Por hacer",
       "items": [
-        "Crear el repo público",
-        "Selfie Check + x402 en Hedera"
+        "Confirmar stake de cada integrante en el dashboard",
+        "Check-ins semanales, cronometrar y grabar el video demo"
       ]
     },
     {
       "dot": "rose",
-      "title": "Por decidir",
+      "title": "Pendiente — bloqueado en insumo externo",
       "items": [
-        "Equipo o solo — hoy sin equipo",
-        "Qué parte de docs/ se publica"
+        "Hedera testnet real y Selfie Check Sandbox — faltan credenciales",
+        "Prueba en Expo Go — falta dispositivo físico"
       ]
     }
   ]

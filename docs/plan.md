@@ -254,6 +254,12 @@ bloque. Esta tabla es solo el checklist.
   del proyecto (`AGENTS.md` §Idioma).
 - [x] `2026-09-04` — Mapa de estado y hoja de ruta publicado con `archify`:
   [`docs/estado.html`](estado.html) (fuente en [`docs/estado.lifecycle.json`](estado.lifecycle.json)).
+  **Regenerado `2026-09-04`** (worktree `docs-estado-refresh`, rebaseado contra `main` en `c3d8c5e`
+  antes de regenerar): repo público y decisión de equipo marcados como hechos, fase nueva con las
+  4 ramas mergeadas y roles v2, y Hedera live / Selfie Check Sandbox / Expo Go en dispositivo real
+  movidos a "pendiente" — bloqueados en credenciales/hardware externo (el firmador de Hedera ya
+  existe, `gateway/src/hedera-signer.ts`, pero falta que un humano provea las llaves de pago
+  reales), no en trabajo faltante. `archify validate` y `visual-check`: 0 errores.
 - [x] `2026-09-04` — Acceso a Bazantic confirmado. Crédito de prueba ~0.30 USDC por gateway;
   bypass de x402/MPP vía JWT o métodos en $0.00 para desarrollo — ver `brainstorming.md` §8.
 - [x] `2026-09-04` — `engram` wireado para **opencode** (plugin instalado, listo). Wireado para
