@@ -39,7 +39,7 @@
       "dot": "rose",
       "title": "Pendiente — bloqueado en insumo externo",
       "items": [
-        "Hedera testnet real y Selfie Check Sandbox — faltan credenciales",
+        "Hedera: falta llave de payer; Selfie Check: sandbox pendiente",
         "Prueba en Expo Go — falta dispositivo físico"
       ]
     }

@@ -6,9 +6,9 @@
   "status": "pass",
   "visualReview": "pending",
   "artifact": {
-    "path": "C:\\Users\\Unknown Booty\\Documents\\Projects\\Claude\\ETHOnline 2026\\.claude\\worktrees\\docs-estado-refresh\\docs\\estado.html",
-    "sha256": "71d165572b653013de01f46ce92a8a3fcf2b5b319c9375ff88c73c9328015e9b",
-    "bytes": 704333
+    "path": "C:\\Users\\Unknown Booty\\Documents\\Projects\\Claude\\ETHOnline 2026\\.claude\\worktrees\\docs-estado-audit\\docs\\estado.html",
+    "sha256": "0564de4fb8f5c06c7b39a80f9e76023da8f89d46d2677603728f4501d0d76f9d",
+    "bytes": 704328
   },
   "state": {
     "detail": "read",

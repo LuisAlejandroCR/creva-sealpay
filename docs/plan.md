@@ -110,6 +110,12 @@ checklist.
 - [x] `2026-09-04` — **Mapa de estado regenerado con `archify`.**
   [`docs/estado.html`](estado.html) refleja el estado actual (roles v2, 4 ramas mergeadas, Hedera/
   Selfie Check/Expo Go pendientes por credenciales/hardware, no por trabajo faltante).
+  **Regenerado de nuevo `2026-09-05`** (worktree `docs-estado-audit`) tras auditar `docs/plan.md`
+  y el repo real: el bloqueo de Selfie Check pasó de "faltan credenciales" genérico a la razón
+  precisa — enrollment al World ID Sandbox pendiente de aprobación de Tools for Humanity. Cierres
+  internos de esta tanda (gateway hardening, `codegraph init`, higiene de commits) no se muestran
+  en el mapa por ser deuda de herramientas sin cambio visible para el lector del mapa. `archify
+  validate` y `visual-check`: 0 errores.
 
 - [x] `2026-09-01` — Aplicación a Continuity enviada, con ENS incluido.
 - [x] `2026-09-03` — Stake de 0.025 ETH pagado.
