@@ -11,4 +11,7 @@ export const config = {
   asset: process.env.PAYMENT_ASSET ?? "HBAR",
   reportPriceAtomic: process.env.REPORT_PRICE_ATOMIC ?? "10000000",
   verifyPriceAtomic: process.env.VERIFY_PRICE_ATOMIC ?? "5000000",
+  worldApiKey: process.env.WORLD_API_KEY,
+  worldAppId: process.env.WORLD_APP_ID,
+  worldVerifyUrl: process.env.WORLD_VERIFY_URL ?? "https://developer.world.org/api/v4/verify",
 };

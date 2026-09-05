@@ -212,6 +212,24 @@ bloque. Esta tabla es solo el checklist.
   `docs/memoria.md` 2026-09-04. **Actualización:** `unit`+`fuzz`+`invariant` agregados por
   `AGENTS.md` §Tests (`app/test/{unit,fuzz,invariant}/onboarding/`), `npm test -- unit fuzz
   invariant` pasa (3 suites, 5 tests) — sigue faltando solo la prueba en Expo Go real.
+  **Actualización 2026-09-04 (worktree `feature-selfie-check-real-verify`):** el pendiente "solo
+  forma de la URL" queda **parcialmente cerrado** — se agregó verificación server-side real del
+  proof contra la Developer Portal API de World (`gateway/src/world-verify.ts`, endpoint
+  `POST /onboarding/verify-world-id`), usando `WORLD_API_KEY` desde el gateway. El WebView ya no
+  decide `verified` por su cuenta: `useSelfieCheck.ts` captura el proof completo del redirect
+  (`merkle_root`, `nullifier_hash`, `proof`, `verification_level`) y lo manda al gateway, que
+  llama a la API real de World con la key — nunca al revés. `npm run typecheck`, `npm run lint`
+  (gateway) y `npm test -- unit fuzz invariant` (gateway: 10 suites/26 tests; app: 21 suites/109
+  tests) pasan, mockeando la API de World en todo momento. Queda **abierto** un bloqueo nuevo,
+  más preciso que el anterior: la forma exacta del payload que la API real v4 de World
+  (`https://developer.world.org/api/v4/verify/{app_id}`) espera para un proof capturado vía
+  redirect de WebView (en vez del SDK de IDKit) no está confirmada contra un llamado real —
+  la documentación pública describe un envoltorio `protocol_version`/`responses[]` con un
+  `nonce` que el flujo actual no produce; `world-verify.ts` mapea los campos legacy
+  (`merkle_root`/`nullifier`/`proof`) a `protocol_version: "3.0"` como mejor esfuerzo, sin
+  ejercerlo contra el sandbox real (no se gastó cuota real de World sin confirmar primero con
+  el humano, igual criterio que el bloqueo de Hedera). Detalle completo en `docs/memoria.md`
+  2026-09-04.
 - [ ] **Riesgo Expo Go: módulo nativo no soportado.** En cuanto haga falta un módulo nativo que
   Expo Go no trae, hay que pasar a **Dev Client** (`eas build --profile development`). Mitigación:
   medio día presupuestado para eso, y descubrirlo temprano — no el 09/13. Criterio de aceptación:

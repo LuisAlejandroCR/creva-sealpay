@@ -89,6 +89,15 @@ export function SelfieCheckScreen({ onVerified, onSkipped }: SelfieCheckScreenPr
     )
   }
 
+  if (result.status === 'verifying') {
+    return (
+      <View className="flex-1 items-center justify-center gap-4 px-6">
+        <ActivityIndicator />
+        <Text className="text-center text-base text-neutral-600">Verifying with World...</Text>
+      </View>
+    )
+  }
+
   // in_progress
   if (!webviewUrl) {
     return (

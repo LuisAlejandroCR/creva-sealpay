@@ -6,6 +6,7 @@ import { config } from "./config.js";
 import { proxyToCreva } from "./creva-proxy.js";
 import type { PaymentRequirements } from "./types.js";
 import { createX402Gate } from "./x402-gate.js";
+import { isValidProofPayload, verifyWorldIdProof } from "./world-verify.js";
 
 export const app = express();
 app.use(helmet());
@@ -44,6 +45,17 @@ const verifyRequirements = (): PaymentRequirements => ({
   payTo: config.payToAddress,
   maxTimeoutSeconds: 60,
   asset: config.asset,
+});
+
+app.post("/onboarding/verify-world-id", gatedRouteLimiter, (req, res) => {
+  if (!isValidProofPayload(req.body)) {
+    res.status(400).json({ verified: false, reason: "invalid_proof_payload" });
+    return;
+  }
+
+  void verifyWorldIdProof(req.body).then((result) => {
+    res.status(result.verified ? 200 : 401).json(result);
+  });
 });
 
 app.post(
