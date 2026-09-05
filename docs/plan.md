@@ -17,19 +17,16 @@ checklist.
 
 ## Abiertos
 
-- [ ] **2026-09-05 — `FACILITATOR_URL` sin valor real en `gateway/.env` tumba el proceso del
-  gateway entero al liquidar un pago x402.** Encontrado ejerciendo el signer de demo de la app
-  (bloque cerrado abajo, `feature-hedera-mobile-signer`): `gateway/src/config.ts:8` cae a
-  `http://localhost:4020` cuando `FACILITATOR_URL` no está seteada; nada corre ahí, y
-  `gateway/src/facilitator.ts`'s `verifyPayment`/`settlePayment` no envuelven el `fetch` en
-  try/catch, así que el `ECONNREFUSED` sale como unhandled rejection y mata el proceso Node
-  completo (reproducido dos veces, mismo punto). **Bloquea el criterio de Hedera de "una petición
-  pagada real" desde la app** hasta que se resuelva. Dos cosas separadas: (1) poner el valor real
-  de `FACILITATOR_URL` en `gateway/.env` (el humano lo coloca, no un agente — candidato:
-  `https://api.testnet.blocky402.com`, ya en `.env.example`, o el facilitador de Bazantic si es
-  otro), y (2) endurecer `facilitator.ts` para que un facilitador caído devuelva 402
-  `settlement_failed`/`facilitator_verify_http_*` en vez de tumbar el proceso — ese segundo punto
-  es un bug de hardening real, independiente de qué URL se configure.
+- [ ] **2026-09-05 — `facilitator.ts` no envuelve su `fetch` en try/catch: un facilitador
+  caído tumba el proceso del gateway entero, no solo la request.** Sobrevive del bloque de abajo
+  (ya resuelto el gap de config que lo disparó): con `FACILITATOR_URL` apuntando a
+  `http://localhost:4020` (default sin nada corriendo ahí) el `ECONNREFUSED` de
+  `verifyPayment`/`settlePayment` sale como unhandled rejection y mata el proceso Node completo
+  (reproducido dos veces, mismo punto, antes de configurar `FACILITATOR_URL` real). **No se tocó**
+  para no ensanchar el alcance del bloque de signer — sigue como hardening pendiente: que un
+  facilitador caído devuelva 402 `settlement_failed`/`facilitator_verify_http_*` en vez de
+  tumbar el proceso, para cualquier despliegue futuro donde `FACILITATOR_URL` vuelva a
+  desconfigurarse o el facilitador externo caiga en medio del evento.
 
 - [ ] **2026-09-05 — Paridad móvil, tercera revisión; coordinación Codex en
   `codex/mobile-parity-audit`.** Navegación: `codex/mobile-parity-foundation`;
@@ -248,14 +245,61 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   `facilitator.ts`), no del bloque de signer de esta sesión — el signer cumplió su parte (firma
   válida, 402→firma correcta). No se tocó `gateway/.env` (el humano coloca esa URL, no un agente)
   ni se cambió `facilitator.ts` sin permiso explícito, para no ensanchar el alcance de este bloque.
-  **El ciclo 402→pago→200 completo sigue sin verificarse en vivo** — falta que `FACILITATOR_URL`
-  apunte a un facilitador real y corriendo antes de repetir el intento (una sola liquidación real,
-  no un loop de reintentos, mismo criterio del resto del proyecto). Tampoco se probó en Expo Go
-  sobre dispositivo físico — mismo motivo que el resto del repo (sin hardware disponible en esta
-  sesión). **Bloquea, hasta que se ejerza:** re-verificar en dispositivo físico real los haptics de
-  Success/Error de `VerifyScreen.tsx` contra el flujo pagado real (el cierre de haptics de abajo
-  solo cubrió el mock anterior).
-  Trabajo hecho en la rama `feature-hedera-mobile-signer`, no mergeada a `main` todavía.
+  **Actualización `2026-09-05` (tercera pasada) — `FACILITATOR_URL`/`FACILITATOR_FEE_PAYER`/
+  `X402_VERSION` colocados por el humano en `gateway/.env`, ciclo completo verificado en vivo con
+  liquidación real, más dos bugs reales de `hederaPayment.ts` encontrados y corregidos en el
+  camino.** Con `FACILITATOR_URL` real, el `/verify` empezó a devolver errores de validación
+  concretos del facilitador en vez de crashear — cada uno diagnosticado con el mismo script suelto
+  contra el gateway real más un segundo script que replica `facilitator.ts` directo para aislar
+  gateway vs facilitador:
+  1. `extra should not be null or undefined` — `hederaPayment.ts`'s `accepted` payload nunca
+     incluía `extra`, a diferencia de `gateway/src/hedera-signer.ts`'s
+     `toV2PaymentRequirements`, que siempre sintetiza uno. Corregido: `accepted.extra:
+     requirements.extra ?? {}`.
+  2. Con `FACILITATOR_FEE_PAYER` configurado, `accepted_payment_requirements_mismatch` — el 402
+     real de `gateway/src/index.ts` nunca exponía `extra.feePayer` en el `accepts[]` que el
+     cliente recibe, así que la app no tenía forma de saber qué `extra` firmar. **Fix real en el
+     gateway** (`gateway/src/index.ts`, `facilitatorExtra()`): `reportRequirements`/
+     `verifyRequirements` ahora incluyen `extra: { feePayer }` en el propio reto 402, para que
+     cualquier cliente que firma su propio pago pueda leerlo y devolverlo tal cual.
+  3. `invalid_exact_hedera_payload_fee_payer_mismatch` — `hederaPayment.ts` generaba el
+     `TransactionId` con la cuenta del **pagador** (`payerId`), pero el facilitador exige que sea
+     la cuenta del **fee-payer** (`gateway/src/hedera-signer.ts` ya hacía esto bien con
+     `config.facilitatorFeePayer`). Corregido: `TransactionId.generate(feePayer ?? payerId)`,
+     leyendo `feePayer` del `extra` que ahora llega en la requirement (punto 2).
+  4. Faltaban tres variables en `gateway/.env` que sí estaban en `.env.example` pero nunca se
+     habían poblado: `FACILITATOR_URL`, `FACILITATOR_FEE_PAYER`, `X402_VERSION` (sin la última,
+     `facilitatorRequirements()` mandaba forma v1 — `maxAmountRequired` en vez de `amount` — al
+     facilitador, que exige v2). El humano las colocó directamente en `gateway/.env`.
+  **Ciclo real confirmado, extremo a extremo:** `POST /creva-score/report` sin pago → 402 real con
+  `extra.feePayer` incluido; `hederaPayment.ts` firma con las credenciales de demo reales; retry
+  con `X-PAYMENT` → **201 real**, `X-PAYMENT-RESPONSE`:
+  `{"success":true,"transaction":"0.0.7162784@1788644546.956204030","network":"hedera:testnet",
+  "payer":"0.0.10320624"}`, reporte sellado real en el cuerpo. **Verificado en el mirror node de
+  Hedera testnet** (no solo confiado a la respuesta del facilitador):
+  `GET /api/v1/transactions/0.0.7162784-1788644546-956204030?nonce=0` → `name: CRYPTOTRANSFER`,
+  `result: SUCCESS`, transferencia exacta `-10000000`/`+10000000` tinybars entre
+  `0.0.10320624` (el signer de demo de la app) y `0.0.10383638` (cuenta auto-creada por Hedera
+  para el alias EVM `0x9ac5EA59E6f68Ef3bfc8c29FA2bb2F9b71B5Bf93` de `payTo` — comportamiento real
+  de Hedera al transferir a una dirección EVM sin cuenta asociada todavía, no un bug), con
+  `0.0.7162784` (el fee-payer) pagando el gas por separado. Un solo pago real, no un loop de
+  reintentos.
+  **Verify final:** `tsc --noEmit` limpio en `app/` y `gateway/`; `npx jest unit fuzz invariant`
+  en `app/` → 41/176 verdes (sin cambio de conteo, los fixes no agregaron casos nuevos, ya
+  cubiertos por el fixture existente que sí incluye `extra`); `npx vitest run --exclude
+  "test/integration/**"` en `gateway/` → 16 suites/41 tests verdes (una corrida aislada mostró el
+  flake ya documentado de `tinypool`/Jest — "Worker exited unexpectedly" —, reproducido y
+  confirmado no relacionado, igual que en cierres anteriores). Gateway de verificación (`npx tsx
+  src/index.ts`) detenido explícitamente al terminar, puerto 8787 confirmado libre con `netstat`.
+  Scripts sueltos de diagnóstico (`live-app-payment-check.ts`, `facilitator-debug*.ts`) vivieron
+  en el directorio de scratchpad de la sesión, nunca en el repo, y se borraron al terminar.
+  **Sigue sin probarse:** Expo Go en dispositivo físico real — mismo motivo que el resto del repo
+  (sin hardware disponible en esta sesión). **Bloquea, hasta que se ejerza:** re-verificar en
+  dispositivo físico real los haptics de Success/Error de `VerifyScreen.tsx` contra el flujo
+  pagado real (el cierre de haptics de abajo solo cubrió el mock anterior). Hardening pendiente
+  anotado como bloque abierto separado arriba (`facilitator.ts` sin try/catch de red).
+  Trabajo hecho en la rama `feature-hedera-mobile-signer`, mergeada a `main` (fast-forward) durante
+  la sesión; los fixes de esta tercera pasada se commitearon directo sobre `main`.
 
 - [x] `2026-09-05` — **Haptics verificados en dispositivo físico (Expo Go, iPhone) contra el
   flujo mockeado previo (antes de `feature-report-wiring`).** Confirmados los 3 puntos:
