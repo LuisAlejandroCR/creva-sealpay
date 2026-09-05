@@ -309,6 +309,22 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   contra el gateway real — ver ítem abierto de wallet Hedera arriba, que bloquea llegar al estado
   pagado real desde la UI.
 
+- [x] `2026-09-05` — **Bloqueo de arriba resuelto: haptics de Success/Error de `VerifyScreen.tsx`
+  re-verificados en dispositivo físico contra el gateway real.** Dos hallazgos en vivo (Expo Go,
+  iPhone) sobre la wallet de demo recién cableada:
+  1. `hederaPayment.ts:82` usaba `Buffer.from(...).toString('base64url')` — el polyfill de
+     `buffer` bajo Hermes/Metro no implementa esa codificación (Node sí), y el pago fallaba con
+     "unknown encoding base64url". Reemplazado por codificar en base64 y convertir a base64url a
+     mano (reemplazo de caracteres + recorte de `=`). Los tests (`hederaPayment.spec.ts`,
+     `.fuzz.spec.ts`) siguen en verde porque decodifican con Node, que sí soporta `base64url`.
+  2. `VerifyScreen.tsx` nunca intentaba pagar: mostraba el 402 y el mensaje de "no hay wallet
+     conectada" sin botón de reintento, aunque `sealClient.ts` ya aceptaba `paymentHeader` desde
+     antes. Cableado el mismo patrón de `QueryScreen.tsx` (`buildSignedPaymentHeader` +
+     `readDemoCredentialsFromEnv`, estado `paying`, botón "Pagar y continuar").
+  Verificado end-to-end en el dispositivo: pago real liquidado, "Reporte auténtico" con firma y
+  contenido válidos, haptic de Success sentido. `tsc --noEmit` limpio, `jest` en
+  `test/unit/verify`, `test/fuzz/verify`, `test/invariant/verify` → 10/10 verdes.
+
 - [x] `2026-09-05` — **Bazantic — $3,000, 3 pistas: identidad de servicio con refresh token
   desbloquea la llamada real (worktree `feature-creva-service-identity`).** Diagnóstico previo
   (`docs/integrations/bazantic-recipes.md` §"Primer intento real") tenía dos hipótesis para el
