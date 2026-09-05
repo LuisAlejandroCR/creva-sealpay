@@ -7,6 +7,11 @@ import { proxyToCreva } from "./creva-proxy.js";
 import type { PaymentRequirements } from "./types.js";
 import { createX402Gate } from "./x402-gate.js";
 import { isValidProofPayload, verifyWorldIdProof } from "./world-verify.js";
+import {
+  anchorReportHash,
+  isValidCanonicalHash,
+  readArcSignerCredentialsFromEnv,
+} from "./arc-anchor.js";
 
 export const app = express();
 app.use(helmet());
@@ -75,6 +80,30 @@ app.post(
     void proxyToCreva(req, res, "/creva-score/verify");
   },
 );
+
+app.post("/creva-score/anchor", gatedRouteLimiter, (req, res) => {
+  const canonicalHash = (req.body as { canonicalHash?: unknown })?.canonicalHash;
+  if (!isValidCanonicalHash(canonicalHash)) {
+    res.status(400).json({ anchored: false, reason: "invalid_canonical_hash" });
+    return;
+  }
+
+  const credentials = readArcSignerCredentialsFromEnv();
+  if (!credentials || !config.arcRpcUrl) {
+    res.status(503).json({ anchored: false, reason: "arc_signer_not_configured" });
+    return;
+  }
+
+  anchorReportHash(canonicalHash, credentials, config.arcRpcUrl, config.arcNetwork)
+    .then((result) => {
+      res.status(200).json({ anchored: true, ...result });
+    })
+    .catch((err: unknown) => {
+      res
+        .status(502)
+        .json({ anchored: false, reason: err instanceof Error ? err.message : "arc_anchor_failed" });
+    });
+});
 
 if (process.env.NODE_ENV !== "test") {
   app.listen(config.port, () => {

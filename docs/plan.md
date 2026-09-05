@@ -76,17 +76,6 @@ checklist.
 - [ ] **Instalar el CLI de Codex, si se va a usar.** `engram setup codex` ya dejó la config MCP
   lista en `%APPDATA%\codex\`; falta el plugin/hooks, que requiere el CLI real.
 
-- [ ] **Arc (Circle) — idea 8, "el respaldo nace on-chain".** $10k, apuesta B
-  (`brainstorming.md` §4, fila 8: encaje 4, carga 5, riesgo 5 — greenfield real, no integración
-  pegada). **Criterio de aceptación:** el reporte sellado de Creva emite un evento on-chain en Arc
-  testnet (compromiso al mismo hash canónico que ya firma Ed25519 hoy) que representa el respaldo
-  del negocio; si se borra la pieza de Arc, el respaldo deja de tener rastro on-chain — con eso
-  cumple el descalificador #2 de `sponsor_track_rules.md`. Circle Agent Stack como wallet/firma del
-  lado del facilitador, reutilizando el mismo rol de "quien paga el gas" que ya tiene el
-  facilitador de Hedera en x402. **Secuencia:** después de que World ID Sandbox responda (o venza
-  el plazo razonable de espera) — no antes, para no partir el foco de dos bloqueos externos a la
-  vez.
-
 - [ ] **Uniswap Foundation — contribución al stack + `FEEDBACK.md`.** $5k, lift bajo: no exige
   producto nuevo, exige una contribución real (código o documentación) al stack de Uniswap más un
   `FEEDBACK.md` describiendo la experiencia de integrarlo. **Criterio de aceptación:** PR o commit
@@ -189,6 +178,29 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
 
 ## Cerrados
+
+- [x] `2026-09-05` — **Arc (Circle) — idea 8, "el respaldo nace on-chain" (worktree
+  `feature-arc-anchor`): reporte sellado ancla su hash canónico on-chain en Arc testnet.**
+  Prerrequisito confirmado antes de tocar código: `ARC_RPC_URL`, `ARC_NETWORK`,
+  `ARC_SIGNER_ADDRESS`, `ARC_SIGNER_PRIVATE_KEY`, `CIRCLE_AGENT_STACK_API_KEY` ya poblados en
+  `gateway/.env`. Nuevo `gateway/src/arc-anchor.ts`: `anchorReportHash(canonicalHash, signer, rpcUrl,
+  network)` valida el hash contra `/^0x[0-9a-fA-F]{64}$/` (nunca construye wallet/provider si es
+  inválido — esa es la invariante dura) y envía una transacción de valor cero, auto-dirigida, con
+  el hash como `data`, firmada con `ARC_SIGNER_PRIVATE_KEY` (el mismo rol de "quien paga el gas" que
+  el facilitador de Hedera). Nueva ruta `POST /creva-score/anchor` en `gateway/src/index.ts`
+  (`{ canonicalHash }` → `{ anchored, txHash, explorerUrl, network }`, 400 si el hash es inválido,
+  503 si el signer no está configurado). **Verify:** `tsc --noEmit` limpio; 34/34 tests pasan
+  (unit + fuzz + invariant nuevos en `gateway/test/{unit,fuzz,invariant}/arc-anchor*`, más las 11
+  suites preexistentes sin regresión); **una acción real on-chain confirmada** —
+  tx `0x285ea670c9fe31f06d90daeed15b3ec76b0253ca22783b6cfcff1756e15e6014`, `chainId 5042002`,
+  `status: 1`, bloque `60605019` (confirmado vía `eth_getTransactionReceipt` contra el RPC real de
+  Arc testnet, no simulado). Pendiente de menor prioridad: el dominio público del explorer de Arc
+  testnet no está confirmado (candidatos probados el 2026-09-05 no resolvieron) — `buildExplorerUrl`
+  queda documentado como convención best-effort a corregir cuando Arc publique su explorer; no
+  bloquea el criterio de aceptación, que se cumple con el recibo minado real. Circle Agent Stack
+  (`CIRCLE_AGENT_STACK_API_KEY`) queda anotado para la capa de wallet-as-a-service del facilitador
+  en una iteración posterior — esta entrega usa la firma directa de `ARC_SIGNER_PRIVATE_KEY`, que
+  ya satisface el criterio de aceptación (evento on-chain real atado al hash canónico).
 
 - [x] `2026-09-05` — **Nav de 5 pestañas + sheet "Más" + set de iconos SVG (worktree
   `feature-nav-icon-fix`): 15 hallazgos de la auditoría UI cerrados.** `app/App.tsx`'s `TabBar`
