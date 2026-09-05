@@ -9,7 +9,7 @@
 > antes de tocar nada, y cerrar siempre documentando qué se hizo, qué no se verificó y por qué —
 > es el contexto que usan los demás agentes.
 
-**Última actualización:** 2026-09-04
+**Última actualización:** 2026-09-05
 
 Ver [`brainstorming.md`](../brainstorming.md) §8 y §9 para el análisis completo. Detalle de
 qué-se-hizo/qué-no-se-verificó por sesión: [`docs/memoria.md`](memoria.md). Esta tabla es solo el
@@ -257,6 +257,72 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   `setSessionSource` se registre al iniciar sesión; queda como deuda para el siguiente agente
   junto con los ítems 1/2/5/6 de arriba. **Sin verificar, como el resto del repo:** Expo Go en
   dispositivo físico real (sin hardware disponible en esta sesión).
+
+- [x] `2026-09-05` — **Comprobar un reporte, cableado real (worktree `feature-report-wiring`):
+  `app/features/query/**` y `app/features/verify/**` ya no usan datos mock — cierra los ítems 5/6
+  dejados abiertos en el bloque anterior, con un ajuste de alcance real encontrado en el camino.**
+  **Hallazgo previo a tocar código:** `app/lib/api.ts` ya tenía `crevaScore.{report,verify,
+  verification,radar,disclosure}` completo y correcto como espejo de
+  `creva_finance/frontend/lib/api.ts:726-752` — pero apuntan a `BASE` (`EXPO_PUBLIC_API_URL`, el
+  backend principal con auth Clerk), y en este repo `/creva-score/report` y `/creva-score/verify`
+  **no viven ahí**: viven en el gateway (`gateway/src/index.ts:66-82`), gateados por x402
+  (`gateway/src/x402-gate.ts`), sin Clerk. `/creva-score/verification`, `/creva-score/radar` y
+  `/creva-score/disclosure` **no existen en el gateway en absoluto** — solo report/verify están
+  proxied (`gateway/src/creva-proxy.ts`, autenticado server-side vía `getCrevaAccessToken()`, nunca
+  un JWT estático). Cablear "Comprobar un reporte" contra `crevaScore.*` de `app/lib/api.ts` habría
+  llamado un endpoint que no existe en este backend real; se optó por el mismo patrón ya usado por
+  `app/features/onboarding/world-verify-client.ts` (cliente feature-local que habla directo con
+  `EXPO_PUBLIC_GATEWAY_URL`, sin pasar por `request()` de `lib/api.ts`) en vez de forzar el atajo
+  de Clerk sobre un endpoint x402. `app/lib/api.ts` no se tocó — sus tipos (`SealedReport`,
+  `CertificateVerification`, etc.) sí se reutilizan desde los nuevos clientes.
+  **`app/features/query/gatewayClient.ts` reescrito:** `requestSignal(input, paymentHeader?)`
+  hace `POST ${EXPO_PUBLIC_GATEWAY_URL}/creva-score/report` real; sin `paymentHeader` el gateway
+  real siempre responde 402 con `accepts` real (`gateway/src/x402-gate.ts:16-27`); con un
+  `X-PAYMENT` responde el `SealedReport` real y el settlement de `X-PAYMENT-RESPONSE` si viene.
+  **`app/features/query/components/ReportPreviewCard.tsx` reescrito** para el `SealedReport` real
+  en vez del mock `{businessName, signalsFound, sources}`: layout calca
+  `frontend/components/report/ReportPaper.tsx:35-51` (fila de KPIs: señales / señales propias del
+  negocio / fuentes), `ReportPaper.tsx:62-79` (chip de tono por señal) y
+  `ReportPaper.tsx:108-115` (bloque "qué NO acredita" = `certificate.does_not_prove` +
+  `disclosure.does_not_estimate`) — condensado para tarjeta de teléfono, no la hoja completa de
+  impresión.
+  **`app/features/verify/sealClient.ts` reescrito por completo:** el mock anterior simulaba un
+  "fetch por folio" que **no existe en la API real** — el único endpoint real
+  (`POST /creva-score/verify`, también x402-gated) recibe el `{report, certificate}` que ya tienes
+  y devuelve `CertificateVerification` (`frontend/lib/api.ts:711-718`: un veredicto de contenido +
+  uno de firma, no los "cinco veredictos" que inventaba el mock). `VerifyReportCard.tsx` y
+  `VerifyScreen.tsx` reescritos para esa forma real; `VerifyScreen` ahora recibe `sealedReport:
+  SealedReport | null` (no `folio: string`) — si es `null` (p. ej. el atajo desde `CreditScreen`
+  sin haber generado un reporte) muestra un estado vacío real, nunca datos inventados.
+  `App.tsx`: nuevo estado `sealedReport` en `AppFlow` que `QueryScreen` llena al pagar y
+  `VerifyScreen` consume; ruta `"verify"` ya no hardcodea `folio="mock-folio"`.
+  **Gap real, documentado en vez de inventado:** ni `gatewayClient.ts` ni `sealClient.ts` pueden
+  producir un `X-PAYMENT` real — eso requiere una billetera Hedera firmando (`gateway/src/
+  facilitator.ts`), y no hay ningún signer client-side en este repo (confirmado por grep). El
+  botón "Pagar y continuar" de `QueryScreen` y el paso de verificación de `VerifyScreen` golpean el
+  gateway real y, contra un gateway real, legítimamente vuelven a responder 402 hasta que exista
+  un signer — se muestra ese 402 real con un mensaje explícito ("no hay billetera conectada"), no
+  un pago simulado. Cerrar esto de verdad es un bloque de trabajo propio (integración de wallet
+  Hedera), fuera de alcance de esta pasada.
+  **Verify real de esta pasada:** `cd app && npm install` (worktree fresco, sin `node_modules`),
+  `npm run typecheck` limpio. `npx jest unit fuzz invariant` → 36 suites/159 tests verdes (subió de
+  157 a 159: +1 test neto en `gatewayClient.spec.ts`, -2/+4 en `sealClient.spec.ts` al adaptar los
+  mocks de folio-fetch a verificación real, +2 nuevos). Los tests mockean `global.fetch`
+  (siguiendo el patrón de `test/unit/api.spec.ts`), nunca la lógica de negocio; cubren 402 sin
+  pago, 200 con reporte/verificación real, adjunto de `X-PAYMENT` cuando se provee, tolerancia a
+  `X-PAYMENT-RESPONSE` malformado, y que un veredicto "altered"/"unsigned" del gateway nunca se
+  reporta como válido. Una corrida aislada de la suite completa mostró la misma falla transitoria
+  de `test/unit/auth/auth-gate.spec.ts` ya documentada en el cierre anterior (flake de act()/timing,
+  reproducido y confirmado no relacionado: pasa solo, y confirmado con `git stash` que la rama base
+  sin estos cambios también puede mostrarlo bajo la suite completa) — tres corridas consecutivas
+  después de eso, 159/159 verdes. `npx expo start` con Metro real: pedí `GET /index.bundle?
+  platform=ios&dev=true` por HTTP y bundleó 200 OK (~9.7MB) sin error de compilación; puerto
+  matado explícitamente y confirmado libre con `netstat` (`LISTENING` ausente, solo `TIME_WAIT`
+  residual de la conexión ya cerrada). **No hay backend/gateway real corriendo en esta sesión** —
+  correcto por diseño (aislado a mocks de `global.fetch`), no un truco: nada en la app cae a datos
+  inventados cuando ese backend real no responde, incluyendo el gap de la billetera de arriba.
+  **Sin verificar, como el resto del repo:** Expo Go en dispositivo físico real, y el flujo pagado
+  end-to-end contra un gateway real desplegado (bloqueado por el gap de wallet documentado arriba).
 
 - [x] `2026-09-05` — **Arc (Circle) — idea 8, "el respaldo nace on-chain" (worktree
   `feature-arc-anchor`): reporte sellado ancla su hash canónico on-chain en Arc testnet.**
