@@ -4,6 +4,8 @@
 import { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
+import { Icon } from "../../shared/icons/Icon";
+
 export function NotificationBell({ pending, onPress }: { pending: number; onPress?: () => void }) {
   return (
     <Pressable
@@ -13,7 +15,7 @@ export function NotificationBell({ pending, onPress }: { pending: number; onPres
       className="relative h-11 w-11 items-center justify-center rounded-2xl border border-text/10 bg-surface-1"
       testID="notification-bell"
     >
-      <Text className="text-lg">🔔</Text>
+      <Icon name="bell" size={20} color="text" />
       {pending > 0 && (
         <View className="absolute -right-1 -top-1 h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-bg bg-crimson px-1">
           <Text className="text-[11px] font-bold text-white">{pending}</Text>

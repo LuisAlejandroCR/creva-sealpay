@@ -9,6 +9,8 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Icon } from "../shared/icons/Icon";
+
 type Mode = "sign-in" | "sign-up";
 
 export interface SignInScreenProps {
@@ -73,7 +75,7 @@ function PasswordField({
           className="flex-1 px-4 py-3 text-base text-text"
         />
         <Pressable onPress={() => setShown((current) => !current)} accessibilityLabel={shown ? "Ocultar contraseña" : "Mostrar contraseña"}>
-          <Text className="text-text/50">{shown ? "🙈" : "👁️"}</Text>
+          <Icon name={shown ? "eye-off" : "eye"} size={18} color="text-secondary" />
         </Pressable>
       </View>
     </View>

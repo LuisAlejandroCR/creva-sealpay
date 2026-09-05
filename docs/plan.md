@@ -78,6 +78,33 @@ checklist.
 
 ## Cerrados
 
+- [x] `2026-09-05` — **Nav de 5 pestañas + sheet "Más" + set de iconos SVG (worktree
+  `feature-nav-icon-fix`): 15 hallazgos de la auditoría UI cerrados.** `app/App.tsx`'s `TabBar`
+  pasó de 2 pestañas (Inicio/Perfil) a las 5 del objetivo (Inicio, Score, Tarjeta, Crédito, Más);
+  Tarjeta queda visiblemente deshabilitada con badge "PRONTO", no tocable
+  (`disabled`/`accessibilityState`). "Más" abre `app/features/more/MoreSheet.tsx` ("Todo lo
+  demás"), 11 ítems: Mi perfil/Ayuda navegan a `ProfileScreen`/`HelpScreen` existentes sin
+  duplicarlas, los otros 9 (Movimientos, Calculadora, Estados de cuenta, Tu garantía, Sello de tu
+  negocio, Reglas que te afectan, Tu reporte, Avisos, Aviso de privacidad) van a `StubScreen.tsx`
+  genérico con copy tomado de `app/lib/help-content.ts` donde existe artículo. Set de iconos SVG
+  compartido en `app/features/shared/icons/Icon.tsx` (21 glyphs, `react-native-svg` recién
+  instalado vía `npx expo install`), paths copiados de
+  `creva_finance/frontend/components/BottomNav.tsx`/`components/help/HelpGlyph.tsx` donde existían;
+  colores resueltos desde `tailwind.config.js` (`theme-colors.ts`), cero hex nuevo en
+  `app/features/`. **Decisión escogida:** Score y Crédito son pantallas mínimas reales nuevas
+  (`ScoreScreen.tsx`/`CreditScreen.tsx`) que enlazan a `QueryScreen`/`VerifyScreen` respectivamente
+  sin repurposearlas — ambas mantienen su identidad y entradas actuales. Los 9 callbacks no-op que
+  la auditoría encontró (Dashboard: notificaciones/crédito/tarjeta; Profile: 5 filas de menú; Help:
+  artículo/categoría) quedan todos cableados a una pantalla real. `DeleteAccountScreen.tsx` dedicado
+  para "Eliminar mi cuenta" (no borra nada real, solo explica el canal de correo de
+  `help-content.ts`). **Verify:** `tsc --noEmit` limpio; `jest unit+fuzz+invariant` → 36 suites/157
+  tests verdes (antes 33/147, +10 tests nuevos: `test/unit/nav/structure.spec.ts`,
+  `test/unit/more/structure.spec.ts`, `test/unit/shared/no-emoji.spec.ts`); `grep` de hex y de
+  emoji sobre `app/features/` ambos vacíos; `npx expo start` bundleó `ios` sin error (CI mode,
+  HTTP 200, ~9.7MB), servidor detenido y puerto confirmado libre con `netstat`. **Falta:** Expo Go
+  en dispositivo físico real, mismo motivo que el resto del repo (sin hardware disponible). Detalle
+  completo, incluida la lista de los 15 hallazgos y su resolución uno a uno: `docs/memoria.md`.
+
 - [x] `2026-09-05` — **Auditoría UI/UX completa (worktree `feature-ui-audit-fix`): 6 hallazgos
   cerrados en el mismo lote.** (1) Bug de auth en reload corregido: `App.tsx`'s `AppFlow` ahora
   gatea la pantalla inicial en `useAuth()` real de Clerk (`isLoaded`/`isSignedIn`) en vez de

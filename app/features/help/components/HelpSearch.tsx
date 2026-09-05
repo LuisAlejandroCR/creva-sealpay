@@ -7,6 +7,7 @@ import { Pressable, Text, TextInput, View } from "react-native";
 
 import { articleHref, searchHelp } from "../../../lib/help-content";
 import { Section } from "../../query/components/VisualPrimitives";
+import { Icon } from "../../shared/icons/Icon";
 
 export function HelpSearch({ children }: { children: ReactNode }) {
   const [query, setQuery] = useState("");
@@ -17,7 +18,7 @@ export function HelpSearch({ children }: { children: ReactNode }) {
     <>
       <Section>
         <View className="flex-row items-center gap-2 rounded-xl border border-text/10 bg-surface-1 px-4 py-3">
-          <Text className="text-text/40">🔎</Text>
+          <Icon name="search" size={18} color="text-secondary" />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -28,7 +29,7 @@ export function HelpSearch({ children }: { children: ReactNode }) {
           />
           {trimmed ? (
             <Pressable onPress={() => setQuery("")} accessibilityLabel="Borrar la búsqueda" testID="help-search-clear">
-              <Text className="text-text/40">✕</Text>
+              <Icon name="close" size={16} color="text-secondary" />
             </Pressable>
           ) : null}
         </View>

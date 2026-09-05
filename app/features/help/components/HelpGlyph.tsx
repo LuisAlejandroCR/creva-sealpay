@@ -1,21 +1,20 @@
-// HelpGlyph.tsx: mobile equivalent of creva_finance's components/help/HelpGlyph.tsx — one
-// emoji per HelpIcon key instead of hand-drawn SVG paths, since this port avoids adding a new
-// SVG dependency (same call ScoreGauge/VisualPrimitives already made for query/verify).
-import { Text } from "react-native";
-
+// HelpGlyph.tsx: mobile equivalent of creva_finance's components/help/HelpGlyph.tsx — draws
+// from the shared SVG icon set instead of an emoji map, keeping the same HelpIcon-key-to-glyph
+// mapping (key, card, gauge, credit, statement, seal, registry, shield) the content module expects.
 import type { HelpIcon } from "../../../lib/help-content";
+import { Icon, type IconName } from "../../shared/icons/Icon";
 
-const GLYPH: Record<HelpIcon, string> = {
-  key: "🔑",
-  card: "💳",
-  gauge: "🎯",
-  credit: "📊",
-  statement: "🧾",
-  seal: "🛡️",
-  registry: "🏛️",
-  shield: "🔐",
+const ICON_FOR_HELP: Record<HelpIcon, IconName> = {
+  key: "key",
+  card: "card",
+  gauge: "score",
+  credit: "credit",
+  statement: "statement",
+  seal: "seal",
+  registry: "registry",
+  shield: "shield",
 };
 
 export function HelpGlyph({ icon, size = 18 }: { icon: HelpIcon; size?: number }) {
-  return <Text style={{ fontSize: size }}>{GLYPH[icon]}</Text>;
+  return <Icon name={ICON_FOR_HELP[icon]} size={size} color="text-secondary" />;
 }
