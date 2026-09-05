@@ -32,6 +32,15 @@ bloque. Esta tabla es solo el checklist.
   `amount`, `extra.feePayer=0.0.7162784`) sin cambiar la interfaz pública de `x402-gate.ts`; la
   prueba real sigue pendiente porque no hay `.env` con llave pagadora ni gateway/JWT de Bazantic
   creado en este worktree. No hay tx hash todavía.
+  **Actualización `2026-09-04` (2), mismo worktree:** `gateway/.env` ya tiene el JWT real de
+  Bazantic (`FACILITATOR_AUTH_TOKEN`), pero el bloqueador real no era ese — es que **no existe en
+  el repo ningún cliente que arme y firme un payload de pago Hedera** (el header `X-PAYMENT`).
+  `gateway/src/facilitator.ts` solo reenvía un `X-PAYMENT` ya construido; `types.ts` tipa
+  `PaymentPayload` como `unknown`; no hay SDK de Hedera (`@hashgraph/*`) en `gateway/package.json`.
+  Sin un firmante, no hay ninguna petición 402→pay→200 real que ejecutar. Sigue sin tx hash.
+  Ver `docs/memoria.md` para el detalle. Bloque nuevo pendiente: decidir e implementar (fuera de
+  este worktree, es cambio de interfaz pública) un cliente de firma Hedera para producir
+  `X-PAYMENT` reales.
 
 - [ ] **Repo público creado, pero no cumple el criterio de aceptación todavía.**
   `2026-09-04` — repo creado en https://github.com/LuisAlejandroCR/creva-sealpay, pero con **todo**
