@@ -1,45 +1,59 @@
-// sealClient.ts: typed mock of the /verify sealed-report endpoint until the real gateway lands.
-// Verdict set and disclosure copy follow brainstorming.md §0.2: the seal is Ed25519-signed,
-// carries a spoken folio, five verdicts, and states explicitly what it does NOT certify.
-export type Verdict = {
-  label: string;
-  status: "verified" | "unverified" | "not_found";
-  detail: string;
+// sealClient.ts: verifies a SealedReport's certificate against the real x402-gated
+// /creva-score/verify route (gateway/src/index.ts:75-82). There is no folio-lookup endpoint
+// anywhere in this stack — CertificateVerification (frontend/lib/api.ts:711-718) is only ever
+// produced by POSTing the report+certificate you already hold back to the gateway, which
+// recomputes the digest and checks the signature. Like /creva-score/report, this route is
+// x402-gated (gateway/src/index.ts:43-53), so a real check first gets a 402; this app has no
+// Hedera wallet signer yet to pay it (see docs/plan.md).
+import type { CertificateVerification, SealedReport } from "../../lib/api";
+import type { PaymentRequirements } from "../query/gatewayClient";
+
+export type { SealedReport } from "../../lib/api";
+
+export type VerifyPaymentRequired = {
+  status: 402;
+  x402Version: number;
+  accepts: PaymentRequirements[];
+  error?: string;
 };
 
-export type SealedReport = {
-  folio: string;
-  signedAt: string;
-  signatureAlgorithm: "Ed25519";
-  verdicts: [Verdict, Verdict, Verdict, Verdict, Verdict];
-  doesNotCertify: string[];
-  valid: boolean;
+export type VerifySuccess = {
+  status: 200;
+  verification: CertificateVerification;
 };
 
-const DOES_NOT_CERTIFY = [
-  "Creditworthiness or probability of default",
-  "Legal authorization to operate",
-  "Tax compliance beyond the checked registries",
-  "Future business performance",
-];
+export type VerifyResult = VerifyPaymentRequired | VerifySuccess;
 
-export async function fetchSealedReport(folio: string): Promise<SealedReport> {
-  return {
-    folio,
-    signedAt: new Date().toISOString(),
-    signatureAlgorithm: "Ed25519",
-    verdicts: [
-      { label: "DOF registry", status: "verified", detail: "Business found, active" },
-      { label: "CNBV registry", status: "verified", detail: "No sanctions on record" },
-      { label: "SAT tax status", status: "verified", detail: "Active RFC" },
-      { label: "Address match", status: "unverified", detail: "Could not cross-reference" },
-      { label: "Beneficial owner", status: "not_found", detail: "Not in queried sources" },
-    ],
-    doesNotCertify: DOES_NOT_CERTIFY,
-    valid: true,
-  };
+function gatewayUrl(): string {
+  return process.env.EXPO_PUBLIC_GATEWAY_URL ?? "http://localhost:8787";
 }
 
-export async function verifySealSignature(folio: string): Promise<{ valid: boolean }> {
-  return { valid: folio.length > 0 };
+/**
+ * verifySealedReport: never invents a verdict. A non-402 failure throws so the screen can render
+ * a real error state instead of a fabricated verification result.
+ */
+export async function verifySealedReport(sealed: SealedReport, paymentHeader?: string): Promise<VerifyResult> {
+  const res = await fetch(`${gatewayUrl()}/creva-score/verify`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(paymentHeader ? { "X-PAYMENT": paymentHeader } : {}),
+    },
+    body: JSON.stringify(sealed),
+  });
+
+  if (res.status === 402) {
+    const body = (await res.json()) as { x402Version: number; accepts: PaymentRequirements[]; error?: string };
+    return { status: 402, x402Version: body.x402Version, accepts: body.accepts, error: body.error };
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw Object.assign(new Error((body as { error?: string })?.error ?? "creva_verify_failed"), {
+      status: res.status,
+    });
+  }
+
+  const verification = (await res.json()) as CertificateVerification;
+  return { status: 200, verification };
 }

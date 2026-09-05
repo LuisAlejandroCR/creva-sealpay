@@ -143,6 +143,7 @@ function AppFlow() {
   const sessionSource = useClerkSessionSource();
   const [step, setStep] = useState<Step | null>(null);
   const [previousStep, setPreviousStep] = useState<Step>("more");
+  const [sealedReport, setSealedReport] = useState<import("./features/verify/sealClient").SealedReport | null>(null);
   const [activeStub, setActiveStub] = useState<StubTopicKey | null>(null);
   const [activeCategory, setActiveCategory] = useState<HelpCategory | null>(null);
   const [activeArticle, setActiveArticle] = useState<HelpArticle | null>(null);
@@ -223,9 +224,17 @@ function AppFlow() {
   } else if (step === "card-info") {
     screen = <CardScreen onBack={() => setStep("home")} />;
   } else if (step === "query") {
-    screen = <QueryScreen onVerify={() => setStep("verify")} onBack={() => setStep("home")} />;
+    screen = (
+      <QueryScreen
+        onVerify={(result) => {
+          if (result.status === 200) setSealedReport(result.report);
+          setStep("verify");
+        }}
+        onBack={() => setStep("home")}
+      />
+    );
   } else if (step === "verify") {
-    screen = <VerifyScreen folio="mock-folio" onBack={() => setStep("credit")} />;
+    screen = <VerifyScreen sealedReport={sealedReport} onBack={() => setStep("credit")} />;
   } else if (step === "profile") {
     screen = (
       <ProfileScreen

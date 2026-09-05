@@ -1,8 +1,14 @@
-// gatewayClient.ts: typed mock of the x402-gated signal query endpoint.
-// Response shapes mirror the real gateway (gateway/src/types.ts, gateway/src/x402-gate.ts):
-// 402 body is PaymentRequiredResponse (x402Version/accepts/error), 200 body is whatever
-// /creva-score/report proxies back from Creva verbatim, with settlement info carried in
-// X-PAYMENT-RESPONSE — modeled here as `settlement` since this mock has no real header transport.
+// gatewayClient.ts: calls the real x402-gated /creva-score/report route on the gateway
+// (gateway/src/index.ts:66-73), following the same feature-local "talk to the gateway directly"
+// pattern as ../onboarding/world-verify-client.ts (EXPO_PUBLIC_GATEWAY_URL, no Clerk header — the
+// gateway's own auth is the x402 payment challenge, not a session token).
+// A request with no X-PAYMENT header always comes back 402 with the gateway's real payment
+// requirements (gateway/src/x402-gate.ts:16-27); a paid retry needs a real X-PAYMENT header, which
+// requires a Hedera-wallet payment signer this app does not have yet (see docs/plan.md). There is
+// no mock report data anywhere in this file: a call that cannot be paid surfaces as an error, never
+// as invented signal data.
+import type { SealedReport } from "../../lib/api";
+
 export type PaymentRequirements = {
   scheme: "exact";
   network: string;
@@ -22,44 +28,67 @@ export type PaymentRequired = {
   error?: string;
 };
 
+export type Settlement = { transaction: string; network: string } | null;
+
 export type SignalResponse = {
   status: 200;
-  signal: Record<string, unknown>;
-  settlement: { success: true; transaction: string; network: string };
+  report: SealedReport;
+  settlement: Settlement;
 };
 
 export type QueryResult = PaymentRequired | SignalResponse;
 
-const MOCK_REQUIREMENTS: PaymentRequirements = {
-  scheme: "exact",
-  network: "hedera-testnet",
-  maxAmountRequired: "300000",
-  resource: "/creva-score/report",
-  description: "Creva signal report",
-  mimeType: "application/json",
-  payTo: "0.0.mock-gateway-account",
-  maxTimeoutSeconds: 60,
-  asset: "USDC",
-};
+export interface RequestSignalInput {
+  businessName?: string;
+  stateCode?: number;
+}
 
-// requestSignal: first call always returns 402; pass the previous 402's requirements back in as
-// `payment` to simulate settling it and receiving the paid response, matching the real x402
-// challenge/retry flow (gateway/src/x402-gate.ts).
+function gatewayUrl(): string {
+  return process.env.EXPO_PUBLIC_GATEWAY_URL ?? "http://localhost:8787";
+}
+
+function parseSettlement(header: string | null): Settlement {
+  if (!header) return null;
+  try {
+    const parsed = JSON.parse(header) as { transaction?: string; network?: string };
+    return parsed.transaction ? { transaction: parsed.transaction, network: parsed.network ?? "" } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * requestSignal: first call always returns 402 unless `paymentHeader` already carries a settled
+ * X-PAYMENT proof (see gateway/src/x402-gate.ts). Never falls back to fake data on a non-402
+ * failure — it throws, and the screen renders that as an error state.
+ */
 export async function requestSignal(
-  businessName: string,
-  payment?: PaymentRequired
+  input: RequestSignalInput,
+  paymentHeader?: string
 ): Promise<QueryResult> {
-  if (!payment) {
-    return { status: 402, x402Version: 1, accepts: [MOCK_REQUIREMENTS] };
+  const res = await fetch(`${gatewayUrl()}/creva-score/report`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(paymentHeader ? { "X-PAYMENT": paymentHeader } : {}),
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (res.status === 402) {
+    const body = (await res.json()) as { x402Version: number; accepts: PaymentRequirements[]; error?: string };
+    return { status: 402, x402Version: body.x402Version, accepts: body.accepts, error: body.error };
   }
 
-  return {
-    status: 200,
-    signal: { businessName, signalsFound: 3, sources: ["DOF", "CNBV", "SAT"] },
-    settlement: {
-      success: true,
-      transaction: `0xmock${Date.now().toString(16)}`,
-      network: "hedera-testnet",
-    },
-  };
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw Object.assign(new Error((body as { error?: string })?.error ?? "creva_report_failed"), {
+      status: res.status,
+    });
+  }
+
+  const report = (await res.json()) as SealedReport;
+  const settlement = parseSettlement(res.headers.get("x-payment-response"));
+
+  return { status: 200, report, settlement };
 }

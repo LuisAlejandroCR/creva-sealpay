@@ -1,4 +1,8 @@
-// QueryScreen.tsx: closes the agent loop UI — trigger a paid signal query and watch the 402 -> payment -> response cycle.
+// QueryScreen.tsx: closes the agent loop UI — trigger a paid signal query against the real
+// x402-gated gateway route and watch the 402 -> payment -> response cycle. There is no wallet
+// signer wired into this app yet (see docs/plan.md), so "Pagar y continuar" retries the real
+// gateway without a valid X-PAYMENT proof and surfaces the real 402/error it gets back — never a
+// fabricated paid report.
 import * as Haptics from "expo-haptics";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
@@ -6,22 +10,34 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card, Progress, Section } from "./components/VisualPrimitives";
 import { ReportPreviewCard } from "./components/ReportPreviewCard";
-import { ScoreGauge } from "./components/ScoreGauge";
 import { PaymentRequired, QueryResult, requestSignal } from "./gatewayClient";
 import { BackButton } from "../shared/BackButton";
 
-type Phase = "idle" | "payment_required" | "paying" | "paid";
+type Phase = "idle" | "loading" | "payment_required" | "paying" | "paid" | "error";
 
-export function QueryScreen({ onVerify, onBack }: { onVerify: () => void; onBack?: () => void }) {
+const BUSINESS_NAME = "Panaderia La Espiga";
+
+export function QueryScreen({ onVerify, onBack }: { onVerify: (result: QueryResult) => void; onBack?: () => void }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [pendingPayment, setPendingPayment] = useState<PaymentRequired | null>(null);
   const [result, setResult] = useState<QueryResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function triggerQuery() {
-    const res = await requestSignal("Panaderia La Espiga");
-    if (res.status === 402) {
-      setPendingPayment(res);
-      setPhase("payment_required");
+    setPhase("loading");
+    setErrorMessage(null);
+    try {
+      const res = await requestSignal({ businessName: BUSINESS_NAME });
+      if (res.status === 402) {
+        setPendingPayment(res);
+        setPhase("payment_required");
+        return;
+      }
+      setResult(res);
+      setPhase("paid");
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "No se pudo consultar el reporte.");
+      setPhase("error");
     }
   }
 
@@ -29,9 +45,23 @@ export function QueryScreen({ onVerify, onBack }: { onVerify: () => void; onBack
     if (!pendingPayment) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setPhase("paying");
-    const res = await requestSignal("Panaderia La Espiga", pendingPayment);
-    setResult(res);
-    setPhase("paid");
+    setErrorMessage(null);
+    try {
+      // No Hedera wallet signer is wired into this app: there is no X-PAYMENT proof to attach,
+      // so this retry is expected to come back 402 again against a real gateway until one exists.
+      const res = await requestSignal({ businessName: BUSINESS_NAME });
+      if (res.status === 402) {
+        setPendingPayment(res);
+        setErrorMessage("No hay una billetera Hedera conectada para liquidar el pago x402 todavía.");
+        setPhase("payment_required");
+        return;
+      }
+      setResult(res);
+      setPhase("paid");
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "No se pudo liquidar el pago.");
+      setPhase("error");
+    }
   }
 
   return (
@@ -49,13 +79,12 @@ export function QueryScreen({ onVerify, onBack }: { onVerify: () => void; onBack
       <Section>
         <Card>
           <View className="gap-5">
-            <ScoreGauge value={phase === "paid" ? 82 : phase === "idle" ? 0 : 41} max={100} band={phase === "paid" ? "success" : "warning"} />
             <Progress
-              value={phase === "idle" ? 1 : phase === "payment_required" ? 2 : phase === "paying" ? 3 : 4}
+              value={phase === "idle" ? 1 : phase === "payment_required" ? 2 : phase === "paying" || phase === "loading" ? 3 : phase === "paid" ? 4 : 1}
               max={4}
               label="402 -> pago -> respuesta"
               valueLabel={`${phase === "paid" ? 4 : phase === "paying" ? 3 : phase === "payment_required" ? 2 : 1}/4`}
-              colorClass={phase === "paid" ? "bg-success" : "bg-crimson"}
+              colorClass={phase === "paid" ? "bg-success" : phase === "error" ? "bg-crimson" : "bg-crimson"}
             />
           </View>
         </Card>
@@ -77,6 +106,17 @@ export function QueryScreen({ onVerify, onBack }: { onVerify: () => void; onBack
         </Section>
       )}
 
+      {phase === "loading" && (
+        <Section title="Consultando">
+          <Card>
+            <View className="items-center gap-3 py-3">
+              <ActivityIndicator testID="query-loading" />
+              <Text className="text-sm text-text/70">Consultando el gateway...</Text>
+            </View>
+          </Card>
+        </Section>
+      )}
+
       {phase === "payment_required" && pendingPayment && (
         <Section title="Pago requerido" lead="El reto es explícito, tiene precio y queda ligado al endpoint del reporte.">
           <Card testID="payment-required">
@@ -89,6 +129,11 @@ export function QueryScreen({ onVerify, onBack }: { onVerify: () => void; onBack
                 </Text>
               </View>
               <Text className="text-sm leading-5 text-text/70">Reporte de señales Creva</Text>
+              {errorMessage ? (
+                <Text className="text-sm leading-5 text-crimson" testID="payment-error">
+                  {errorMessage}
+                </Text>
+              ) : null}
               <Pressable className="rounded-xl bg-crimson px-5 py-3" onPress={pay} testID="pay-button">
                 <Text className="text-center font-semibold text-white">Pagar y continuar</Text>
               </Pressable>
@@ -108,10 +153,21 @@ export function QueryScreen({ onVerify, onBack }: { onVerify: () => void; onBack
         </Section>
       )}
 
+      {phase === "error" && (
+        <Section title="No se pudo completar">
+          <Card testID="query-error">
+            <Text className="text-sm leading-5 text-crimson">{errorMessage ?? "Ocurrió un error inesperado."}</Text>
+            <Pressable className="mt-4 rounded-xl bg-crimson px-5 py-3" onPress={triggerQuery}>
+              <Text className="text-center font-semibold text-white">Reintentar</Text>
+            </Pressable>
+          </Card>
+        </Section>
+      )}
+
       {phase === "paid" && result?.status === 200 && (
         <Section title="Reporte sellado" lead="Quien lo recibe puede verificar el sello sin abrir una cuenta.">
           <ReportPreviewCard result={result} />
-          <Pressable className="mt-4 rounded-xl bg-crimson px-5 py-3" onPress={onVerify}>
+          <Pressable className="mt-4 rounded-xl bg-crimson px-5 py-3" onPress={() => onVerify(result)}>
             <Text className="text-center font-semibold text-white">Ver reporte sellado</Text>
           </Pressable>
         </Section>
