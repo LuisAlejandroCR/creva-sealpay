@@ -3,8 +3,9 @@
 // useAuth() in context. Assembled here by the Solver — each screen was built in its own worktree
 // (feature-selfie-check, feature-agent-loop) without touching App.tsx, by design.
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import "./global.css";
 import { ClerkAppProvider } from "./features/auth/ClerkAppProvider";
@@ -35,11 +36,13 @@ function AppFlow() {
 
 export default function App() {
   return (
-    <ClerkAppProvider>
-      <View className="flex-1 bg-white">
-        <AppFlow />
-        <StatusBar style="auto" />
-      </View>
-    </ClerkAppProvider>
+    <SafeAreaProvider>
+      <ClerkAppProvider>
+        <View className="flex-1 bg-white">
+          <AppFlow />
+          <StatusBar style="auto" />
+        </View>
+      </ClerkAppProvider>
+    </SafeAreaProvider>
   );
 }

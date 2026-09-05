@@ -2,6 +2,7 @@
 import * as Haptics from "expo-haptics";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card, Progress, Section } from "./components/VisualPrimitives";
 import { ReportPreviewCard } from "./components/ReportPreviewCard";
@@ -33,7 +34,8 @@ export function QueryScreen({ onVerify }: { onVerify: () => void }) {
   }
 
   return (
-    <ScrollView className="flex-1 bg-[#F6F1E7]" contentContainerClassName="px-6 pb-10 pt-12">
+    <SafeAreaView className="flex-1 bg-[#F6F1E7]" edges={["top", "bottom"]}>
+      <ScrollView className="flex-1" contentContainerClassName="px-6 pb-10 pt-6">
       <View className="mb-8">
         <Text className="text-xs font-bold uppercase text-[#1A1613]/60">Creva SealPay</Text>
         <Text className="mt-2 text-3xl font-bold text-[#1A1613]">Consulta pagada</Text>
@@ -112,6 +114,7 @@ export function QueryScreen({ onVerify }: { onVerify: () => void }) {
           </Pressable>
         </Section>
       )}
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

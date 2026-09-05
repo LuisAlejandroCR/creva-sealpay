@@ -4,6 +4,7 @@
 import { useAuth } from '@clerk/clerk-expo'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import WebView from 'react-native-webview'
 import type { WebViewNavigation } from 'react-native-webview'
 import { useSelfieCheck } from './useSelfieCheck'
@@ -37,7 +38,7 @@ export function SelfieCheckScreen({ onVerified, onSkipped }: SelfieCheckScreenPr
 
   if (result.status === 'identity_unavailable') {
     return (
-      <View className="flex-1 items-center justify-center gap-4 px-6">
+      <SafeAreaView className="flex-1 items-center justify-center gap-4 px-6" edges={['top', 'bottom']}>
         <Text className="text-center text-base text-neutral-600">
           Selfie Check isn't available right now. You can continue without it — this account
           will be flagged as identity_unavailable until it's verified.
@@ -49,13 +50,13 @@ export function SelfieCheckScreen({ onVerified, onSkipped }: SelfieCheckScreenPr
         >
           <Text className="font-semibold text-white">Continue</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     )
   }
 
   if (result.status === 'idle') {
     return (
-      <View className="flex-1 items-center justify-center gap-4 px-6">
+      <SafeAreaView className="flex-1 items-center justify-center gap-4 px-6" edges={['top', 'bottom']}>
         <Text className="text-center text-lg font-semibold">Verify it's you</Text>
         <Text className="text-center text-base text-neutral-600">
           World Selfie Check confirms you're a real, unique person — no Orb, no ID scan.
@@ -68,13 +69,13 @@ export function SelfieCheckScreen({ onVerified, onSkipped }: SelfieCheckScreenPr
         >
           <Text className="font-semibold text-white">Start Selfie Check</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     )
   }
 
   if (result.status === 'failed') {
     return (
-      <View className="flex-1 items-center justify-center gap-4 px-6">
+      <SafeAreaView className="flex-1 items-center justify-center gap-4 px-6" edges={['top', 'bottom']}>
         <Text className="text-center text-base text-neutral-600">
           Selfie Check didn't complete. You can try again.
         </Text>
@@ -85,38 +86,40 @@ export function SelfieCheckScreen({ onVerified, onSkipped }: SelfieCheckScreenPr
         >
           <Text className="font-semibold text-white">Try again</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     )
   }
 
   if (result.status === 'verifying') {
     return (
-      <View className="flex-1 items-center justify-center gap-4 px-6">
+      <SafeAreaView className="flex-1 items-center justify-center gap-4 px-6" edges={['top', 'bottom']}>
         <ActivityIndicator />
         <Text className="text-center text-base text-neutral-600">Verifying with World...</Text>
-      </View>
+      </SafeAreaView>
     )
   }
 
   // in_progress
   if (!webviewUrl) {
     return (
-      <View className="flex-1 items-center justify-center">
+      <SafeAreaView className="flex-1 items-center justify-center" edges={['top', 'bottom']}>
         <ActivityIndicator />
-      </View>
+      </SafeAreaView>
     )
   }
 
   return (
-    <WebView
-      onNavigationStateChange={handleNavigationChange}
-      source={{ uri: webviewUrl }}
-      startInLoadingState
-      renderLoading={() => (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
-      )}
-    />
+    <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
+      <WebView
+        onNavigationStateChange={handleNavigationChange}
+        source={{ uri: webviewUrl }}
+        startInLoadingState
+        renderLoading={() => (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator />
+          </View>
+        )}
+      />
+    </SafeAreaView>
   )
 }

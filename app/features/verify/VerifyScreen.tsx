@@ -2,6 +2,7 @@
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { VerifyReportCard } from "./components/VerifyReportCard";
 import { SealedReport, fetchSealedReport, verifySealSignature } from "./sealClient";
@@ -38,23 +39,25 @@ export function VerifyScreen({ folio }: { folio: string }) {
 
   if (!report || signatureValid === null) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#F6F1E7]">
+      <SafeAreaView className="flex-1 items-center justify-center bg-[#F6F1E7]" edges={["top", "bottom"]}>
         <ActivityIndicator testID="verify-loading" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView className="flex-1 bg-[#F6F1E7]" contentContainerClassName="px-6 pb-10 pt-12" testID="verify-screen">
-      <View className="mb-8">
-        <Text className="text-xs font-bold uppercase text-[#1A1613]/60">Verificación pública</Text>
-        <Text className="mt-2 text-3xl font-bold text-[#1A1613]">Comprobar un reporte</Text>
-        <Text className="mt-2 text-base leading-6 text-[#1A1613]/70">
-          Cinco veredictos, un folio legible y los límites de lo que el sello puede acreditar.
-        </Text>
-      </View>
+    <SafeAreaView className="flex-1 bg-[#F6F1E7]" edges={["top", "bottom"]}>
+      <ScrollView className="flex-1" contentContainerClassName="px-6 pb-10 pt-6" testID="verify-screen">
+        <View className="mb-8">
+          <Text className="text-xs font-bold uppercase text-[#1A1613]/60">Verificación pública</Text>
+          <Text className="mt-2 text-3xl font-bold text-[#1A1613]">Comprobar un reporte</Text>
+          <Text className="mt-2 text-base leading-6 text-[#1A1613]/70">
+            Cinco veredictos, un folio legible y los límites de lo que el sello puede acreditar.
+          </Text>
+        </View>
 
-      <VerifyReportCard report={report} signatureValid={signatureValid} />
-    </ScrollView>
+        <VerifyReportCard report={report} signatureValid={signatureValid} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
