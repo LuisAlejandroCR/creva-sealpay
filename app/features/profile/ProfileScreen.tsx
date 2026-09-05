@@ -6,6 +6,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card, Section } from "../query/components/VisualPrimitives";
+import { Icon, type IconName } from "../shared/icons/Icon";
 
 export interface ProfileScreenProps {
   onOpenDetails?: () => void;
@@ -20,11 +21,11 @@ export interface ProfileScreenProps {
 interface MenuItem {
   key: string;
   label: string;
-  icon: string;
+  icon: IconName;
   onPress?: () => void;
 }
 
-function MenuRow({ label, icon, onPress, testID }: { label: string; icon: string; onPress?: () => void; testID?: string }) {
+function MenuRow({ label, icon, onPress, testID }: { label: string; icon: IconName; onPress?: () => void; testID?: string }) {
   return (
     <Pressable
       onPress={onPress}
@@ -32,7 +33,7 @@ function MenuRow({ label, icon, onPress, testID }: { label: string; icon: string
       className="flex-row items-center justify-between border-b border-text/5 py-4"
     >
       <View className="flex-row items-center gap-3">
-        <Text className="text-lg">{icon}</Text>
+        <Icon name={icon} size={19} color="text" />
         <Text className="text-base text-text">{label}</Text>
       </View>
       <Text className="text-text/30">›</Text>
@@ -61,11 +62,11 @@ export function ProfileScreen({
   }
 
   const menuItems: MenuItem[] = [
-    { key: "details", label: "Datos personales", icon: "👤", onPress: onOpenDetails },
-    { key: "fiscal", label: "Información fiscal", icon: "🧾", onPress: onOpenFiscal },
-    { key: "security", label: "Seguridad", icon: "🔒", onPress: onOpenSecurity },
-    { key: "notifications", label: "Avisos", icon: "🔔", onPress: onOpenNotifications },
-    { key: "help", label: "Ayuda", icon: "❓", onPress: onOpenHelp },
+    { key: "details", label: "Datos personales", icon: "profile", onPress: onOpenDetails },
+    { key: "fiscal", label: "Información fiscal", icon: "statement", onPress: onOpenFiscal },
+    { key: "security", label: "Seguridad", icon: "shield", onPress: onOpenSecurity },
+    { key: "notifications", label: "Avisos", icon: "bell", onPress: onOpenNotifications },
+    { key: "help", label: "Ayuda", icon: "help", onPress: onOpenHelp },
   ];
 
   return (
@@ -103,7 +104,7 @@ export function ProfileScreen({
             testID="profile-logout"
             className="mt-4 flex-row items-center gap-3 rounded-2xl bg-crimson/10 px-4 py-3"
           >
-            <Text className="text-lg">🚪</Text>
+            <Icon name="logout" size={18} color="crimson" />
             <Text className="font-semibold text-crimson">Cerrar sesión</Text>
           </Pressable>
 

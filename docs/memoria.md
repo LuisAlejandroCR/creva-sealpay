@@ -4,6 +4,96 @@
 
 # Memoria — ETHOnline 2026
 
+## 2026-09-05 — Nav de 5 pestañas + sheet "Más" + set de iconos SVG (worktree `feature-nav-icon-fix`)
+
+**Qué se hizo:**
+- **Bottom nav restructurado a las 5 pestañas objetivo.** `app/App.tsx`: `TabBar` pasó de
+  Inicio/Perfil (2 ítems) a Inicio/Score/Tarjeta/Crédito/Más, leyendo un arreglo `TABS` con
+  `{key, label, icon, step, disabled}`. Tarjeta queda `disabled: true`, sin `step` de destino
+  (`onPress` no navega), con badge "PRONTO" superpuesto y `accessibilityState={{disabled}}` —
+  visualmente atenuada (`opacity-40`) y no tocable, no un simple texto apagado.
+- **Set de iconos SVG compartido.** `app/features/shared/icons/Icon.tsx` (21 glyphs: home, score,
+  card, credit, more, bell, profile, statement, shield, key, seal, registry, back-chevron, eye,
+  eye-off, search, close, movements, calculator, collateral, privacy, help, logout). Los paths de
+  home/score/card/credit/more y los 8 de `HelpGlyph` son copia directa de
+  `creva_finance/frontend/components/BottomNav.tsx` y `components/help/HelpGlyph.tsx` (fuente de
+  verdad visual), adaptados de `<svg>` web a `react-native-svg` (`Svg`/`Path`/`Circle`/`Rect`, ya
+  instalado con `npx expo install react-native-svg` — Expo SDK 57 lo resuelve como módulo nativo
+  compatible, no hubo que fijar versión a mano). eye/eye-off/search/close/help/logout son diseño
+  nuevo, mismo lenguaje visual (`strokeWidth` 1.7-1.9, `strokeLinecap="round"`) por no tener
+  equivalente en creva_finance. **Colores nunca hardcodeados en `app/features/`:**
+  `app/features/shared/icons/theme-colors.ts` importa `app/tailwind.config.js` directamente
+  (`allowJs: true` ya viene de `expo/tsconfig.base`, no hizo falta tocar `tsconfig.json`) y
+  reexporta su objeto `colors` — el hex vive una sola vez, en `tailwind.config.js`, igual que antes
+  de este bloque.
+- **Sheet "Más" ("Todo lo demás").** `app/features/more/MoreSheet.tsx` + `stub-topics.ts`: lista los
+  11 ítems agrupados igual que `creva_finance/frontend/components/BottomNav.tsx`'s `MORE_GROUPS`
+  (Tu dinero / Señales de gobierno / Tu cuenta). Mi perfil y Ayuda navegan a `ProfileScreen`/
+  `HelpScreen` existentes (`onOpenProfile`/`onOpenHelp`), sin duplicarlas. Los otros 9
+  (Movimientos, Calculadora, Estados de cuenta, Tu garantía, Sello de tu negocio, Reglas que te
+  afectan, Tu reporte, Avisos, Aviso de privacidad) van a `StubScreen.tsx` (genérico: título, icono,
+  cuerpo opcional, "Próximamente", `BackButton`), con el cuerpo tomado de artículos ya existentes en
+  `app/lib/help-content.ts` (`findArticle`) donde hay uno que responde el tema — Calculadora y
+  Avisos no tienen artículo que las documente, quedan sin cuerpo en vez de inventar copy.
+- **Decisión escogida — Score y Crédito no repurposean QueryScreen/VerifyScreen.** `QueryScreen`
+  (flujo pagado SealPay) y `VerifyScreen` (comprobación pública de sello) mantienen su identidad y
+  sus entradas actuales intactas. Se crearon `app/features/score/ScoreScreen.tsx` y
+  `app/features/credit/CreditScreen.tsx` como pantallas mínimas reales de cada pestaña, cada una con
+  un botón que **enlaza** (no reemplaza) al flujo relacionado: Score → "Consultar con pago
+  (SealPay)" abre `QueryScreen`, igual que el CTA de Dashboard ya hacía; Crédito → "Comprobar un
+  reporte sellado" abre `VerifyScreen`. El catálogo real de crédito y el detalle de score quedan
+  fuera de este bloque (placeholder "Próximamente" dentro de `CreditScreen`).
+- **Los 15 hallazgos de la auditoría, todos direccionados:**
+  1. Nav de 5 ítems con sheet "Más" — hecho (arriba).
+  2/4/8/9. Emoji reemplazados por el set SVG en `App.tsx` (🏠👤), `DashboardPrimitives.tsx` (🔔),
+     `HelpGlyph.tsx`/`HelpSearch.tsx` (🔎✕ + el mapa de 8 conceptos), `BackButton.tsx` (←→
+     `back-chevron`), `SignInScreen.tsx` (👁️🙈), `ProfileScreen.tsx` (👤🧾🔒🔔❓🚪) — cero emoji
+     restante, verificado con `grep -rniE` (ver Verify).
+  3. `DashboardScreen`'s `onOpenNotifications`/`onOpenCredit`/`onOpenCard` cableados en `App.tsx` a
+     el stub de Avisos, la pestaña Crédito y `CardScreen` respectivamente (`CardScreen` reutiliza el
+     artículo `tarjeta/por-que-dice-pronto` de `help-content.ts`, no inventa copy nueva).
+  5. Score/Crédito — decisión arriba.
+  6. `ProfileScreen`'s 5 filas cableadas: Datos personales/Información fiscal/Seguridad →
+     `StubScreen` (los dos primeros con cuerpo de `help-content.ts` donde existe artículo — fiscal
+     no tiene uno, queda sin cuerpo); Avisos → mismo stub que Dashboard/Más; Eliminar cuenta →
+     `DeleteAccountScreen.tsx` dedicado (no el stub genérico — decisión escogida, porque el artículo
+     `datos/borrar-mi-cuenta` ya trae pasos y advertencia propios que un stub genérico no debía
+     aplanar; no borra nada real, solo explica el canal de correo real).
+  7. `HelpScreen`'s `onOpenArticle`/`onOpenCategory` cableados a `HelpArticleScreen.tsx`/
+     `HelpCategoryScreen.tsx` nuevos (resuelven el `href` `/help/<categoria>[/<articulo>]` contra
+     `findCategory`/`findArticle` de `help-content.ts`).
+- **Tests nuevos:** `app/test/unit/nav/structure.spec.ts` (5 tabs en orden, Tarjeta disabled+PRONTO,
+  cada callback ex-no-op cableado), `app/test/unit/more/structure.spec.ts` (11 ítems del sheet,
+  Mi perfil/Ayuda sin duplicar, el resto por `onOpenStub`), `app/test/unit/shared/no-emoji.spec.ts`
+  (barre todo `app/features/**` contra la lista de emoji de la auditoría — falla si alguno vuelve).
+  `app/test/unit/auth/auth-gate.spec.ts` subió su timeout a 15s (el árbol que `App.tsx` monta ahora
+  es más grande, el default de 5s de Jest ya no alcanzaba bajo el renderer de test).
+
+**Qué NO se verificó, y por qué:**
+- **Expo Go en dispositivo físico real** — sin hardware disponible en esta sesión, mismo motivo que
+  el resto del repo (`docs/plan.md`, bloque "Riesgo Expo Go").
+- El detalle real de Score (factores, historial) y el catálogo real de Crédito quedan fuera de
+  alcance a propósito — este bloque solo pedía pantallas mínimas reales, no las features completas.
+- No se corrió `npm audit fix` sobre las 10 vulnerabilidades moderadas que `npm install` reportó —
+  preexistentes al `package.json` del worktree, no introducidas por este bloque, fuera de alcance.
+
+**Dónde queda el pendiente:** `docs/plan.md`, bloque cerrado de esta fecha (mismo lote).
+
+**Verify real, salida:**
+```
+npm run typecheck                         → limpio, sin salida (tsc --noEmit)
+npx jest test/unit test/fuzz test/invariant → 36 suites / 157 tests verdes (antes 33/147)
+grep -rn "#[0-9A-Fa-f]{3,6}" app/features/  → vacío
+grep -rniE "🏠|👤|🔔|👁️|🙈|🔎|✕|🔑|💳|🎯|📊|🧾|🛡️|🏛️|🔐" app/features/ → vacío
+npx expo start (CI mode, puerto 8098)      → /index.bundle?platform=ios → HTTP 200, ~9.7MB,
+                                              sin errores en el log; servidor detenido después
+                                              (taskkill sobre el PID de Node en LISTENING),
+                                              netstat confirma el puerto liberado (solo un
+                                              TIME_WAIT residual de la propia conexión de curl)
+```
+`node_modules/` no existía al empezar este worktree (checkout limpio) — `npm install` +
+`npx expo install react-native-svg` corridos antes de todo lo demás.
+
 ## 2026-09-05 — Auditoría UI/UX completa (worktree `feature-ui-audit-fix`): auth, colores, back, nav, ayuda, español
 
 **Qué se hizo:**

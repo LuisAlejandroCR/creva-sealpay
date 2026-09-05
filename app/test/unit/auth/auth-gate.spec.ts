@@ -42,6 +42,8 @@ jest.mock("react-native-safe-area-context", () => {
 // EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY at module-eval time via ClerkAppProvider.tsx) has to be
 // require()'d after the env var is set, not import()'d.
 describe("App auth gating on reload", () => {
+  // Nav restructuring (worktree feature-nav-icon-fix) added more screens/icons to the tree App.tsx
+  // renders through, pushing this past Jest's 5000ms default under the test renderer.
   it("never renders SignInScreen when Clerk reports an active session", async () => {
     process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_placeholder";
     const App = require("../../../App").default;
@@ -54,5 +56,5 @@ describe("App auth gating on reload", () => {
 
     expect(screen.queryByTestId("google-oauth-button")).toBeNull();
     expect(screen.getByTestId("dashboard-score-action")).toBeTruthy();
-  });
+  }, 15000);
 });
