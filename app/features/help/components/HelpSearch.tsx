@@ -1,6 +1,8 @@
 // HelpSearch.tsx: mobile port of creva_finance's components/help/HelpSearch.tsx — one search
 // box over the whole help index (never scoped to a category), rendering `children` (the browse
 // view) while empty and the matching articles while typed. Uses app/lib/help-content.ts as-is.
+// Result rows are Pressable (reference: MenuRow with href, HelpSearch.tsx:83-88 in creva_finance)
+// so a tap on a hit navigates via onOpenArticle, matching the reference's <a href> behavior.
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
@@ -9,7 +11,13 @@ import { articleHref, searchHelp } from "../../../lib/help-content";
 import { Section } from "../../query/components/VisualPrimitives";
 import { Icon } from "../../shared/icons/Icon";
 
-export function HelpSearch({ children }: { children: ReactNode }) {
+export function HelpSearch({
+  children,
+  onOpenArticle,
+}: {
+  children: ReactNode;
+  onOpenArticle?: (href: string) => void;
+}) {
   const [query, setQuery] = useState("");
   const trimmed = query.trim();
   const hits = useMemo(() => (trimmed ? searchHelp(trimmed) : []), [trimmed]);
@@ -37,18 +45,25 @@ export function HelpSearch({ children }: { children: ReactNode }) {
 
       {trimmed ? (
         <Section title={hits.length > 0 ? "Resultados" : undefined}>
+          <Text accessibilityLiveRegion="polite" className="absolute h-px w-px overflow-hidden opacity-0">
+            {hits.length === 1 ? "1 resultado" : `${hits.length} resultados`}
+          </Text>
           {hits.length > 0 ? (
             <View className="gap-3">
-              {hits.map(({ category, article }) => (
-                <View
-                  key={`${category.slug}/${article.slug}`}
-                  className="rounded-xl border border-text/10 bg-surface-1 p-4"
-                  testID={`help-hit-${articleHref(category.slug, article.slug)}`}
-                >
-                  <Text className="text-sm font-semibold text-text">{article.question}</Text>
-                  <Text className="mt-1 text-xs text-text/50">{category.title}</Text>
-                </View>
-              ))}
+              {hits.map(({ category, article }) => {
+                const href = articleHref(category.slug, article.slug);
+                return (
+                  <Pressable
+                    key={href}
+                    onPress={() => onOpenArticle?.(href)}
+                    className="rounded-xl border border-text/10 bg-surface-1 p-4"
+                    testID={`help-hit-${href}`}
+                  >
+                    <Text className="text-sm font-semibold text-text">{article.question}</Text>
+                    <Text className="mt-1 text-xs text-text/50">{category.title}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
           ) : (
             <View className="gap-2">

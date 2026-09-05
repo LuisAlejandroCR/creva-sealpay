@@ -473,6 +473,29 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 - [x] `2026-09-04` — Acceso a Bazantic confirmado, crédito de prueba ~0.30 USDC.
 - [x] `2026-09-04` — Decisión: equipo humano + agentes de IA, no solo — falta trámite de dashboard (ver bloque abierto).
 
+- [x] `2026-09-05` — **Búsqueda real en la pantalla de Ayuda.** Encontrado un intento previo sin
+  commitear (worktree `feature-help-search`, murió a mitad de trabajo por rate limit): añadía
+  navegación al tocar un resultado (`onOpenArticle`) y un live-region de accesibilidad anunciando
+  el conteo de resultados — se conservó porque es trabajo correcto y completo, no a medias. El
+  filtrado en sí (`searchHelp` en `app/lib/help-content.ts:490-504`) ya existía y ya estaba
+  probado a nivel de contenido (`app/test/unit/help-content.spec.ts`); lo que faltaba era prueba
+  de que el componente `HelpSearch`/`HelpScreen` realmente lo conecta al input. Coincidencia con
+  la referencia: `creva_finance/frontend/components/help/HelpSearch.tsx` filtra en cada
+  `onChangeText` (sin debounce) contra `title + question + answer + keywords`, resultado como
+  `MenuRow href=...` (líneas 83-88); el puerto usa la misma función `searchHelp` (AND de términos,
+  normaliza acentos/mayúsculas con `fold()`) y ahora los resultados son `Pressable` que navegan
+  con `onOpenArticle`, igual que el `href` de la referencia. Estado vacío ya existía
+  ("No encontramos nada con esas palabras."). Se corrigió `app/test/unit/help/structure.spec.ts`
+  (buscaba el string literal `<HelpSearch>`, que dejó de existir al agregarse la prop
+  `onOpenArticle`) y se agregó `app/test/unit/help/search.spec.ts` con render real de `HelpScreen`
+  (palabra conocida filtra, gibberish muestra vacío, borrar restaura la lista, tocar un resultado
+  llama a `onOpenArticle`). Se descubrió en el camino que `@testing-library/react-native@14` volvió
+  `render` async — no documentado en ningún test existente del repo, ahora sí en este. Verify:
+  `npm run typecheck` limpio; `npm test -- unit fuzz invariant` en 37 suites/161 tests (antes
+  36/157), todo verde incluida `auth-gate.spec.ts` que fallaba de forma intermitente en el mismo
+  arranque en frío. `npx expo export --platform ios` empaqueta limpio (1345 módulos, 4.2MB);
+  dispositivo físico sigue pendiente por lo ya documentado (Expo Go no probado en hardware real).
+
 ## Verify
 
 1. Todo bloque cerrado tiene fecha y aparece también, si aplica, como decisión en `brainstorming.md`.

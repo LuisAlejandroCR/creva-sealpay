@@ -13,7 +13,7 @@ describe('HelpScreen structure', () => {
   })
 
   it('renders the search box ahead of the category browse view', () => {
-    const searchIndex = source.indexOf('<HelpSearch>')
+    const searchIndex = source.indexOf('<HelpSearch')
     const categoriesIndex = source.indexOf('Entra por tema')
     expect(searchIndex).toBeGreaterThanOrEqual(0)
     expect(categoriesIndex).toBeGreaterThan(searchIndex)

@@ -25,7 +25,7 @@ export function HelpScreen({ onOpenArticle, onOpenCategory }: HelpScreenProps) {
           </Text>
         </View>
 
-        <HelpSearch>
+        <HelpSearch onOpenArticle={onOpenArticle}>
           <>
             <Section title="Lo que más se pregunta">
               <View className="flex-row flex-wrap gap-3">
