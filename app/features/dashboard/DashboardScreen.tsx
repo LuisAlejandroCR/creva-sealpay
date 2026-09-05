@@ -1,13 +1,16 @@
 // DashboardScreen.tsx: mobile port of creva_finance's dashboard/page.tsx — the panorama hub
-// screen (score first, one next action, balance, cards, recent activity). Visual-only port:
-// data here is mock/local state, matching the pattern QueryScreen already established for
-// this worktree. Not wired into App.tsx navigation yet (see docs/plan.md / docs/memoria.md).
-import { useMemo, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+// screen (score first, one next action, balance, cards, recent activity). Score comes from the
+// real GET /score (app/lib/api.ts's score.get()) with loading/error states; username comes from
+// the real Clerk session (useUser().firstName) — neither is hardcoded. Transactions/balance/card
+// are still mock (no statements/collateral/card endpoint wiring in this pass, see docs/plan.md).
+import { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useUser } from "@clerk/clerk-expo";
 
 import { formatMoney } from "../../lib/format-money";
 import { buildReminders, pendingCount } from "../../lib/reminders";
+import { score as scoreApi, type ScoreData } from "../../lib/api";
 import { Card, Section } from "../query/components/VisualPrimitives";
 import { ScoreGauge } from "../query/components/ScoreGauge";
 import {
@@ -23,7 +26,6 @@ export interface DashboardScreenProps {
   onOpenCredit?: () => void;
   onOpenCard?: () => void;
   onOpenNotifications?: () => void;
-  userName?: string;
 }
 
 const MOCK_TRANSACTIONS = [
@@ -37,12 +39,38 @@ export function DashboardScreen({
   onOpenCredit,
   onOpenCard,
   onOpenNotifications,
-  userName = "Ana",
 }: DashboardScreenProps) {
-  // Mock state standing in for the API calls the Next.js reference makes (auth.me, score.get,
-  // collateral.get, credit.eligibility, statements.*). Wiring those is out of this task's scope.
+  const { user } = useUser();
+  const userName = user?.firstName || "";
+
+  const [scoreData, setScoreData] = useState<ScoreData | null>(null);
+  const [scoreLoading, setScoreLoading] = useState(true);
+  const [scoreError, setScoreError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setScoreLoading(true);
+    setScoreError(null);
+    scoreApi
+      .get()
+      .then((data) => {
+        if (!cancelled) setScoreData(data);
+      })
+      .catch(() => {
+        if (!cancelled) setScoreError("No pudimos cargar tu score. Intenta de nuevo más tarde.");
+      })
+      .finally(() => {
+        if (!cancelled) setScoreLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Mock state standing in for the API calls the Next.js reference makes for card/collateral/
+  // credit/statements. Wiring those beyond score is out of this pass — see docs/plan.md.
   const [cardReady] = useState(false);
-  const [scoreValue] = useState(74);
+  const scoreValue = scoreData?.score ?? null;
   const [spendingCapacity] = useState<string | null>(null);
 
   const reminders = useMemo(
@@ -74,7 +102,7 @@ export function DashboardScreen({
       <ScrollView className="flex-1" contentContainerClassName="px-6 pb-10 pt-6">
         <View className="mb-6 flex-row items-start justify-between">
           <View>
-            <Text className="text-3xl font-bold text-text">Hola, {userName}</Text>
+            <Text className="text-3xl font-bold text-text">Hola{userName ? `, ${userName}` : ""}</Text>
             <Text className="mt-1 text-base text-text/70">Tu panorama financiero</Text>
           </View>
           <NotificationBell pending={pending} onPress={onOpenNotifications} />
@@ -83,7 +111,17 @@ export function DashboardScreen({
         <Section title="Tu score">
           <Card>
             <View className="gap-5">
-              <ScoreGauge value={scoreValue} max={100} band={scoreValue >= 70 ? "success" : "warning"} />
+              {scoreLoading ? (
+                <View className="items-center py-6" testID="dashboard-score-loading">
+                  <ActivityIndicator />
+                </View>
+              ) : scoreError || scoreValue === null ? (
+                <Text className="text-sm text-danger" testID="dashboard-score-error">
+                  {scoreError ?? "No pudimos cargar tu score."}
+                </Text>
+              ) : (
+                <ScoreGauge value={scoreValue} max={100} band={scoreValue >= 70 ? "success" : "warning"} />
+              )}
               <View className="gap-3 border-t border-text/10 pt-4">
                 <Text className="text-sm leading-5 text-text/70">{mainAction.body}</Text>
                 <ActionCard

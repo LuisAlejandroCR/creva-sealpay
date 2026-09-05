@@ -206,6 +206,58 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 
 ## Cerrados
 
+- [x] `2026-09-05` — **Web/mobile parity, pasada parcial (worktree `feature-web-parity-port`): sesión Clerk real cableada a `app/lib/api.ts`, score y nombre de usuario del dashboard ya no son hardcode. Deja abierto el resto del alcance grande de este bloque — ver detalle abajo.**
+  Hallazgo de auditoría (no reportado en cierres previos): `app/lib/api.ts` exporta
+  `setSessionSource`/`useClerkSessionSource` (`app/features/auth/session-source.ts`) desde el
+  worktree `feature-ui-port-core-screens`, pero **nada en código de producción los llamaba** —
+  solo los tests los invocaban directamente. Toda llamada real a `score.get()`/`crevaScore.*`
+  habría salido sin `Authorization`, y el backend la habría respondido con 401. Corregido en
+  `app/App.tsx`'s `AppFlow`: nuevo `useEffect` que registra `useClerkSessionSource()` vía
+  `setSessionSource()` cuando `isSignedIn` es true, y lo limpia (`null`) en caso contrario —
+  corre una sola vez en la raíz, cubre todas las pantallas sin duplicar el wiring por pantalla.
+  **Ítem 3 del bloque original (score hardcodeado) resuelto:**
+  `app/features/dashboard/DashboardScreen.tsx` ya no usa `useState(74)`; ahora llama
+  `score.get()` de `app/lib/api.ts` (`GET /score`) en un `useEffect`, con estados reales de
+  `scoreLoading` (spinner, `testID="dashboard-score-loading"`) y `scoreError` (mensaje visible,
+  `testID="dashboard-score-error"`, nunca cae a un número inventado) — el `ScoreGauge` solo se
+  renderiza con un valor real. **Ítem 4 (username hardcodeado "Ana") resuelto:** ya no recibe
+  `userName` por prop con default `"Ana"`; usa `useUser()` de `@clerk/clerk-expo` directo
+  (mismo patrón que `ProfileScreen.tsx:53-56`) y el saludo cae a `"Hola"` sin nombre cuando
+  `firstName` es null, sin placeholder de persona.
+  **Confirmado, no se encontró (ítem 7):** re-auditado `app/App.tsx` y `app/features/**` con
+  grep de `gear|FAB|position.*absolute|zIndex` — cero resultados de un botón flotante de
+  engranaje. Coincide con lo ya documentado en el cierre `feature-ui-audit-fix` (línea de abajo):
+  no vive en este branch. Nada que remover.
+  **Ítems 1/2 (iconos, estados de nav) no re-auditados icono-por-icono en esta pasada** — el set
+  de `app/features/shared/icons/Icon.tsx` (21 glyphs) y el nav de 5 pestañas ya cerrados en
+  `feature-nav-icon-fix` (ver más abajo) se dejaron como están; no se verificó de nuevo cada
+  `d=` contra `creva_finance/frontend/components/BottomNav.tsx`/`HelpGlyph.tsx` línea por línea
+  en esta sesión — pendiente para confirmar la cita exacta de cada glyph, en particular los 9
+  ítems del sheet "Más" que el bloque original pedía citar uno por uno.
+  **Ítems 5 y 6 NO abordados en esta pasada — quedan abiertos, con alcance real identificado:**
+  `app/features/query/gatewayClient.ts` y `app/features/query/components/ReportPreviewCard.tsx`
+  siguen usando datos mock (confirmado por grep), no `crevaScore.report()/.verify()/.radar()/
+  .verification()/.disclosure()` de `app/lib/api.ts`; `app/features/help/HelpScreen.tsx` no tiene
+  ningún `onChangeText`/filtro conectado a la caja de búsqueda — sigue inerte. Cablear ambos es
+  trabajo real de UI + backend, no una corrección de una línea; no había presupuesto en esta
+  sesión para hacerlo con el mismo estándar de "sin mock" que el resto del bloque exige.
+  **Verify real de esta pasada:** `cd app && npm install` (worktree fresco, sin `node_modules`),
+  `npm run typecheck` limpio, `npx jest test/unit test/fuzz test/invariant` → 36 suites/157 tests
+  verdes (una corrida aislada mostró 1 falla transitoria en `test/unit/auth/auth-gate.spec.ts`
+  con "render function has not been called" bajo carga de la suite completa; reproducido dos
+  veces más y pasó las dos — flake de act()/timing bajo test-renderer, no relacionado con el
+  cambio, coincide con el flake de `tinypool`/Jest ya documentado en el cierre de
+  `feature-creva-service-identity`). `grep -rn "#[0-9A-Fa-f]\{3,6\}" app/features/` vacío.
+  `npx expo export --platform ios` bundleó 1345 módulos sin error (4.2MB); Metro quedó corriendo
+  en el puerto 8081 tras el export (proceso PID detectado con `netstat`), matado explícitamente y
+  puerto confirmado libre. **No se corrió lint** — `app/package.json` no define un script `lint`.
+  **Sin commitear ni pushear todavía la cobertura de tests nueva para este cambio puntual** — los
+  36 suites existentes cubren el flujo de auth-gate que ya ejercía `DashboardScreen`, pero no hay
+  un test nuevo que aserte específicamente el estado de loading/error del score ni que
+  `setSessionSource` se registre al iniciar sesión; queda como deuda para el siguiente agente
+  junto con los ítems 1/2/5/6 de arriba. **Sin verificar, como el resto del repo:** Expo Go en
+  dispositivo físico real (sin hardware disponible en esta sesión).
+
 - [x] `2026-09-05` — **Arc (Circle) — idea 8, "el respaldo nace on-chain" (worktree
   `feature-arc-anchor`): reporte sellado ancla su hash canónico on-chain en Arc testnet.**
   Prerrequisito confirmado antes de tocar código: `ARC_RPC_URL`, `ARC_NETWORK`,

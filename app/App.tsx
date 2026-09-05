@@ -32,6 +32,8 @@ import { StubScreen } from "./features/shared/StubScreen";
 import { findStubTopic, type StubTopicKey } from "./features/more/stub-topics";
 import { findArticle, findCategory, type HelpArticle, type HelpCategory } from "./lib/help-content";
 import { Icon, type IconName } from "./features/shared/icons/Icon";
+import { useClerkSessionSource } from "./features/auth/session-source";
+import { setSessionSource } from "./lib/api";
 
 type Step =
   | "sign-in"
@@ -129,11 +131,20 @@ function TabBar({ step, onNavigate }: { step: Step; onNavigate: (step: Step) => 
 
 function AppFlow() {
   const { isLoaded, isSignedIn } = useAuth();
+  const sessionSource = useClerkSessionSource();
   const [step, setStep] = useState<Step | null>(null);
   const [previousStep, setPreviousStep] = useState<Step>("more");
   const [activeStub, setActiveStub] = useState<StubTopicKey | null>(null);
   const [activeCategory, setActiveCategory] = useState<HelpCategory | null>(null);
   const [activeArticle, setActiveArticle] = useState<HelpArticle | null>(null);
+
+  // Register (or clear) app/lib/api.ts's session source with the real Clerk session on every
+  // sign-in-state change. Previously nothing ever called setSessionSource() outside tests, so
+  // every real API call (score.get, crevaScore.*) went out unauthenticated and would 401 in
+  // practice. This is the one place that must run regardless of which screen is mounted.
+  useEffect(() => {
+    setSessionSource(isSignedIn ? sessionSource : null);
+  }, [isSignedIn, sessionSource]);
 
   // Gate the initial screen on Clerk's real session state instead of defaulting to "sign-in":
   // a reload with an active session must land on home directly, never re-show sign-in (which
