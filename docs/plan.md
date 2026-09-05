@@ -230,10 +230,6 @@ bloque. Esta tabla es solo el checklist.
   `video-script.md` (misma fuente para cada cifra). Criterio de aceptación: `slides.html`
   construido a partir de este outline, cifras revisadas contra `docs/plan.md` el día de presentar.
 
-- [ ] **`codegraph` no instalado — no aplica todavía.** No hay Go ni un repo de código real que
-  indexar (esta carpeta tiene 6 `.md`, sin repo público). Su propia regla ("Cuándo no",
-  `procedures/00_Files/codegraph.md`) dice que un repo de menos de ~20 archivos no compensa
-  indexarlo. Revisar `codegraph init` recién exista el repo público con código.
 - [ ] **Instalar el CLI de Codex, si se va a usar.** No está instalado en esta máquina. `engram
   setup codex` ya dejó la config MCP y los archivos de instrucciones listos en
   `%APPDATA%\codex\` — falta el plugin/hooks, que requiere el CLI real. Comando de instalación
@@ -263,6 +259,13 @@ bloque. Esta tabla es solo el checklist.
   acceso); el `Set` de replay vive en memoria de un solo proceso, no es una solución distribuida
   si el gateway llegara a correr con más de una instancia. Detalle completo en `docs/memoria.md`
   2026-09-04 (entrada "Gateway hardening").
+
+- [x] `2026-09-04` — **`codegraph init` instalado y corrido contra el repo real.** El paquete es
+  `@colbymchenry/codegraph` en npm (instalado global). Indexó 59 archivos, 438 nodos, 1,002 aristas
+  en `app/` y `gateway/`. Telemetría apagada (`codegraph telemetry off`). `.codegraph/` agregado a
+  `.gitignore`. Smoke-test: `codegraph impact config` devolvió los 3 callers reales de
+  `gateway/src/config.ts` más `app/metro.config.js` y el propio archivo — coincide con lo que un
+  grep manual encontraría. Detalle en `docs/memoria.md`.
 
 - [x] `2026-09-04` — **Tests de `feature-agent-loop` movidos a la convención `app/test/{unit,fuzz,invariant}`.**
   Los tests legacy de `app/features/query/__tests__/` y `app/features/verify/__tests__/` quedaron
