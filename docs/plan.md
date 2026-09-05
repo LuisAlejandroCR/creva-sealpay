@@ -118,7 +118,13 @@ bloque. Esta tabla es solo el checklist.
   1 sigue sin terminar), pantalla de reporte sellado con los cinco veredictos y qué NO certifica
   (`brainstorming.md` §0.2). Tests unitarios de ambos mocks pasan. Criterio de aceptación
   pendiente: reconciliar el shape del mock contra el gateway real cuando el bloque 1 termine (rol
-  Solver), y probar los haptics en dispositivo físico. Detalle en `docs/memoria.md` 2026-09-04.
+  Solver), y probar los haptics en dispositivo físico. **Actualización `2026-09-04`, worktree
+  `feature-ui-port`:** `QueryScreen` y `VerifyScreen` ya no son texto plano; se portó la capa visual
+  de `creva_finance/frontend` a NativeWind con secciones, tarjetas, badges, barra/ring de score,
+  payment challenge, preview de reporte sellado, cinco veredictos visibles y el disclosure de qué
+  NO certifica. Sigue mockeado el cliente de gateway y no se ejerció Expo Go físico. `npm run
+  typecheck`, `npm test -- unit fuzz invariant` y Metro bundle iOS vía `expo start` pasaron. Detalle
+  en `docs/memoria.md` 2026-09-04.
 - [ ] **Publicación en App Store / Play Store — después del evento, no durante.** `2026-09-04`
   Decisión escogida, respaldada: la revisión de iOS puede consumir sola la ventana que queda
   (judging el 09/14, corte el 09/16). Durante el evento se demuestra con Expo Go + el video.
