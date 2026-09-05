@@ -4,6 +4,83 @@
 
 # Memoria — ETHOnline 2026
 
+## 2026-09-05 — Dashboard/Profile/Help Center screens + real Clerk sign-in (worktree `feature-ui-port-core-screens`)
+
+**Qué se hizo:**
+- Leídos completos, en orden, antes de escribir código: `AGENTS.md`, `docs/plan.md` (bloque
+  cerrado `feature-ui-port` de query/verify como referencia de convención), `git log`/`git diff`
+  (worktree limpio desde `main`), y en `creva_finance/frontend` (solo lectura):
+  `app/{dashboard,profile,help}/page.tsx`, `app/login/page.tsx`, `components/auth/*`,
+  `components/help/*`, `components/{BottomNav,ScreenHeader,VirtualCard,Toast}.tsx`,
+  `app/features/auth/ClerkAppProvider.tsx` y `app/lib/**` del worktree.
+- `app/features/dashboard/DashboardScreen.tsx` + `app/features/dashboard/components/
+  DashboardPrimitives.tsx` (NotificationBell, Metric, ActionCard, EmptyState, TransactionRow):
+  port visual de `dashboard/page.tsx` — score primero con `ScoreGauge` reusado de `query/
+  components/`, una sola acción siguiente construida con `app/lib/reminders.ts`
+  (`buildReminders`/`pendingCount`), saldo con `app/lib/format-money.ts`, tarjetas y actividad
+  reciente. Usa estado mock local (sin llamar a `app/lib/api.ts`), mismo patrón que `QueryScreen`.
+- `app/features/profile/ProfileScreen.tsx`: port de `profile/page.tsx` — avatar con inicial,
+  nombre/correo desde `useUser()` de `@clerk/clerk-expo`, menú de 5 filas (datos, fiscal,
+  seguridad, avisos, ayuda), cerrar sesión con `useClerk().signOut()`, enlace a eliminar cuenta.
+  No monta un `ClerkProvider` nuevo — consume el contexto que ya provee `ClerkAppProvider.tsx`
+  (no tocado, como exige el alcance).
+- `app/features/help/HelpScreen.tsx` + `app/features/help/components/{HelpGlyph,HelpSearch}.tsx`:
+  port de `help/page.tsx` — buscador que consulta todo `app/lib/help-content.ts` (`searchHelp`),
+  4 tarjetas "lo que más se pregunta" (`MOST_ASKED`), lista de 8 temas (`HELP_CATEGORIES`), y el
+  único contacto real que existe (`privacidad@finarahub.mx`). `HelpGlyph` usa un emoji por
+  `HelpIcon` en vez de recrear los `<svg>` de `components/help/HelpGlyph.tsx`, mismo criterio que
+  `ScoreGauge.tsx` ya sentó (no añadir una dependencia SVG nueva al puerto).
+- `app/features/auth/SignInScreen.tsx`: **no es un port 1:1** — `creva_finance`'s `/login` solo
+  hace `redirect('/sign-in')` hacia el formulario alojado de Clerk en web, sin pantalla real que
+  portar. Construida desde cero con `useSignIn`/`useSignUp`/`useSSO` reales de `@clerk/clerk-expo`
+  (confirmados exportados en `node_modules/@clerk/clerk-expo/dist/hooks/index.d.ts`, re-exportados
+  de `@clerk/clerk-react`), consumiendo el `ClerkProvider` que `ClerkAppProvider.tsx` ya monta más
+  arriba en el árbol — este archivo no se tocó. Estilo NativeWind recreando el lenguaje visual de
+  `components/auth/{AuthHeader,AuthFooter,AuthDivider,GoogleButton,PasswordField}.tsx` (marca de
+  Creva, botón de Google, divisor "o con correo", campo de contraseña con ojo mostrar/ocultar),
+  sin importar literalmente del reference Next.js. Maneja error de Clerk visible en pantalla
+  (`testID="auth-error"`) y alterna entre modo entrar/registrar.
+- Tests nuevos, 10 specs en `app/test/unit/{dashboard,profile,help,auth}/**`: `safe-area.spec.ts`
+  por pantalla (mismo patrón que `app/test/unit/query/safe-area.spec.ts` — regex sobre el código
+  fuente, porque `jest.config.js` solo matchea `**/*.spec.ts`, no `.tsx`, así que un test que
+  renderiza JSX con `@testing-library/react-native` habría necesitado extender `testMatch`, fuera
+  de alcance de este bloque) más `structure.spec.ts`/`SignInScreen.spec.ts` verificando reuso de
+  primitivos compartidos, wiring real de Clerk, y contenido esperado.
+- `npm install` corrido en `app/` (worktree venía sin `node_modules/`, checkout limpio).
+  **`npm run typecheck`**: limpio, sin errores. **`npm test -- unit fuzz invariant`**: 32 suites /
+  146 tests, todo verde (era 22 suites/136 tests antes de este bloque, sumando los 10 specs
+  nuevos sin romper ninguno existente).
+- `npx expo start` verificado con Metro en modo `CI=1`: bundle `ios` exitoso (`iOS Bundled 15144ms
+  index.ts (1321 modules)`, `GET /index.bundle?platform=ios&dev=true` → `200`). El bundle `web`
+  falla (`Unable to resolve "react-native-web/dist/exports/Platform"`) porque `react-native-web`
+  nunca se instaló en este proyecto — preexistente, no introducido por este bloque, y la app no
+  se ha configurado como target web en ningún momento del repo.
+- Servidor Metro detenido al terminar (`taskkill /F /T` sobre los PIDs de Node abiertos en los
+  puertos usados); confirmado con `netstat -ano` que 8098/8099 ya no aparecen `LISTENING` después
+  (solo restos `TIME_WAIT`, que se liberan solos).
+
+**Qué NO se verificó, y por qué:**
+- **Wiring en `App.tsx`.** Explícitamente fuera de alcance de este bloque — las cuatro pantallas
+  (`DashboardScreen`, `ProfileScreen`, `HelpScreen`, `SignInScreen`) existen pero no aparecen en
+  el `Step` type ni en `AppFlow` de `App.tsx`. Una pasada de integración futura necesitaría: (1)
+  agregar los cuatro pasos nuevos al `Step` union y a `AppFlow`; (2) decidir el punto de entrada
+  real (`SignInScreen` antes de `SelfieCheckScreen`, o después, según si Clerk debe autenticar
+  antes del KYC); (3) conectar los callbacks de navegación que cada pantalla ya expone
+  (`onOpenScore`, `onOpenCredit`, `onOpenCard`, `onOpenNotifications` en `DashboardScreen`;
+  `onOpenDetails`/`onOpenFiscal`/`onOpenSecurity`/`onOpenNotifications`/`onOpenHelp`/
+  `onOpenDeleteAccount`/`onSignedOut` en `ProfileScreen`; `onOpenArticle`/`onOpenCategory` en
+  `HelpScreen`; `onSignedIn` en `SignInScreen`) a un router o a más estado de `Step`; (4) decidir
+  si `DashboardScreen`/`ProfileScreen` siguen con datos mock o se cablean a `app/lib/api.ts` (que
+  este bloque no tocó a propósito).
+- **Expo Go en dispositivo físico real.** Sin hardware disponible en esta sesión, consistente con
+  el resto del repo (`docs/plan.md`, bloques de haptics/safe-area/selfie-check).
+- **Bundle `web` de Expo.** Falla por dependencia `react-native-web` ausente, preexistente al
+  bloque — no se instaló porque no formaba parte del alcance y `npm install --check` de Expo lo
+  reporta como una de las "5 packages may need updating" que ya existían antes de este trabajo.
+
+**Dónde queda el pendiente:** bloque cerrado en `docs/plan.md` (arriba), con la nota de wiring
+pendiente repetida ahí para quien solo lea el checklist.
+
 ## 2026-09-05 — `negocio.creva.eth`: bloqueado por migración a ENSv2 en Sepolia (worktree `feature-ens-subname`)
 
 **Qué se hizo:**

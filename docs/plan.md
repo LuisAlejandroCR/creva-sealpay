@@ -78,6 +78,36 @@ checklist.
 
 ## Cerrados
 
+- [x] `2026-09-05` — **Dashboard/Profile/Help Center screens ported, real Clerk sign-in screen
+  added (worktree `feature-ui-port-core-screens`).** `app/features/dashboard/DashboardScreen.tsx`,
+  `app/features/profile/ProfileScreen.tsx` y `app/features/help/HelpScreen.tsx` portan la
+  estructura visual NativeWind de `creva_finance/frontend/app/{dashboard,profile,help}/page.tsx`
+  (score primero + una sola acción siguiente en dashboard, menú de configuración en profile,
+  buscador + más-preguntado + temas en help), reusando `app/features/query/components/
+  VisualPrimitives.tsx` y `ScoreGauge.tsx` en vez de duplicarlos, y `app/lib/{help-content,
+  reminders,format-money,score-display}.ts` ya portados. `app/features/help/components/
+  {HelpGlyph,HelpSearch}.tsx` recrean los equivalentes de `components/help/*` con emoji en vez de
+  SVG (mismo criterio que `ScoreGauge` de no añadir dependencia SVG nueva). Dashboard y Profile
+  usan datos mock/estado local (igual que `QueryScreen`), no llaman a `app/lib/api.ts` — cablear
+  datos reales queda fuera de este bloque. `app/features/auth/SignInScreen.tsx` es construcción
+  nueva (no un port 1:1, porque `/login` de creva_finance solo redirige al formulario alojado por
+  Clerk en web, sin equivalente en Expo): usa `useSignIn`/`useSignUp`/`useSSO` reales de
+  `@clerk/clerk-expo` contra el contexto que ya monta `ClerkAppProvider.tsx` (no tocado), con
+  estilo NativeWind recreando el lenguaje visual de `components/auth/*` (marca, GoogleButton,
+  AuthDivider, campo de contraseña con ojo). Tests nuevos en `app/test/unit/{dashboard,profile,
+  help,auth}/**` (10 specs, 146 tests totales en el repo tras el cambio) — mismo patrón de
+  inspección de fuente por regex que `app/test/unit/query/safe-area.spec.ts`, porque
+  `jest.config.js` solo matchea `*.spec.ts` y JSX en un test requeriría `.tsx`. **`tsc --noEmit`**
+  y **`jest` (unit+fuzz+invariant)** verdes: 32 suites / 146 tests. `npx expo start` verificado
+  bundleando para `ios` (CI mode, 1321 módulos, HTTP 200 en `/index.bundle`) — el bundle `web`
+  falla por falta de `react-native-web` (dependencia preexistente, no instalada, fuera de alcance
+  de este bloque: la app nunca se configuró para el target web). Servidor Metro detenido al
+  terminar, puertos verificados libres con `netstat` tras `taskkill`. **Ninguna de las cuatro
+  pantallas está cableada a `App.tsx`** — cablear navegación es explícitamente fuera de alcance de
+  este bloque (ver `docs/memoria.md` para lo que necesitaría una pasada de integración futura).
+  Falta, como en el resto del repo: Expo Go en dispositivo físico real (sin hardware disponible en
+  esta sesión).
+
 - [x] `2026-09-05` — **`negocio.creva.eth` registrado en Sepolia (ENSv2), folio sellado en el
   resolver.** `creva.eth` registrado vía el `ETHRegistrar` de ENSv2 (pagado en Sepolia USDC del
   faucet de Circle, no en ETH — la ruta ENSv1 documentada por ENS Labs para Sepolia está muerta,
