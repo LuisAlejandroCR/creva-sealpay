@@ -337,6 +337,14 @@ El sello (ya vivo)    →  la respuesta sale firmada, y dice qué NO acredita
 > `defineChain` de viem: hace falta chain ID **296**, el JSON-RPC Relay de Hedera, moneda nativa y
 > explorador. Es media hora si sale bien y una tarde si no. Verificarlo el día 1, no el día 8.
 
+> **Rev. 5, 2026-09-05 — el alcance creció de dos pistas a cinco; ver `docs/plan.md` para el
+> checklist vivo.** ENS ya se entregó (`negocio.creva.eth` registrado en Sepolia, $500). Arc de
+> Circle ($10k, idea 8 de §4) y Uniswap Foundation ($5k, contribución al stack) están abiertos como
+> siguiente paso, secuenciados después de World ID. Bazantic, Ledger, Privy y Chainlink siguen cada
+> uno gateados por un prerrequisito sin resolver — no se comprometen hasta que ese prerrequisito se
+> cumpla (`docs/plan.md`, sección de bloques abiertos). El eje World+Hedera de esta recomendación
+> **no cambia**; las pistas nuevas son extensiones sobre el mismo producto, no un pivote.
+
 **Por qué esta y no otra:**
 
 1. **Solo toca lo que existe.** Señales y sello están vivos; ni tarjeta, ni colateral, ni ZK.

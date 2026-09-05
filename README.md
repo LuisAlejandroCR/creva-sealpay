@@ -36,7 +36,9 @@ app (Expo/React Native)  --x402-->  gateway (Express)  -->  Creva API
    re-verify it's authentic and untampered, also paid per call.
 
 **Prize tracks targeted:** Hedera (AI & Agentic Payments — a live x402 service with a real
-settled payment) and World (Selfie Check). Continuity track for the ETHGlobal submission itself.
+settled payment), World (Selfie Check, blocked on Sandbox approval), ENS (`negocio.creva.eth`,
+delivered on Sepolia), Arc by Circle, and Uniswap Foundation (stack contribution). Continuity
+track for the ETHGlobal submission itself.
 
 ## Try it
 

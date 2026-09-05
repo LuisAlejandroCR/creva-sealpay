@@ -14,7 +14,7 @@
     { "id": "applied", "type": "start", "label": "Solicitud enviada", "sublabel": "Continuity, con ENS", "lane": "main", "col": 0, "step": "01", "tag": "hecho" },
     { "id": "prep_ready", "type": "success", "label": "Prep lista", "sublabel": "stake + spec + Bazantic", "lane": "main", "col": 1, "step": "02", "tag": "hecho" },
     { "id": "build", "type": "success", "label": "Repo y feature", "sublabel": "repo público + 4 ramas", "lane": "main", "col": 2, "step": "03", "tag": "hecho" },
-    { "id": "judging_prep", "type": "active", "label": "Prep de judging", "sublabel": "faltan credenciales", "lane": "main", "col": 3, "step": "04", "tag": "en curso" },
+    { "id": "judging_prep", "type": "active", "label": "Prep de judging", "sublabel": "World ID sandbox pendiente", "lane": "main", "col": 3, "step": "04", "tag": "en curso" },
     { "id": "submission", "type": "waiting", "label": "Entrega y Q&A", "sublabel": "3 min, 09/14 → 09/16", "lane": "main", "col": 4, "step": "05", "tag": "pendiente" }
   ],
   "transitions": [],
@@ -23,23 +23,23 @@
       "dot": "cyan",
       "title": "Hecho hasta hoy",
       "items": [
-        "Repo público creado, equipo confirmado (humano + agentes)",
-        "4 ramas feature mergeadas a main (Solver, roles v2)"
+        "Repo público creado, 4 ramas feature mergeadas a main (Solver, roles v2)",
+        "Hedera liquidado y ENS entregado (negocio.creva.eth) — dos pistas cumplidas"
       ]
     },
     {
       "dot": "amber",
       "title": "Por hacer",
       "items": [
-        "Confirmar stake de cada integrante en el dashboard",
-        "Check-ins semanales, cronometrar y grabar el video demo"
+        "Stake por integrante, check-ins semanales, video demo",
+        "Arc (Circle) y Uniswap Foundation — siguientes pistas, tras World ID"
       ]
     },
     {
       "dot": "rose",
       "title": "Pendiente — bloqueado en insumo externo",
       "items": [
-        "Hedera: falta llave de payer; Selfie Check: sandbox pendiente",
+        "Selfie Check: sandbox de World ID pendiente de aprobación (Tools for Humanity)",
         "Prueba en Expo Go — falta dispositivo físico"
       ]
     }
