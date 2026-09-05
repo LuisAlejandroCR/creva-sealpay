@@ -18,7 +18,14 @@ export interface PaymentRequiredResponse {
   error?: string;
 }
 
-export type PaymentPayload = unknown;
+export interface HederaExactPaymentPayload {
+  x402Version: number;
+  scheme: "exact";
+  network: string;
+  payload: { transaction: string };
+}
+
+export type PaymentPayload = HederaExactPaymentPayload | Record<string, unknown> | string;
 
 export interface FacilitatorVerifyResult {
   isValid: boolean;

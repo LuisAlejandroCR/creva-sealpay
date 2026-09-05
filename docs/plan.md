@@ -47,7 +47,21 @@ bloque. Esta tabla es solo el checklist.
   BlockyDevs testnet (`https://api.testnet.blocky402.com`, `x402Version: 2`, `hedera:testnet`,
   `amount`, `extra.feePayer=0.0.7162784`) sin cambiar la interfaz pública de `x402-gate.ts`; la
   prueba real sigue pendiente porque no hay `.env` con llave pagadora ni gateway/JWT de Bazantic
-  creado en este worktree. No hay tx hash todavía.
+  creado en este worktree. No hay tx hash todavía. **Actualización `2026-09-04` (rol Auditor):**
+  agente 13 (`feature-hedera-facilitator`, prueba de pago real) reportó el bloqueo exacto —
+  ninguna parte del repo construía ni firmaba un `X-PAYMENT` real, `PaymentPayload` era solo
+  `unknown`, y no había SDK de Hedera instalado. Añadido `gateway/src/hedera-signer.ts`
+  (`@hashgraph/sdk`, `buildSignedPaymentHeader`): arma y firma una `TransferTransaction` real en
+  HBAR desde `HEDERA_PAYER_ACCOUNT_ID`/`HEDERA_PAYER_PRIVATE_KEY` (nunca leídas ni logueadas por
+  este agente), codificada como el payload `{x402Version, scheme: "exact", network, payload:
+  {transaction}}` — `PaymentPayload` en `types.ts` ya tipa esta forma en vez de `unknown`. Test
+  unitario (`gateway/test/unit/hedera-signer.spec.ts`) firma con una llave de prueba generada al
+  vuelo — freeze/sign no toca la red, así que sigue siendo rápido. `tsc`/`eslint`/`vitest` en
+  verde (5 suites, 13 tests, `--cache=false` por el mismo `EPERM` de Vite ya documentado arriba).
+  Sigue pendiente, y sigue siendo bloqueo real, no de este cambio: nadie ha corrido esto contra el
+  facilitador vivo con credenciales pagadoras de verdad — eso requiere que un humano provea
+  `HEDERA_PAYER_ACCOUNT_ID`/`HEDERA_PAYER_PRIVATE_KEY` con HBAR de testnet y ejecute la request,
+  guardando el tx hash / link de HashScan como evidencia.
 
 - [x] **Repo público creado, README público reescrito.**
   `2026-09-04` — repo creado en https://github.com/LuisAlejandroCR/creva-sealpay, con **todo**
