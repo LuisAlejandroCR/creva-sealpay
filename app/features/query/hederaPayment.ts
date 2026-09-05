@@ -79,5 +79,8 @@ export async function buildSignedPaymentHeader(
     payload: { transaction: Buffer.from(signed.toBytes()).toString('base64') },
   }
 
-  return Buffer.from(JSON.stringify(payload)).toString('base64url')
+  // React Native's `buffer` polyfill (Hermes) doesn't implement the 'base64url' encoding Node
+  // does, so encode as base64 and convert manually instead of Buffer.from(...).toString('base64url').
+  const base64 = Buffer.from(JSON.stringify(payload)).toString('base64')
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
