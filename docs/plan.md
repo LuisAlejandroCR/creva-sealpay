@@ -40,9 +40,13 @@ checklist.
 - [ ] **Confirmar en el dashboard de ETHGlobal quién entra al equipo**, con stake propio cada
   quien — decisión de equipo ya tomada, falta el trámite.
 
-- [ ] **Haptics en dispositivo físico.** Código ya en `QueryScreen.tsx`/`VerifyScreen.tsx`
-  (`expo-haptics`, 3 estados), `tsc`/`jest` pasan. Falta sentirlos en Expo Go real — sin
-  dispositivo disponible hasta ahora.
+- [ ] **Wallet Hedera para liquidar x402 desde la app.** `QueryScreen.tsx` ya golpea el gateway
+  real, pero no hay signer de wallet Hedera cableado: "Pagar y continuar" reintenta sin
+  `X-PAYMENT` válido y el gateway responde 402 otra vez ("No hay una billetera Hedera conectada
+  para liquidar el pago x402 todavía" — mensaje intencional, no bug, ver comentario en
+  `QueryScreen.tsx:1-5`). Bloquea re-verificar en dispositivo físico los haptics de Success/Error
+  de `VerifyScreen.tsx` contra el flujo real (ver ítem cerrado de haptics abajo, verificado solo
+  contra el mock anterior).
 
 - [ ] **Safe-area insets: código listo, falta confirmar en Expo Go real.** Bug reportado desde
   Expo Go en iPhone físico: el status bar (reloj/señal/batería) se solapaba con el header y los
@@ -163,6 +167,14 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
 
 ## Cerrados
+
+- [x] `2026-09-05` — **Haptics verificados en dispositivo físico (Expo Go, iPhone) contra el
+  flujo mockeado previo (antes de `feature-report-wiring`).** Confirmados los 3 puntos:
+  `ImpactFeedbackStyle.Medium` en el botón de pago (`QueryScreen.tsx`), `NotificationFeedbackType
+  .Success` al validar un sello válido y `.Error` al invalidarlo (`VerifyScreen.tsx`, este último
+  probado con edición temporal de `folio=""` en `App.tsx`, revertida después). No re-verificado
+  contra el gateway real — ver ítem abierto de wallet Hedera arriba, que bloquea llegar al estado
+  pagado real desde la UI.
 
 - [x] `2026-09-05` — **Bazantic — $3,000, 3 pistas: identidad de servicio con refresh token
   desbloquea la llamada real (worktree `feature-creva-service-identity`).** Diagnóstico previo
