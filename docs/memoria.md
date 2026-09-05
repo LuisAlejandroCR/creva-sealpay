@@ -4,6 +4,39 @@
 
 # Memoria — ETHOnline 2026
 
+## 2026-09-05 — Wiring de las cuatro pantallas nuevas en `App.tsx` (sign-in, dashboard, profile, help)
+
+**Qué se hizo:**
+- `Step` extendido de `"onboarding" | "query" | "verify"` a `"sign-in" | "onboarding" | "home" |
+  "query" | "verify" | "profile" | "help"`. Flujo: `sign-in` (nuevo, primer paso) →
+  `onboarding` (Selfie Check) → `home` (`DashboardScreen`, nuevo landing) → `query`/`verify`
+  alcanzables desde `home` vía `onOpenScore`; `home` ↔ `profile` (`ProfileScreen`) → `help`
+  (`HelpScreen`); `profile.onSignedOut` regresa a `sign-in`.
+- Tab bar mínima de dos botones (Inicio/Perfil) agregada directamente en `App.tsx` — no se tocó
+  ninguna de las cuatro pantallas, solo se le agregó chrome de navegación alrededor. Visible solo
+  en `home`/`profile`/`help`; `query`, `verify`, `onboarding` y `sign-in` siguen sin ella, mismo
+  comportamiento de pantalla completa que ya tenían.
+- Callbacks de las pantallas sin pantalla destino real (`onOpenCredit`, `onOpenCard`,
+  `onOpenNotifications`, `onOpenDetails`, `onOpenFiscal`, `onOpenSecurity`,
+  `onOpenDeleteAccount`, `onOpenArticle`, `onOpenCategory`) se dejaron sin conectar a propósito —
+  conectarlos requeriría inventar pantallas que no existen todavía.
+- Bug encontrado por el propio `safe-area.spec.ts` existente: el import combinado
+  `import { SafeAreaProvider, SafeAreaView } from ...` no matcheaba el regex del test
+  (`import\s*\{\s*SafeAreaProvider\s*\}`, solo un identificador). Corregido separando en dos
+  imports — el test ya existente cumplió su función de guardia.
+- `tsc --noEmit` limpio. `jest unit fuzz invariant`: 32 suites / 146 tests, todo verde (sin
+  regresión). `npx expo start` en modo CI verificado bundleando `ios` (HTTP 200 en
+  `/index.bundle`); servidor Metro detenido con `taskkill`, puerto confirmado libre con `netstat`.
+
+**Qué NO se verificó, y por qué:**
+- Expo Go en dispositivo físico real — sin hardware disponible, consistente con el resto del repo.
+- Las pantallas sin destino (crédito, tarjeta, notificaciones, datos personales, fiscal,
+  seguridad, eliminar cuenta, artículos/categorías de ayuda) no existen — este bloque solo hace
+  navegable lo que ya tenía pantalla real.
+
+**Dónde queda el pendiente:** ninguno propio de este bloque — las cuatro pantallas ya son
+alcanzables desde `App.tsx`. Ver `docs/plan.md` para las pantallas todavía sin construir.
+
 ## 2026-09-05 — Dashboard/Profile/Help Center screens + real Clerk sign-in (worktree `feature-ui-port-core-screens`)
 
 **Qué se hizo:**

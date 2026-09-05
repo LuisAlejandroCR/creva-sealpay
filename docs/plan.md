@@ -102,11 +102,18 @@ checklist.
   bundleando para `ios` (CI mode, 1321 módulos, HTTP 200 en `/index.bundle`) — el bundle `web`
   falla por falta de `react-native-web` (dependencia preexistente, no instalada, fuera de alcance
   de este bloque: la app nunca se configuró para el target web). Servidor Metro detenido al
-  terminar, puertos verificados libres con `netstat` tras `taskkill`. **Ninguna de las cuatro
-  pantallas está cableada a `App.tsx`** — cablear navegación es explícitamente fuera de alcance de
-  este bloque (ver `docs/memoria.md` para lo que necesitaría una pasada de integración futura).
-  Falta, como en el resto del repo: Expo Go en dispositivo físico real (sin hardware disponible en
-  esta sesión).
+  terminar, puertos verificados libres con `netstat` tras `taskkill`. **Actualización `2026-09-05`:
+  las cuatro pantallas ya están cableadas en `App.tsx`** — flujo `sign-in → onboarding → home
+  (dashboard) ↔ profile → help`, más `query`/`verify` alcanzables desde `home` (`onOpenScore`).
+  Tab bar mínima (Inicio/Perfil) agregada directamente en `App.tsx`, sin tocar las pantallas, para
+  moverse entre `home`/`profile`/`help`; `query`, `verify`, `onboarding` y `sign-in` siguen de
+  pantalla completa sin tab bar, igual que antes. Callbacks sin destino real todavía
+  (`onOpenCredit`/`onOpenCard`/`onOpenNotifications`/`onOpenDetails`/`onOpenFiscal`/
+  `onOpenSecurity`/`onOpenDeleteAccount`/`onOpenArticle`/`onOpenCategory`) quedan sin conectar a
+  propósito — no hay pantalla destino todavía. `tsc`/`jest` (32 suites/146 tests) y bundle `ios`
+  de Metro (CI mode, HTTP 200) verificados de nuevo tras el wiring, servidor detenido y puerto
+  liberado. Falta, como en el resto del repo: Expo Go en dispositivo físico real (sin hardware
+  disponible en esta sesión).
 
 - [x] `2026-09-05` — **`negocio.creva.eth` registrado en Sepolia (ENSv2), folio sellado en el
   resolver.** `creva.eth` registrado vía el `ETHRegistrar` de ENSv2 (pagado en Sepolia USDC del
