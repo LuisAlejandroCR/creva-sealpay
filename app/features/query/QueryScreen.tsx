@@ -1,8 +1,8 @@
 // QueryScreen.tsx: closes the agent loop UI — trigger a paid signal query against the real
-// x402-gated gateway route and watch the 402 -> payment -> response cycle. There is no wallet
-// signer wired into this app yet (see docs/plan.md), so "Pagar y continuar" retries the real
-// gateway without a valid X-PAYMENT proof and surfaces the real 402/error it gets back — never a
-// fabricated paid report.
+// x402-gated gateway route and watch the 402 -> payment -> response cycle. "Pagar y continuar"
+// signs a real X-PAYMENT header with the demo-scoped testnet signer (hederaPayment.ts) and
+// retries the gateway with it; without EXPO_PUBLIC_HEDERA_DEMO_* configured it surfaces that
+// real gap instead of a fabricated paid report.
 import * as Haptics from "expo-haptics";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Card, Progress, Section } from "./components/VisualPrimitives";
 import { ReportPreviewCard } from "./components/ReportPreviewCard";
 import { PaymentRequired, QueryResult, requestSignal } from "./gatewayClient";
+import { buildSignedPaymentHeader, readDemoCredentialsFromEnv } from "./hederaPayment";
 import { BackButton } from "../shared/BackButton";
 
 type Phase = "idle" | "loading" | "payment_required" | "paying" | "paid" | "error";
@@ -47,12 +48,17 @@ export function QueryScreen({ onVerify, onBack }: { onVerify: (result: QueryResu
     setPhase("paying");
     setErrorMessage(null);
     try {
-      // No Hedera wallet signer is wired into this app: there is no X-PAYMENT proof to attach,
-      // so this retry is expected to come back 402 again against a real gateway until one exists.
-      const res = await requestSignal({ businessName: BUSINESS_NAME });
+      const credentials = readDemoCredentialsFromEnv();
+      if (!credentials) {
+        setErrorMessage("No hay una billetera Hedera de demo configurada (EXPO_PUBLIC_HEDERA_DEMO_*).");
+        setPhase("payment_required");
+        return;
+      }
+      const paymentHeader = await buildSignedPaymentHeader(pendingPayment.accepts[0], credentials);
+      const res = await requestSignal({ businessName: BUSINESS_NAME }, paymentHeader);
       if (res.status === 402) {
         setPendingPayment(res);
-        setErrorMessage("No hay una billetera Hedera conectada para liquidar el pago x402 todavía.");
+        setErrorMessage(res.error ?? "El gateway rechazó el pago.");
         setPhase("payment_required");
         return;
       }

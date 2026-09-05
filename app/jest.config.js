@@ -14,6 +14,14 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
+  // @hashgraph/sdk's react-native build (and its @hiero-ledger/cryptography dependency) ships
+  // ESM in node_modules like the rest of the RN ecosystem — extend jest-expo's default ignore
+  // pattern instead of replacing it, so those packages get babel-transformed too.
+  transformIgnorePatterns: [
+    '/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|@hashgraph|@hiero-ledger))',
+    '/node_modules/react-native-reanimated/plugin/',
+    '/node_modules/@react-native/babel-preset/',
+  ],
   testMatch: [
     '**/test/unit/**/*.spec.ts',
     '**/test/fuzz/**/*.fuzz.spec.ts',
