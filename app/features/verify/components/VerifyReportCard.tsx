@@ -17,14 +17,39 @@ const STATUS_TONE: Record<Verdict["status"], "success" | "warning" | "danger"> =
   not_found: "danger",
 };
 
+const VERDICT_LABELS: Record<string, string> = {
+  "DOF registry": "Registro DOF",
+  "CNBV registry": "Registro CNBV",
+  "SAT tax status": "Estado fiscal SAT",
+  "Address match": "Coincidencia de domicilio",
+  "Beneficial owner": "Beneficiario final",
+};
+
+const VERDICT_DETAILS: Record<string, string> = {
+  "Business found, active": "Negocio encontrado, activo",
+  "No sanctions on record": "Sin sanciones en los registros consultados",
+  "Active RFC": "RFC activo",
+  "Could not cross-reference": "No se pudo cruzar con otra fuente",
+  "Not in queried sources": "No aparece en las fuentes consultadas",
+};
+
+const LIMIT_LABELS: Record<string, string> = {
+  "Creditworthiness or probability of default": "Solvencia crediticia o probabilidad de incumplimiento",
+  "Legal authorization to operate": "Autorización legal para operar",
+  "Tax compliance beyond the checked registries": "Cumplimiento fiscal fuera de los registros consultados",
+  "Future business performance": "Desempeño futuro del negocio",
+};
+
 function VerdictRow({ verdict }: { verdict: Verdict }) {
   return (
-    <View className="border-b border-slate-100 py-3">
+    <View className="border-b border-[#1A1613]/10 py-3">
       <View className="flex-row items-start justify-between gap-3">
-        <Text className="flex-1 font-bold text-slate-950">{verdict.label}</Text>
+        <Text className="flex-1 font-bold text-[#1A1613]">{VERDICT_LABELS[verdict.label] ?? verdict.label}</Text>
         <Badge tone={STATUS_TONE[verdict.status]}>{STATUS_LABEL[verdict.status]}</Badge>
       </View>
-      <Text className="mt-1 text-sm leading-5 text-slate-500">{verdict.detail}</Text>
+      <Text className="mt-1 text-sm leading-5 text-[#1A1613]/70">
+        {VERDICT_DETAILS[verdict.detail] ?? verdict.detail}
+      </Text>
     </View>
   );
 }
@@ -43,8 +68,8 @@ export function VerifyReportCard({
           <View className="gap-3">
             <View className="flex-row items-start justify-between gap-3">
               <View className="flex-1">
-                <Text className="text-xs font-bold uppercase text-slate-400">Reporte Creva</Text>
-                <Text className="mt-1 text-2xl font-bold text-slate-950">
+                <Text className="text-xs font-bold uppercase text-[#1A1613]/60">Reporte Creva</Text>
+                <Text className="mt-1 text-2xl font-bold text-[#1A1613]">
                   {signatureValid ? "Reporte auténtico" : "No se puede acreditar"}
                 </Text>
               </View>
@@ -52,14 +77,14 @@ export function VerifyReportCard({
                 {signatureValid ? "Ed25519 válido" : "Firma inválida"}
               </Badge>
             </View>
-            <Text className="text-sm leading-5 text-slate-600" testID="signature-status">
+            <Text className="text-sm leading-5 text-[#1A1613]/70" testID="signature-status">
               {signatureValid
                 ? "La firma del sello es válida y el folio puede viajar con el reporte."
                 : "La firma no coincide con el sello que recibiste."}
             </Text>
-            <View className="rounded-xl bg-slate-50 p-3">
-              <Text className="text-xs font-bold uppercase text-slate-400">Folio</Text>
-              <Text className="mt-1 text-sm font-semibold tabular-nums text-slate-950">{report.folio}</Text>
+            <View className="rounded-xl bg-[#FFE8EE] p-3">
+              <Text className="text-xs font-bold uppercase text-[#1A1613]/60">Folio</Text>
+              <Text className="mt-1 text-sm font-semibold tabular-nums text-[#1A1613]">{report.folio}</Text>
             </View>
           </View>
         </Card>
@@ -81,8 +106,8 @@ export function VerifyReportCard({
           <View className="gap-2">
             {report.doesNotCertify.map((item) => (
               <View key={item} className="flex-row gap-2">
-                <Text className="text-slate-400">•</Text>
-                <Text className="flex-1 text-sm leading-5 text-slate-600">{item}</Text>
+                <Text className="text-[#C41E3A]">•</Text>
+                <Text className="flex-1 text-sm leading-5 text-[#1A1613]/70">{LIMIT_LABELS[item] ?? item}</Text>
               </View>
             ))}
           </View>

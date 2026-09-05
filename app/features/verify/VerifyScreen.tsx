@@ -38,19 +38,19 @@ export function VerifyScreen({ folio }: { folio: string }) {
 
   if (!report || signatureValid === null) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-50">
+      <View className="flex-1 items-center justify-center bg-[#F6F1E7]">
         <ActivityIndicator testID="verify-loading" />
       </View>
     );
   }
 
   return (
-    <ScrollView className="flex-1 bg-slate-50" contentContainerClassName="px-6 pb-10 pt-12" testID="verify-screen">
+    <ScrollView className="flex-1 bg-[#F6F1E7]" contentContainerClassName="px-6 pb-10 pt-12" testID="verify-screen">
       <View className="mb-8">
-        <Text className="text-xs font-bold uppercase text-slate-400">Verificacion publica</Text>
-        <Text className="mt-2 text-3xl font-bold text-slate-950">Comprobar un reporte</Text>
-        <Text className="mt-2 text-base leading-6 text-slate-600">
-          Five verdicts, one readable folio, and the limits of what the seal can prove.
+        <Text className="text-xs font-bold uppercase text-[#1A1613]/60">Verificación pública</Text>
+        <Text className="mt-2 text-3xl font-bold text-[#1A1613]">Comprobar un reporte</Text>
+        <Text className="mt-2 text-base leading-6 text-[#1A1613]/70">
+          Cinco veredictos, un folio legible y los límites de lo que el sello puede acreditar.
         </Text>
       </View>
 

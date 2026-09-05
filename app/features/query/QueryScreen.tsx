@@ -33,12 +33,12 @@ export function QueryScreen({ onVerify }: { onVerify: () => void }) {
   }
 
   return (
-    <ScrollView className="flex-1 bg-slate-50" contentContainerClassName="px-6 pb-10 pt-12">
+    <ScrollView className="flex-1 bg-[#F6F1E7]" contentContainerClassName="px-6 pb-10 pt-12">
       <View className="mb-8">
-        <Text className="text-xs font-bold uppercase text-slate-400">Creva SealPay</Text>
-        <Text className="mt-2 text-3xl font-bold text-slate-950">Paid signal query</Text>
-        <Text className="mt-2 text-base leading-6 text-slate-600">
-          Query public-business evidence, settle the x402 challenge, then hand over a sealed report.
+        <Text className="text-xs font-bold uppercase text-[#1A1613]/60">Creva SealPay</Text>
+        <Text className="mt-2 text-3xl font-bold text-[#1A1613]">Consulta pagada</Text>
+        <Text className="mt-2 text-base leading-6 text-[#1A1613]/70">
+          Consulta señales públicas del negocio, liquida el reto x402 y entrega un reporte sellado.
         </Text>
       </View>
 
@@ -49,9 +49,9 @@ export function QueryScreen({ onVerify }: { onVerify: () => void }) {
             <Progress
               value={phase === "idle" ? 1 : phase === "payment_required" ? 2 : phase === "paying" ? 3 : 4}
               max={4}
-              label="402 -> payment -> response"
+              label="402 -> pago -> respuesta"
               valueLabel={`${phase === "paid" ? 4 : phase === "paying" ? 3 : phase === "payment_required" ? 2 : 1}/4`}
-              colorClass={phase === "paid" ? "bg-emerald-600" : "bg-amber-500"}
+              colorClass={phase === "paid" ? "bg-[#2E6A48]" : "bg-[#C41E3A]"}
             />
           </View>
         </Card>
@@ -61,12 +61,12 @@ export function QueryScreen({ onVerify }: { onVerify: () => void }) {
         <Section title="Consulta">
           <Card dashed>
             <View className="gap-4">
-              <Text className="text-base font-bold text-slate-950">Panaderia La Espiga</Text>
-              <Text className="text-sm leading-5 text-slate-600">
-                The first request should return the payment requirement instead of a report.
+              <Text className="text-base font-bold text-[#1A1613]">Panadería La Espiga</Text>
+              <Text className="text-sm leading-5 text-[#1A1613]/70">
+                La primera petición devuelve el requisito de pago antes de liberar el reporte.
               </Text>
-              <Pressable className="rounded-xl bg-slate-950 px-5 py-3" onPress={triggerQuery} testID="trigger-query">
-                <Text className="text-center font-semibold text-white">Query business signals</Text>
+              <Pressable className="rounded-xl bg-[#C41E3A] px-5 py-3" onPress={triggerQuery} testID="trigger-query">
+                <Text className="text-center font-semibold text-white">Consultar señales del negocio</Text>
               </Pressable>
             </View>
           </Card>
@@ -74,19 +74,19 @@ export function QueryScreen({ onVerify }: { onVerify: () => void }) {
       )}
 
       {phase === "payment_required" && pendingPayment && (
-        <Section title="Payment required" lead="The challenge is explicit, priced and tied to the report endpoint.">
+        <Section title="Pago requerido" lead="El reto es explícito, tiene precio y queda ligado al endpoint del reporte.">
           <Card testID="payment-required">
             <View className="gap-4">
-              <View className="rounded-xl bg-amber-50 p-3">
-                <Text className="font-bold text-amber-800">402 Payment Required</Text>
-                <Text className="mt-1 text-sm leading-5 text-amber-700">
-                  {pendingPayment.accepts[0].maxAmountRequired} {pendingPayment.accepts[0].asset} on{" "}
+              <View className="rounded-xl bg-[#E8A020]/10 p-3">
+                <Text className="font-bold text-[#8A5A00]">402 Pago requerido</Text>
+                <Text className="mt-1 text-sm leading-5 text-[#8A5A00]">
+                  {pendingPayment.accepts[0].maxAmountRequired} {pendingPayment.accepts[0].asset} en{" "}
                   {pendingPayment.accepts[0].network}
                 </Text>
               </View>
-              <Text className="text-sm leading-5 text-slate-600">{pendingPayment.accepts[0].description}</Text>
-              <Pressable className="rounded-xl bg-emerald-700 px-5 py-3" onPress={pay} testID="pay-button">
-                <Text className="text-center font-semibold text-white">Pay and continue</Text>
+              <Text className="text-sm leading-5 text-[#1A1613]/70">Reporte de señales Creva</Text>
+              <Pressable className="rounded-xl bg-[#C41E3A] px-5 py-3" onPress={pay} testID="pay-button">
+                <Text className="text-center font-semibold text-white">Pagar y continuar</Text>
               </Pressable>
             </View>
           </Card>
@@ -94,21 +94,21 @@ export function QueryScreen({ onVerify }: { onVerify: () => void }) {
       )}
 
       {phase === "paying" && (
-        <Section title="Settling">
+        <Section title="Liquidando">
           <Card>
             <View className="items-center gap-3 py-3">
               <ActivityIndicator testID="paying-spinner" />
-              <Text className="text-sm text-slate-500">Waiting for the paid response...</Text>
+              <Text className="text-sm text-[#1A1613]/70">Esperando la respuesta pagada...</Text>
             </View>
           </Card>
         </Section>
       )}
 
       {phase === "paid" && result?.status === 200 && (
-        <Section title="Reporte sellado" lead="The receiver can verify the seal without opening an account.">
+        <Section title="Reporte sellado" lead="Quien lo recibe puede verificar el sello sin abrir una cuenta.">
           <ReportPreviewCard result={result} />
-          <Pressable className="mt-4 rounded-xl bg-slate-950 px-5 py-3" onPress={onVerify}>
-            <Text className="text-center font-semibold text-white">View sealed report</Text>
+          <Pressable className="mt-4 rounded-xl bg-[#C41E3A] px-5 py-3" onPress={onVerify}>
+            <Text className="text-center font-semibold text-white">Ver reporte sellado</Text>
           </Pressable>
         </Section>
       )}

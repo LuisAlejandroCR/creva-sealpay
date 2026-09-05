@@ -13,6 +13,10 @@
   la composición visual de `creva_finance/frontend`: header, secciones, cards, chip de pago, barra
   de progreso del flujo 402→payment→response, gauge/ring de score adaptado a React Native y preview
   de reporte sellado con señal, fuentes y evidencia de settlement.
+- La corrección visual posterior usa los tokens reales de Creva convertidos a hex para React Native:
+  fondo crema `#F6F1E7`, texto `#1A1613`, crimson `#C41E3A`, blush `#FFE8EE`, inactive `#DED7C8` y
+  semánticos de `globals.css`. Todo el copy visible de query/verify quedó en español; las cadenas
+  inglesas que todavía existen viven en los mocks tipados y se traducen antes de renderizarse.
 - `app/features/verify/VerifyScreen.tsx` dejó de listar texto suelto y ahora renderiza una tarjeta
   principal de sello, folio, estado Ed25519, una tarjeta con los cinco veredictos y una sección
   visible de "Qué este sello NO certifica", alineada con `brainstorming.md` §0.2.
