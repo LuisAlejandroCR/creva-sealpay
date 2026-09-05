@@ -9,6 +9,10 @@ vi.mock("../../src/facilitator.js", () => ({
   settlePayment: vi.fn(),
 }));
 
+vi.mock("../../src/creva-auth.js", () => ({
+  getCrevaAccessToken: vi.fn().mockResolvedValue("test-access-token"),
+}));
+
 const originalFetch = global.fetch;
 
 describe("gateway hardening", () => {

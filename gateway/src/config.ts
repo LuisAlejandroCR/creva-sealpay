@@ -4,6 +4,7 @@ import "dotenv/config";
 export const config = {
   port: Number(process.env.PORT ?? 8787),
   crevaApiUrl: process.env.CREVA_API_URL ?? "https://creva-backend-c7as7id5jq-pv.a.run.app",
+  crevaServiceRefreshToken: process.env.CREVA_SERVICE_REFRESH_TOKEN,
   facilitatorUrl: process.env.FACILITATOR_URL ?? "http://localhost:4020",
   facilitatorAuthToken: process.env.FACILITATOR_AUTH_TOKEN,
   facilitatorFeePayer: process.env.FACILITATOR_FEE_PAYER,
