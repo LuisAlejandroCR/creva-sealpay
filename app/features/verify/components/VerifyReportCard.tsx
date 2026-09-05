@@ -42,12 +42,12 @@ const LIMIT_LABELS: Record<string, string> = {
 
 function VerdictRow({ verdict }: { verdict: Verdict }) {
   return (
-    <View className="border-b border-[#1A1613]/10 py-3">
+    <View className="border-b border-text/10 py-3">
       <View className="flex-row items-start justify-between gap-3">
-        <Text className="flex-1 font-bold text-[#1A1613]">{VERDICT_LABELS[verdict.label] ?? verdict.label}</Text>
+        <Text className="flex-1 font-bold text-text">{VERDICT_LABELS[verdict.label] ?? verdict.label}</Text>
         <Badge tone={STATUS_TONE[verdict.status]}>{STATUS_LABEL[verdict.status]}</Badge>
       </View>
-      <Text className="mt-1 text-sm leading-5 text-[#1A1613]/70">
+      <Text className="mt-1 text-sm leading-5 text-text/70">
         {VERDICT_DETAILS[verdict.detail] ?? verdict.detail}
       </Text>
     </View>
@@ -68,8 +68,8 @@ export function VerifyReportCard({
           <View className="gap-3">
             <View className="flex-row items-start justify-between gap-3">
               <View className="flex-1">
-                <Text className="text-xs font-bold uppercase text-[#1A1613]/60">Reporte Creva</Text>
-                <Text className="mt-1 text-2xl font-bold text-[#1A1613]">
+                <Text className="text-xs font-bold uppercase text-text/60">Reporte Creva</Text>
+                <Text className="mt-1 text-2xl font-bold text-text">
                   {signatureValid ? "Reporte auténtico" : "No se puede acreditar"}
                 </Text>
               </View>
@@ -77,14 +77,14 @@ export function VerifyReportCard({
                 {signatureValid ? "Ed25519 válido" : "Firma inválida"}
               </Badge>
             </View>
-            <Text className="text-sm leading-5 text-[#1A1613]/70" testID="signature-status">
+            <Text className="text-sm leading-5 text-text/70" testID="signature-status">
               {signatureValid
                 ? "La firma del sello es válida y el folio puede viajar con el reporte."
                 : "La firma no coincide con el sello que recibiste."}
             </Text>
-            <View className="rounded-xl bg-[#FFE8EE] p-3">
-              <Text className="text-xs font-bold uppercase text-[#1A1613]/60">Folio</Text>
-              <Text className="mt-1 text-sm font-semibold tabular-nums text-[#1A1613]">{report.folio}</Text>
+            <View className="rounded-xl bg-surface-2 p-3">
+              <Text className="text-xs font-bold uppercase text-text/60">Folio</Text>
+              <Text className="mt-1 text-sm font-semibold tabular-nums text-text">{report.folio}</Text>
             </View>
           </View>
         </Card>
@@ -106,8 +106,8 @@ export function VerifyReportCard({
           <View className="gap-2">
             {report.doesNotCertify.map((item) => (
               <View key={item} className="flex-row gap-2">
-                <Text className="text-[#C41E3A]">•</Text>
-                <Text className="flex-1 text-sm leading-5 text-[#1A1613]/70">{LIMIT_LABELS[item] ?? item}</Text>
+                <Text className="text-crimson">•</Text>
+                <Text className="flex-1 text-sm leading-5 text-text/70">{LIMIT_LABELS[item] ?? item}</Text>
               </View>
             ))}
           </View>

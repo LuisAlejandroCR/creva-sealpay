@@ -70,12 +70,12 @@ export function DashboardScreen({
   const balanceDisplay = cardReady ? formatMoney(spendingCapacity) || "—" : "—";
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F6F1E7]" edges={["top", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-bg" edges={["top", "bottom"]}>
       <ScrollView className="flex-1" contentContainerClassName="px-6 pb-10 pt-6">
         <View className="mb-6 flex-row items-start justify-between">
           <View>
-            <Text className="text-3xl font-bold text-[#1A1613]">Hola, {userName}</Text>
-            <Text className="mt-1 text-base text-[#1A1613]/70">Tu panorama financiero</Text>
+            <Text className="text-3xl font-bold text-text">Hola, {userName}</Text>
+            <Text className="mt-1 text-base text-text/70">Tu panorama financiero</Text>
           </View>
           <NotificationBell pending={pending} onPress={onOpenNotifications} />
         </View>
@@ -84,8 +84,8 @@ export function DashboardScreen({
           <Card>
             <View className="gap-5">
               <ScoreGauge value={scoreValue} max={100} band={scoreValue >= 70 ? "success" : "warning"} />
-              <View className="gap-3 border-t border-[#1A1613]/10 pt-4">
-                <Text className="text-sm leading-5 text-[#1A1613]/70">{mainAction.body}</Text>
+              <View className="gap-3 border-t border-text/10 pt-4">
+                <Text className="text-sm leading-5 text-text/70">{mainAction.body}</Text>
                 <ActionCard
                   title={mainAction.cta}
                   body=""
@@ -123,7 +123,7 @@ export function DashboardScreen({
         <Section title="Mis tarjetas">
           {cardReady ? (
             <Card testID="dashboard-card-preview">
-              <Text className="text-sm font-semibold text-[#1A1613]">•••• 4821</Text>
+              <Text className="text-sm font-semibold text-text">•••• 4821</Text>
             </Card>
           ) : (
             <ActionCard

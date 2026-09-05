@@ -9,13 +9,16 @@ import WebView from 'react-native-webview'
 import type { WebViewNavigation } from 'react-native-webview'
 import { useSelfieCheck } from './useSelfieCheck'
 import { buildSelfieCheckUrl } from './world-config'
+import { BackButton } from '../shared/BackButton'
 
 export interface SelfieCheckScreenProps {
   onVerified: (nullifierHash: string | null) => void
   onSkipped: () => void
+  /** Full-screen flow, no bottom nav — back is treated the same as skipping this step. */
+  onBack?: () => void
 }
 
-export function SelfieCheckScreen({ onVerified, onSkipped }: SelfieCheckScreenProps) {
+export function SelfieCheckScreen({ onVerified, onSkipped, onBack }: SelfieCheckScreenProps) {
   const { isSignedIn } = useAuth()
   const { result, start, handleCallbackUrl, reset } = useSelfieCheck()
   const [webviewUrl] = useState(() => {
@@ -39,16 +42,17 @@ export function SelfieCheckScreen({ onVerified, onSkipped }: SelfieCheckScreenPr
   if (result.status === 'identity_unavailable') {
     return (
       <SafeAreaView className="flex-1 items-center justify-center gap-4 px-6" edges={['top', 'bottom']}>
-        <Text className="text-center text-base text-neutral-600">
-          Selfie Check isn't available right now. You can continue without it — this account
-          will be flagged as identity_unavailable until it's verified.
+        {onBack ? <BackButton onPress={onBack} /> : null}
+        <Text className="text-center text-base text-text-secondary">
+          Selfie Check no está disponible en este momento. Puedes continuar sin verificarte — esta
+          cuenta quedará marcada como identidad no verificada hasta que se complete.
         </Text>
         <TouchableOpacity
           accessibilityRole="button"
-          className="rounded-full bg-neutral-900 px-6 py-3"
+          className="rounded-full bg-text px-6 py-3"
           onPress={onSkipped}
         >
-          <Text className="font-semibold text-white">Continue</Text>
+          <Text className="font-semibold text-white">Continuar</Text>
         </TouchableOpacity>
       </SafeAreaView>
     )
@@ -57,17 +61,19 @@ export function SelfieCheckScreen({ onVerified, onSkipped }: SelfieCheckScreenPr
   if (result.status === 'idle') {
     return (
       <SafeAreaView className="flex-1 items-center justify-center gap-4 px-6" edges={['top', 'bottom']}>
-        <Text className="text-center text-lg font-semibold">Verify it's you</Text>
-        <Text className="text-center text-base text-neutral-600">
-          World Selfie Check confirms you're a real, unique person — no Orb, no ID scan.
+        {onBack ? <BackButton onPress={onBack} /> : null}
+        <Text className="text-center text-lg font-semibold">Verifica que eres tú</Text>
+        <Text className="text-center text-base text-text-secondary">
+          World Selfie Check confirma que eres una persona real y única — sin Orb, sin escaneo de
+          identificación.
         </Text>
         <TouchableOpacity
           accessibilityRole="button"
-          className="rounded-full bg-neutral-900 px-6 py-3"
+          className="rounded-full bg-text px-6 py-3"
           disabled={!isSignedIn}
           onPress={start}
         >
-          <Text className="font-semibold text-white">Start Selfie Check</Text>
+          <Text className="font-semibold text-white">Iniciar Selfie Check</Text>
         </TouchableOpacity>
       </SafeAreaView>
     )
@@ -76,15 +82,16 @@ export function SelfieCheckScreen({ onVerified, onSkipped }: SelfieCheckScreenPr
   if (result.status === 'failed') {
     return (
       <SafeAreaView className="flex-1 items-center justify-center gap-4 px-6" edges={['top', 'bottom']}>
-        <Text className="text-center text-base text-neutral-600">
-          Selfie Check didn't complete. You can try again.
+        {onBack ? <BackButton onPress={onBack} /> : null}
+        <Text className="text-center text-base text-text-secondary">
+          Selfie Check no se completó. Puedes intentarlo de nuevo.
         </Text>
         <TouchableOpacity
           accessibilityRole="button"
-          className="rounded-full bg-neutral-900 px-6 py-3"
+          className="rounded-full bg-text px-6 py-3"
           onPress={reset}
         >
-          <Text className="font-semibold text-white">Try again</Text>
+          <Text className="font-semibold text-white">Intentar de nuevo</Text>
         </TouchableOpacity>
       </SafeAreaView>
     )
@@ -94,7 +101,7 @@ export function SelfieCheckScreen({ onVerified, onSkipped }: SelfieCheckScreenPr
     return (
       <SafeAreaView className="flex-1 items-center justify-center gap-4 px-6" edges={['top', 'bottom']}>
         <ActivityIndicator />
-        <Text className="text-center text-base text-neutral-600">Verifying with World...</Text>
+        <Text className="text-center text-base text-text-secondary">Verificando con World...</Text>
       </SafeAreaView>
     )
   }

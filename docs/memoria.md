@@ -4,6 +4,98 @@
 
 # Memoria — ETHOnline 2026
 
+## 2026-09-05 — Auditoría UI/UX completa (worktree `feature-ui-audit-fix`): auth, colores, back, nav, ayuda, español
+
+**Qué se hizo:**
+- **Bug de auth en reload, corregido.** `app/App.tsx`: `AppFlow` ya no arranca con
+  `useState<Step>("sign-in")` a ciegas — ahora lee `useAuth()` real de `@clerk/clerk-expo`
+  (`isLoaded`/`isSignedIn`) y solo decide el paso inicial (`"home"` si hay sesión activa, `"sign-in"`
+  si no) una vez `isLoaded` es `true`, con un spinner mientras tanto. Reproducido y corregido: antes,
+  una sesión activa + reload mostraba `SignInScreen` de nuevo y `signIn.create()` fallaba contra una
+  sesión ya activa.
+- **Paleta unificada.** `app/tailwind.config.js`: bloque `theme.extend.colors` con los 10 grupos de
+  token de `creva_finance/frontend/app/globals.css` (`--cr-crimson[-dark]`, `--cr-rosa`,
+  `--cr-inactive`, `--cr-bg`, `--cr-surface-1/2`, `--cr-text[-secondary/-muted/-subtle]`,
+  `--cr-border`, `--cr-success/-bg/-border/-text`, `--cr-danger/-bg/-border/-text`,
+  `--cr-warning/-bg/-border/-text`, `--cr-info/-bg/-border/-text`), valores del `:root` claro
+  copiados literal (NativeWind no soporta custom properties CSS, así que van hardcodeados, no
+  referenciados). Los 10 literales hex que existían en `app/features/**` (98× `#1A1613`, 22×
+  `#C41E3A`, 10× `#2E6A48`, 8× `#F6F1E7`, 6× `#E8A020`, 5× `#DED7C8`, 4× `#FFE8EE`, 4× `#8A5A00`,
+  3× `#6F675C`, 2× `#3A5FD8` — todos dentro de corchetes `[#...]` de NativeWind) reemplazados 1:1
+  por los tokens correspondientes vía `sed` en los 16 archivos `.tsx` de `app/features/`, más
+  `bg-white`→`bg-surface-1` para consistencia. `grep -rn "#[0-9A-Fa-f]\{3,6\}" app/features/`
+  devuelve vacío — cero excepciones necesarias.
+- **Back button.** `app/features/shared/BackButton.tsx` (nuevo): control de 44px con "‹" y
+  `accessibilityLabel="Volver"`, recreando `creva_finance/frontend/components/BackControl.tsx` en
+  NativeWind (ese componente es un `<Link>`/`router.back()` de Next.js sin equivalente RN directo).
+  Añadido a `SelfieCheckScreen.tsx` (las tres ramas con contenido: `identity_unavailable`, `idle`,
+  `failed`), `QueryScreen.tsx` y `VerifyScreen.tsx` — las tres pantallas sin bottom nav persistente.
+  `SignInScreen` se deja sin back a propósito: es la pantalla de entrada, no tiene "antes" al que
+  volver (mismo criterio que el propio `BackControl.tsx`, que documenta "no renderiza nada cuando no
+  hay historial"). Wiring en `App.tsx`: onboarding→home (mismo destino que skip), query→home,
+  verify→query.
+- **Decisión bottom-nav-scope (documentada aquí para que quede junto al resto de decisiones
+  técnicas, y también en `docs/plan.md`):** onboarding/query/verify se quedan como flujos de
+  pantalla completa sin tab bar — es el patrón convencional para pasos secuenciales de una sola
+  tarea (no se quiere que la persona brinque a Perfil a medio Selfie Check o a medio pago x402).
+  Dashboard/Profile/Help siguen con la tab bar mínima que ya existía. Esto no cambió respecto al
+  wiring anterior (`2026-09-05`, entrada de arriba) — se revisó explícitamente como parte de este
+  bloque y se confirma la misma decisión con el razonamiento por escrito.
+- **Auditoría de afordancia "(?)".** `grep -rn "❓" app/features/` da un solo resultado:
+  `ProfileScreen.tsx` línea 68, ya cableado a `onOpenHelp` (que `App.tsx` conecta a
+  `setStep("help")`) — funciona, no se tocó. No se encontró ningún otro "(?)"/"❓" sin cablear ni
+  ningún lugar donde `creva_finance`'s `HelpGlyph` (los íconos de categoría dentro de la pantalla de
+  Ayuda) tuviera un equivalente faltante — `HelpGlyph.tsx`/`HelpSearch.tsx` ya estaban portados y
+  funcionando desde el bloque anterior.
+- **Traducción a español.** Único archivo con copy en inglés real:
+  `app/features/onboarding/SelfieCheckScreen.tsx` (los 4 estados no-WebView: "Verify it's you",
+  "Selfie Check isn't available...", "Start Selfie Check", "Selfie Check didn't complete", "Try
+  again", "Verifying with World...", "Continue") — traducidos. Sanity check final con grep de
+  palabras inglesas comunes (`continue|verify|you|your|start|try again|loading|cancel|submit|
+  please|error|success|welcome`) sobre `app/features/**/*.tsx`: los únicos matches restantes son
+  identificadores de código (nombres de función, `testID`, claves de tipo TS como
+  `"success" | "warning"`), no copy visible — confirmado leyendo cada match.
+- **Test de regresión real.** `app/test/unit/auth/auth-gate.spec.ts` (nuevo): a diferencia del
+  resto de `test/unit/**` (que inspecciona el archivo fuente por regex porque `jest.config.js` solo
+  matchea `.spec.ts` y JSX requeriría `.tsx`), este renderiza el árbol real de `App.tsx` con
+  `@testing-library/react-native`, usando `React.createElement` en vez de JSX para poder quedarse
+  en `.ts`. Mockea `@clerk/clerk-expo` (`useAuth` → `isSignedIn: true`), `react-native-webview`
+  (innecesario para este camino) y `react-native-safe-area-context` (con el mock oficial del
+  paquete, `jest/mock`, re-exportado como named exports porque `App.tsx` importa
+  `{ SafeAreaProvider, SafeAreaView }` con nombre y el mock del paquete es un default export).
+  Asegura `queryByTestId("auth-submit")` y `queryByTestId("google-oauth-button")` son `null` y que
+  `dashboard-score-action` sí aparece — o sea, `SignInScreen` nunca se monta con sesión activa.
+- **Verify:** `npm run typecheck` limpio; `npm test -- unit fuzz invariant` → 33 suites / 147 tests
+  (antes 32/146; +1 suite +1 test del regression nuevo), todo verde. `grep` de hex en
+  `app/features/`: vacío. `npx expo start` (puerto 8098, `CI=1`): bundle `ios` — `1332 modules`,
+  HTTP 200 en `/index.bundle?platform=ios`. Servidor detenido (`TaskStop` + `taskkill` del proceso
+  Node hijo, el primero no basta en Windows porque Metro sobrevive como proceso separado);
+  `netstat` confirmó el puerto sin `LISTENING` tras el kill (solo `TIME_WAIT` residual, que expira
+  solo).
+
+**Qué NO se verificó, y por qué:**
+- **Expo Go en dispositivo físico real** — sin hardware disponible en esta sesión de agente, mismo
+  motivo documentado en los bloques anteriores (`2026-09-04`, `2026-09-05`). No se pudo confirmar
+  visualmente el back button, la paleta ni el flujo de auth-gating fuera del simulador de Jest y el
+  bundle de Metro.
+- El estado inicial (`step === null`, spinner) no tiene test de regresión propio más allá de
+  `auth-gate.spec.ts` (que solo cubre el caso `isSignedIn: true`); el caso `isSignedIn: false` (debe
+  llegar a `sign-in`) no se agregó como test separado — se verificó manualmente por lectura de
+  código, no por test automatizado. Riesgo bajo: es la rama que ya existía y ya tenía cobertura
+  indirecta en `SignInScreen.spec.ts`.
+- Un incidente de git ajeno a este bloque ocurrió durante la sesión: un `git stash pop` accidental
+  (comando propio mal formado) aplicó sobre el working tree un stash preexistente y no relacionado
+  (`stash@{0}: On docs-estado-refresh: wip estado regen before rebase`, de otra rama/worktree),
+  generando conflictos en `docs/estado.html`, `docs/estado.lifecycle.json`,
+  `docs/estado.visual-check.*` y `docs/plan.md`. Revertido restaurando esos archivos al contenido de
+  `HEAD` (el stash en sí se dejó intacto en la stash list — no era mío para resolver ni descartar).
+  No quedó rastro en el working tree final; se documenta aquí solo por transparencia del proceso.
+
+**Dónde queda el pendiente:** `docs/plan.md`, entrada "Riesgo Expo Go" ya abierta cubre la falta de
+prueba en dispositivo físico — no se abrió un bloque nuevo para esto, es el mismo pendiente de
+siempre. El stash ajeno (`stash@{0}`) sigue en la stash list de este worktree, sin tocar, para quien
+lo haya dejado.
+
 ## 2026-09-05 — Wiring de las cuatro pantallas nuevas en `App.tsx` (sign-in, dashboard, profile, help)
 
 **Qué se hizo:**

@@ -16,19 +16,19 @@ export function HelpSearch({ children }: { children: ReactNode }) {
   return (
     <>
       <Section>
-        <View className="flex-row items-center gap-2 rounded-xl border border-[#1A1613]/10 bg-white px-4 py-3">
-          <Text className="text-[#1A1613]/40">🔎</Text>
+        <View className="flex-row items-center gap-2 rounded-xl border border-text/10 bg-surface-1 px-4 py-3">
+          <Text className="text-text/40">🔎</Text>
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="¿Cuál es tu duda?"
             accessibilityLabel="Busca en toda la ayuda"
-            className="flex-1 text-base text-[#1A1613]"
+            className="flex-1 text-base text-text"
             testID="help-search-input"
           />
           {trimmed ? (
             <Pressable onPress={() => setQuery("")} accessibilityLabel="Borrar la búsqueda" testID="help-search-clear">
-              <Text className="text-[#1A1613]/40">✕</Text>
+              <Text className="text-text/40">✕</Text>
             </Pressable>
           ) : null}
         </View>
@@ -41,20 +41,20 @@ export function HelpSearch({ children }: { children: ReactNode }) {
               {hits.map(({ category, article }) => (
                 <View
                   key={`${category.slug}/${article.slug}`}
-                  className="rounded-xl border border-[#1A1613]/10 bg-white p-4"
+                  className="rounded-xl border border-text/10 bg-surface-1 p-4"
                   testID={`help-hit-${articleHref(category.slug, article.slug)}`}
                 >
-                  <Text className="text-sm font-semibold text-[#1A1613]">{article.question}</Text>
-                  <Text className="mt-1 text-xs text-[#1A1613]/50">{category.title}</Text>
+                  <Text className="text-sm font-semibold text-text">{article.question}</Text>
+                  <Text className="mt-1 text-xs text-text/50">{category.title}</Text>
                 </View>
               ))}
             </View>
           ) : (
             <View className="gap-2">
-              <Text className="text-sm font-semibold text-[#1A1613]">
+              <Text className="text-sm font-semibold text-text">
                 No encontramos nada con esas palabras.
               </Text>
-              <Text className="text-sm leading-5 text-[#1A1613]/70">
+              <Text className="text-sm leading-5 text-text/70">
                 Prueba con una palabra sola —tarjeta, score, reporte, contraseña— o entra por tema
                 borrando la búsqueda.
               </Text>

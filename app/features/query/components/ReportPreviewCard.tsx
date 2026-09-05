@@ -16,35 +16,35 @@ export function ReportPreviewCard({ result }: { result: SignalResponse }) {
       <View className="gap-4">
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
-            <Text className="text-xs font-bold uppercase text-[#1A1613]/60">Reporte Creva</Text>
-            <Text className="mt-1 text-lg font-bold text-[#1A1613]">{businessName}</Text>
+            <Text className="text-xs font-bold uppercase text-text/60">Reporte Creva</Text>
+            <Text className="mt-1 text-lg font-bold text-text">{businessName}</Text>
           </View>
           <Badge tone="success">Pagado</Badge>
         </View>
 
         <View className="flex-row gap-3">
-          <View className="flex-1 rounded-xl bg-[#FFE8EE] p-3">
-            <Text className="text-xs text-[#1A1613]/70">Señales</Text>
-            <Text className="mt-1 text-3xl font-bold tabular-nums text-[#1A1613]">{signalsFound}</Text>
+          <View className="flex-1 rounded-xl bg-surface-2 p-3">
+            <Text className="text-xs text-text/70">Señales</Text>
+            <Text className="mt-1 text-3xl font-bold tabular-nums text-text">{signalsFound}</Text>
           </View>
-          <View className="flex-1 rounded-xl bg-[#FFE8EE] p-3">
-            <Text className="text-xs text-[#1A1613]/70">Red</Text>
-            <Text className="mt-1 text-base font-bold text-[#1A1613]">{result.settlement.network}</Text>
+          <View className="flex-1 rounded-xl bg-surface-2 p-3">
+            <Text className="text-xs text-text/70">Red</Text>
+            <Text className="mt-1 text-base font-bold text-text">{result.settlement.network}</Text>
           </View>
         </View>
 
         <View className="gap-2">
           {sources.map((source) => (
-            <View key={source} className="flex-row items-center justify-between border-b border-[#1A1613]/10 pb-2">
-              <Text className="font-semibold text-[#1A1613]">{source}</Text>
+            <View key={source} className="flex-row items-center justify-between border-b border-text/10 pb-2">
+              <Text className="font-semibold text-text">{source}</Text>
               <Badge tone={source === "SAT" ? "warning" : "info"}>{source === "SAT" ? "Por revisar" : "Consultado"}</Badge>
             </View>
           ))}
         </View>
 
-        <View className="rounded-xl bg-[#2E6A48]/15 p-3">
-          <Text className="text-sm font-bold text-[#2E6A48]">Sello del pago</Text>
-          <Text className="mt-1 text-xs leading-5 text-[#2E6A48]">
+        <View className="rounded-xl bg-success/15 p-3">
+          <Text className="text-sm font-bold text-success">Sello del pago</Text>
+          <Text className="mt-1 text-xs leading-5 text-success">
             El reporte y su settlement viajan juntos para que el receptor pueda verificar el resultado.
           </Text>
           <EvidenceLink href={result.settlement.transaction} label="Transacción" />

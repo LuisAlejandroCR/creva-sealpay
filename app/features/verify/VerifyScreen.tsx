@@ -6,8 +6,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { VerifyReportCard } from "./components/VerifyReportCard";
 import { SealedReport, fetchSealedReport, verifySealSignature } from "./sealClient";
+import { BackButton } from "../shared/BackButton";
 
-export function VerifyScreen({ folio }: { folio: string }) {
+export function VerifyScreen({ folio, onBack }: { folio: string; onBack?: () => void }) {
   const [report, setReport] = useState<SealedReport | null>(null);
   const [signatureValid, setSignatureValid] = useState<boolean | null>(null);
 
@@ -39,19 +40,20 @@ export function VerifyScreen({ folio }: { folio: string }) {
 
   if (!report || signatureValid === null) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-[#F6F1E7]" edges={["top", "bottom"]}>
+      <SafeAreaView className="flex-1 items-center justify-center bg-bg" edges={["top", "bottom"]}>
         <ActivityIndicator testID="verify-loading" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F6F1E7]" edges={["top", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-bg" edges={["top", "bottom"]}>
       <ScrollView className="flex-1" contentContainerClassName="px-6 pb-10 pt-6" testID="verify-screen">
+        {onBack ? <BackButton onPress={onBack} /> : null}
         <View className="mb-8">
-          <Text className="text-xs font-bold uppercase text-[#1A1613]/60">Verificación pública</Text>
-          <Text className="mt-2 text-3xl font-bold text-[#1A1613]">Comprobar un reporte</Text>
-          <Text className="mt-2 text-base leading-6 text-[#1A1613]/70">
+          <Text className="text-xs font-bold uppercase text-text/60">Verificación pública</Text>
+          <Text className="mt-2 text-3xl font-bold text-text">Comprobar un reporte</Text>
+          <Text className="mt-2 text-base leading-6 text-text/70">
             Cinco veredictos, un folio legible y los límites de lo que el sello puede acreditar.
           </Text>
         </View>

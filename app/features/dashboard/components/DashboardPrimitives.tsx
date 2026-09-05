@@ -10,12 +10,12 @@ export function NotificationBell({ pending, onPress }: { pending: number; onPres
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={pending > 0 ? `Avisos — ${pending} pendientes` : "Avisos"}
-      className="relative h-11 w-11 items-center justify-center rounded-2xl border border-[#1A1613]/10 bg-white"
+      className="relative h-11 w-11 items-center justify-center rounded-2xl border border-text/10 bg-surface-1"
       testID="notification-bell"
     >
       <Text className="text-lg">🔔</Text>
       {pending > 0 && (
-        <View className="absolute -right-1 -top-1 h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-[#F6F1E7] bg-[#C41E3A] px-1">
+        <View className="absolute -right-1 -top-1 h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-bg bg-crimson px-1">
           <Text className="text-[11px] font-bold text-white">{pending}</Text>
         </View>
       )}
@@ -36,12 +36,12 @@ export function Metric({
 }) {
   return (
     <View className="gap-1">
-      <Text className="text-sm text-[#1A1613]/60">{label}</Text>
+      <Text className="text-sm text-text/60">{label}</Text>
       <View className="flex-row items-baseline gap-1">
-        <Text className="text-3xl font-bold tabular-nums text-[#1A1613]">{value}</Text>
-        {unit ? <Text className="text-sm font-semibold text-[#1A1613]/50">{unit}</Text> : null}
+        <Text className="text-3xl font-bold tabular-nums text-text">{value}</Text>
+        {unit ? <Text className="text-sm font-semibold text-text/50">{unit}</Text> : null}
       </View>
-      {caption ? <Text className="text-xs leading-4 text-[#1A1613]/50">{caption}</Text> : null}
+      {caption ? <Text className="text-xs leading-4 text-text/50">{caption}</Text> : null}
     </View>
   );
 }
@@ -65,15 +65,15 @@ export function ActionCard({
 }) {
   const toneClass =
     tone === "warning"
-      ? "bg-[#E8A020]/10 border-[#E8A020]/30"
+      ? "bg-warning/10 border-warning/30"
       : tone === "danger"
-        ? "bg-[#C41E3A]/10 border-[#C41E3A]/30"
+        ? "bg-crimson/10 border-crimson/30"
         : tone === "dashed"
-          ? "bg-white border-[#1A1613]/15"
-          : "bg-[#1A1613] border-[#1A1613]";
+          ? "bg-surface-1 border-text/15"
+          : "bg-text border-text";
 
-  const titleClass = tone === "brand" ? "text-white" : "text-[#1A1613]";
-  const bodyClass = tone === "brand" ? "text-white/70" : "text-[#1A1613]/70";
+  const titleClass = tone === "brand" ? "text-white" : "text-text";
+  const bodyClass = tone === "brand" ? "text-white/70" : "text-text/70";
 
   return (
     <Pressable
@@ -92,9 +92,9 @@ export function ActionCard({
 
 export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <View className="items-center gap-1 rounded-2xl border border-dashed border-[#1A1613]/15 bg-white p-6">
-      <Text className="text-sm font-semibold text-[#1A1613]">{title}</Text>
-      <Text className="text-center text-xs leading-4 text-[#1A1613]/60">{body}</Text>
+    <View className="items-center gap-1 rounded-2xl border border-dashed border-text/15 bg-surface-1 p-6">
+      <Text className="text-sm font-semibold text-text">{title}</Text>
+      <Text className="text-center text-xs leading-4 text-text/60">{body}</Text>
     </View>
   );
 }
@@ -111,12 +111,12 @@ export function TransactionRow({
   isCharge: boolean;
 }) {
   return (
-    <View className="flex-row items-center justify-between border-b border-[#1A1613]/5 py-3">
+    <View className="flex-row items-center justify-between border-b border-text/5 py-3">
       <View className="gap-0.5">
-        <Text className="text-sm font-semibold text-[#1A1613]">{merchant}</Text>
-        <Text className="text-xs text-[#1A1613]/50">{meta}</Text>
+        <Text className="text-sm font-semibold text-text">{merchant}</Text>
+        <Text className="text-xs text-text/50">{meta}</Text>
       </View>
-      <Text className={`text-sm font-bold tabular-nums ${isCharge ? "text-[#C41E3A]" : "text-[#2E6A48]"}`}>
+      <Text className={`text-sm font-bold tabular-nums ${isCharge ? "text-crimson" : "text-success"}`}>
         {isCharge ? "-" : "+"}
         {amount}
       </Text>

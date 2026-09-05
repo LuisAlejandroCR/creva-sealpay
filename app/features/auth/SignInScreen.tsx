@@ -17,7 +17,7 @@ export interface SignInScreenProps {
 
 function AuthMark() {
   return (
-    <View className="mb-6 h-16 w-16 items-center justify-center self-center rounded-2xl bg-[#C41E3A]">
+    <View className="mb-6 h-16 w-16 items-center justify-center self-center rounded-2xl bg-crimson">
       <Text className="text-2xl font-bold text-white">C</Text>
     </View>
   );
@@ -29,10 +29,10 @@ function GoogleButton({ label, onPress, disabled }: { label: string; onPress: ()
       onPress={onPress}
       disabled={disabled}
       testID="google-oauth-button"
-      className="flex-row items-center justify-center gap-3 rounded-xl border border-[#1A1613]/15 bg-white px-5 py-3"
+      className="flex-row items-center justify-center gap-3 rounded-xl border border-text/15 bg-surface-1 px-5 py-3"
     >
       <Text className="text-base">G</Text>
-      <Text className="font-semibold text-[#1A1613]">{label}</Text>
+      <Text className="font-semibold text-text">{label}</Text>
     </Pressable>
   );
 }
@@ -40,9 +40,9 @@ function GoogleButton({ label, onPress, disabled }: { label: string; onPress: ()
 function AuthDivider({ label = "o con correo" }: { label?: string }) {
   return (
     <View className="my-6 flex-row items-center gap-3">
-      <View className="h-px flex-1 bg-[#1A1613]/10" />
-      <Text className="text-xs uppercase text-[#1A1613]/40">{label}</Text>
-      <View className="h-px flex-1 bg-[#1A1613]/10" />
+      <View className="h-px flex-1 bg-text/10" />
+      <Text className="text-xs uppercase text-text/40">{label}</Text>
+      <View className="h-px flex-1 bg-text/10" />
     </View>
   );
 }
@@ -61,8 +61,8 @@ function PasswordField({
   const [shown, setShown] = useState(false);
   return (
     <View className="gap-1.5">
-      <Text className="text-sm font-semibold text-[#1A1613]">{label}</Text>
-      <View className="flex-row items-center rounded-xl border border-[#1A1613]/15 bg-white pr-3">
+      <Text className="text-sm font-semibold text-text">{label}</Text>
+      <View className="flex-row items-center rounded-xl border border-text/15 bg-surface-1 pr-3">
         <TextInput
           value={value}
           onChangeText={onChangeText}
@@ -70,10 +70,10 @@ function PasswordField({
           autoCapitalize="none"
           autoComplete="password"
           testID={testID}
-          className="flex-1 px-4 py-3 text-base text-[#1A1613]"
+          className="flex-1 px-4 py-3 text-base text-text"
         />
         <Pressable onPress={() => setShown((current) => !current)} accessibilityLabel={shown ? "Ocultar contraseña" : "Mostrar contraseña"}>
-          <Text className="text-[#1A1613]/50">{shown ? "🙈" : "👁️"}</Text>
+          <Text className="text-text/50">{shown ? "🙈" : "👁️"}</Text>
         </Pressable>
       </View>
     </View>
@@ -147,11 +147,11 @@ export function SignInScreen({ onSignedIn }: SignInScreenProps) {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F6F1E7]" edges={["top", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-bg" edges={["top", "bottom"]}>
       <ScrollView className="flex-1" contentContainerClassName="flex-grow justify-center px-6 py-10">
         <AuthMark />
-        <Text className="text-center text-2xl font-bold text-[#1A1613]">{title}</Text>
-        <Text className="mt-2 text-center text-base leading-6 text-[#1A1613]/70">{subtitle}</Text>
+        <Text className="text-center text-2xl font-bold text-text">{title}</Text>
+        <Text className="mt-2 text-center text-base leading-6 text-text/70">{subtitle}</Text>
 
         <View className="mt-8 gap-4">
           <GoogleButton label="Continuar con Google" onPress={handleGoogle} disabled={submitting} />
@@ -161,7 +161,7 @@ export function SignInScreen({ onSignedIn }: SignInScreenProps) {
 
         <View className="gap-4">
           <View className="gap-1.5">
-            <Text className="text-sm font-semibold text-[#1A1613]">Correo</Text>
+            <Text className="text-sm font-semibold text-text">Correo</Text>
             <TextInput
               value={email}
               onChangeText={setEmail}
@@ -169,7 +169,7 @@ export function SignInScreen({ onSignedIn }: SignInScreenProps) {
               autoComplete="email"
               keyboardType="email-address"
               testID="email-input"
-              className="rounded-xl border border-[#1A1613]/15 bg-white px-4 py-3 text-base text-[#1A1613]"
+              className="rounded-xl border border-text/15 bg-surface-1 px-4 py-3 text-base text-text"
             />
           </View>
 
@@ -181,7 +181,7 @@ export function SignInScreen({ onSignedIn }: SignInScreenProps) {
           />
 
           {error ? (
-            <Text testID="auth-error" className="text-sm font-semibold text-[#C41E3A]">
+            <Text testID="auth-error" className="text-sm font-semibold text-crimson">
               {error}
             </Text>
           ) : null}
@@ -190,7 +190,7 @@ export function SignInScreen({ onSignedIn }: SignInScreenProps) {
             onPress={handleSubmit}
             disabled={submitting}
             testID="auth-submit"
-            className="items-center rounded-xl bg-[#C41E3A] px-5 py-3"
+            className="items-center rounded-xl bg-crimson px-5 py-3"
           >
             {submitting ? (
               <ActivityIndicator color="white" />
@@ -205,9 +205,9 @@ export function SignInScreen({ onSignedIn }: SignInScreenProps) {
             onPress={() => setMode(isSignIn ? "sign-up" : "sign-in")}
             testID="auth-switch-mode"
           >
-            <Text className="text-sm text-[#1A1613]/70">
+            <Text className="text-sm text-text/70">
               {isSignIn ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
-              <Text className="font-semibold text-[#C41E3A]">{isSignIn ? "Regístrate" : "Entra"}</Text>
+              <Text className="font-semibold text-crimson">{isSignIn ? "Regístrate" : "Entra"}</Text>
             </Text>
           </Pressable>
         </View>

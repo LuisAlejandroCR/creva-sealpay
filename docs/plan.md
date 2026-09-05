@@ -78,6 +78,37 @@ checklist.
 
 ## Cerrados
 
+- [x] `2026-09-05` — **Auditoría UI/UX completa (worktree `feature-ui-audit-fix`): 6 hallazgos
+  cerrados en el mismo lote.** (1) Bug de auth en reload corregido: `App.tsx`'s `AppFlow` ahora
+  gatea la pantalla inicial en `useAuth()` real de Clerk (`isLoaded`/`isSignedIn`) en vez de
+  `useState<Step>("sign-in")` fijo — una sesión activa + reload va directo a `home`, nunca vuelve a
+  mostrar sign-in. (2) Paleta unificada: `app/tailwind.config.js` gana los 10 grupos de color
+  `--cr-*` de `creva_finance/frontend/app/globals.css` (valores del `:root` claro, hardcodeados
+  porque NativeWind no soporta custom properties CSS); los ~168 literales hex que había en
+  `app/features/**` quedaron reemplazados 1:1 por esos tokens — `grep -rn
+  "#[0-9A-Fa-f]\{3,6\}" app/features/` da vacío, sin excepciones. (3) Back button: `app/features/
+  shared/BackButton.tsx` (nuevo, recreando `components/BackControl.tsx` de creva_finance) agregado
+  a `SelfieCheckScreen`, `QueryScreen` y `VerifyScreen` — las tres pantallas sin tab bar; `SignInScreen`
+  se deja sin back a propósito (pantalla de entrada, sin "antes" al que volver). (4) **Decisión
+  bottom-nav-scope, reafirmada:** onboarding/query/verify se quedan de pantalla completa sin tab
+  bar (flujos secuenciales de una sola tarea, no se quiere permitir saltar a Perfil a medio Selfie
+  Check o a medio pago x402); dashboard/profile/help mantienen la tab bar mínima que ya tenían.
+  (5) Afordancia "(?)": auditoría completa con `grep -rn "❓" app/features/` — un solo resultado
+  (`ProfileScreen.tsx:68`), ya cableado a `onOpenHelp`/`setStep("help")`, confirmado funcionando,
+  no se tocó. Ningún otro hallazgo. (6) Español: único archivo con copy en inglés real era
+  `SelfieCheckScreen.tsx` (estados `identity_unavailable`/`idle`/`failed`/`verifying`) — traducido;
+  sanity-check final con grep de palabras inglesas comunes sobre todo `app/features/**/*.tsx` no
+  encontró copy visible restante (solo identificadores de código). Test de regresión real
+  (no source-regex, a diferencia del resto de `test/unit/**`) en
+  `app/test/unit/auth/auth-gate.spec.ts`: renderiza `App.tsx` completo con Clerk mockeado en sesión
+  activa, confirma que `SignInScreen` nunca se monta. **Verify:** `tsc --noEmit` limpio;
+  `jest unit fuzz invariant` → 33 suites/147 tests (antes 32/146) verdes; `grep` de hex vacío;
+  `npx expo start` bundleó `ios` sin error (1332 módulos, HTTP 200), servidor detenido y puerto
+  liberado (confirmado con `netstat` tras matar el proceso Node hijo, no solo el shell). **Falta:**
+  Expo Go en dispositivo físico real — sin hardware disponible en esta sesión, mismo motivo que el
+  resto del repo. Detalle completo, incluida la lista exacta de literales hex reemplazados y un
+  incidente de git ajeno a este bloque (resuelto sin dejar rastro): `docs/memoria.md`.
+
 - [x] `2026-09-05` — **Dashboard/Profile/Help Center screens ported, real Clerk sign-in screen
   added (worktree `feature-ui-port-core-screens`).** `app/features/dashboard/DashboardScreen.tsx`,
   `app/features/profile/ProfileScreen.tsx` y `app/features/help/HelpScreen.tsx` portan la

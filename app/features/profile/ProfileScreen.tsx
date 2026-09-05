@@ -29,13 +29,13 @@ function MenuRow({ label, icon, onPress, testID }: { label: string; icon: string
     <Pressable
       onPress={onPress}
       testID={testID}
-      className="flex-row items-center justify-between border-b border-[#1A1613]/5 py-4"
+      className="flex-row items-center justify-between border-b border-text/5 py-4"
     >
       <View className="flex-row items-center gap-3">
         <Text className="text-lg">{icon}</Text>
-        <Text className="text-base text-[#1A1613]">{label}</Text>
+        <Text className="text-base text-text">{label}</Text>
       </View>
-      <Text className="text-[#1A1613]/30">›</Text>
+      <Text className="text-text/30">›</Text>
     </Pressable>
   );
 }
@@ -69,21 +69,21 @@ export function ProfileScreen({
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F6F1E7]" edges={["top", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-bg" edges={["top", "bottom"]}>
       <ScrollView className="flex-1" contentContainerClassName="px-6 pb-10 pt-6">
         <View className="mb-6">
-          <Text className="text-3xl font-bold text-[#1A1613]">Perfil</Text>
+          <Text className="text-3xl font-bold text-text">Perfil</Text>
         </View>
 
         <Section>
           <Card>
             <View className="flex-row items-center gap-4">
-              <View className="h-14 w-14 items-center justify-center rounded-full bg-[#C41E3A]">
+              <View className="h-14 w-14 items-center justify-center rounded-full bg-crimson">
                 <Text className="text-xl font-bold text-white">{displayName[0]?.toUpperCase() ?? "?"}</Text>
               </View>
               <View className="gap-0.5">
-                <Text className="text-base font-semibold text-[#1A1613]">{displayName}</Text>
-                <Text className="text-sm text-[#1A1613]/60">{userEmail}</Text>
+                <Text className="text-base font-semibold text-text">{displayName}</Text>
+                <Text className="text-sm text-text/60">{userEmail}</Text>
               </View>
             </View>
           </Card>
@@ -101,17 +101,17 @@ export function ProfileScreen({
           <Pressable
             onPress={handleLogout}
             testID="profile-logout"
-            className="mt-4 flex-row items-center gap-3 rounded-2xl bg-[#C41E3A]/10 px-4 py-3"
+            className="mt-4 flex-row items-center gap-3 rounded-2xl bg-crimson/10 px-4 py-3"
           >
             <Text className="text-lg">🚪</Text>
-            <Text className="font-semibold text-[#C41E3A]">Cerrar sesión</Text>
+            <Text className="font-semibold text-crimson">Cerrar sesión</Text>
           </Pressable>
 
           <View className="mt-5 items-center gap-2">
             <Pressable onPress={onOpenDeleteAccount} testID="profile-delete-account">
-              <Text className="text-sm font-semibold text-[#1A1613]/50 underline">Eliminar mi cuenta</Text>
+              <Text className="text-sm font-semibold text-text/50 underline">Eliminar mi cuenta</Text>
             </Pressable>
-            <Text className="text-xs text-[#1A1613]/40">Creva v1.0.0</Text>
+            <Text className="text-xs text-text/40">Creva v1.0.0</Text>
           </View>
         </Section>
       </ScrollView>
