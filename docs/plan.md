@@ -40,14 +40,6 @@ checklist.
 - [ ] **Confirmar en el dashboard de ETHGlobal quién entra al equipo**, con stake propio cada
   quien — decisión de equipo ya tomada, falta el trámite.
 
-- [ ] **Wallet Hedera para liquidar x402 desde la app.** `QueryScreen.tsx` ya golpea el gateway
-  real, pero no hay signer de wallet Hedera cableado: "Pagar y continuar" reintenta sin
-  `X-PAYMENT` válido y el gateway responde 402 otra vez ("No hay una billetera Hedera conectada
-  para liquidar el pago x402 todavía" — mensaje intencional, no bug, ver comentario en
-  `QueryScreen.tsx:1-5`). Bloquea re-verificar en dispositivo físico los haptics de Success/Error
-  de `VerifyScreen.tsx` contra el flujo real (ver ítem cerrado de haptics abajo, verificado solo
-  contra el mock anterior).
-
 - [ ] **Safe-area insets: código listo, falta confirmar en Expo Go real.** Bug reportado desde
   Expo Go en iPhone físico: el status bar (reloj/señal/batería) se solapaba con el header y los
   títulos de sección en `SelfieCheckScreen.tsx`, `QueryScreen.tsx` y `VerifyScreen.tsx` porque
@@ -167,6 +159,63 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
 
 ## Cerrados
+
+- [x] `2026-09-05` — **Wallet Hedera de demo cableada en `QueryScreen.tsx` (worktree/branch
+  `feature-hedera-mobile-signer`): decisión tomada con el humano, opción (b) — signer
+  demo-scoped, no wallet real por usuario.** Investigación previa a tocar código, según
+  `brainstorming.md`/`docs/plan.md`: se confirmó que `@hashgraph/sdk` publica un build oficial
+  para React Native (`package.json`'s campo `"react-native"` → `lib/native.js`, `NativeClient` +
+  `NativeChannel`) — la hipótesis inicial de que el SDK Node-oriented no correría en Expo era
+  parcialmente incorrecta para el caso real que hacía falta: **congelar y firmar una
+  `TransferTransaction` nunca abre una conexión de red** (`.execute()` sí, `.freeze()`/`.sign()`
+  no), y la liquidación real ya la hace el facilitador vía HTTP (`gateway/src/facilitator.ts`'s
+  `/verify`/`/settle`), no la app — así que el riesgo de gRPC/Dev Client que motivó rechazar la
+  opción (a) (wallet real por usuario) no aplicaba al alcance real de este bloque, solo a
+  `execute()`, que este bloque nunca llama.
+  **Opción elegida y por qué:** (b) — un keypair de testnet demo-scoped vía
+  `EXPO_PUBLIC_HEDERA_DEMO_ACCOUNT_ID`/`EXPO_PUBLIC_HEDERA_DEMO_PRIVATE_KEY`, documentado como
+  clave de demo compartida, nunca la wallet real de una usuaria — decisión del humano, con la
+  razón explícita de que (a) hubiera arriesgado días de trabajo de Dev Client tan cerca del Q&A
+  del 09/14, y (b) ya entrega el ciclo x402 real completo con el mismo criterio de disciplina de
+  gasto que Arc-anchor y el facilitador de Hedera.
+  **Nuevo `app/features/query/hederaPayment.ts`:** `buildSignedPaymentHeader(requirements,
+  credentials)` espeja `gateway/src/hedera-signer.ts`'s `buildSignedPaymentHeader` pero sin
+  `Client`/red — construye la `TransferTransaction`, la congela con `setNodeAccountIds([0.0.3])`
+  y `TransactionId.generate(payerId)` (sin necesitar un `Client` conectado), la firma, y arma el
+  payload x402 v2 (`accepted`/`payload.transaction`) igual que el lado gateway.
+  `readDemoCredentialsFromEnv()` lee las dos env vars nuevas, `undefined` si falta cualquiera.
+  **`QueryScreen.tsx`'s `pay()` reescrito:** ya no reintenta ciegamente sin `X-PAYMENT` — llama
+  `buildSignedPaymentHeader` con `pendingPayment.accepts[0]` y las credenciales del entorno, y
+  adjunta el header real a `requestSignal`. Si las credenciales no están configuradas, muestra ese
+  gap real ("No hay una billetera Hedera de demo configurada"), nunca un pago simulado.
+  **Polyfills nuevos** (`app/polyfills.ts`, importado primero en `index.ts`): `Buffer` global y
+  `react-native-get-random-values`, ambos ya dependencias transitivas de
+  `@hiero-ledger/cryptography` (dependencia real de `@hashgraph/sdk`) — se promovieron a
+  dependencias directas del `app/package.json` en vez de dejarlas implícitas.
+  **`jest.config.js`:** `transformIgnorePatterns` extendido (no reemplazado) para incluir
+  `@hashgraph`/`@hiero-ledger`, porque su build de React Native se publica como ESM sin
+  transformar en `node_modules`, igual que el resto del ecosistema RN que el preset de
+  `jest-expo` ya cubre.
+  **Verify:** `tsc --noEmit` limpio. `npx jest unit fuzz invariant` → **41 suites/176 tests**
+  verdes (antes 37/165; +3 suites nuevas: unit + fuzz + invariant de `hederaPayment`, siguiendo el
+  mismo patrón que `gateway/test/unit/hedera-signer.spec.ts` — keypair generado en el test, nunca
+  contra red real). `npx expo export --platform ios` bundló limpio con el SDK real incluido
+  (**1764 módulos**, antes 1345–1516 en los cierres previos — el salto viene de
+  `@hashgraph/sdk`+`@hiero-ledger/cryptography`), un solo warning benigno de resolución de
+  subpath de `@noble/hashes` (fallback a resolución por archivo, sin error). `dist/` del export
+  borrado tras verificar; sin servidor Metro corriendo al terminar (`netstat` confirma sin puertos
+  8081/8098 en `LISTENING`).
+  **No verificado — gap real, documentado, no forzado:** el ciclo pagado 402→pago→200 **no se
+  ejecutó en vivo contra el gateway real** en esta sesión — hace falta que el humano coloque
+  `EXPO_PUBLIC_HEDERA_DEMO_ACCOUNT_ID`/`EXPO_PUBLIC_HEDERA_DEMO_PRIVATE_KEY` en `app/.env`
+  directamente (nunca por chat, mismo criterio que el resto de secretos de este proyecto) — puede
+  reusar el mismo valor que `HEDERA_PAYER_ACCOUNT_ID`/`HEDERA_PAYER_PRIVATE_KEY` de `gateway/.env`
+  (la cuenta que ya liquidó el pago real de la entrada de arriba, `0.0.10119469`) o una cuenta de
+  testnet separada. Tampoco se probó en Expo Go sobre dispositivo físico — mismo motivo que el
+  resto del repo (sin hardware disponible en esta sesión). **Bloquea, hasta que se ejerza:**
+  re-verificar en dispositivo físico real los haptics de Success/Error de `VerifyScreen.tsx`
+  contra el flujo pagado real (el cierre de haptics de abajo solo cubrió el mock anterior).
+  Trabajo hecho en la rama `feature-hedera-mobile-signer`, no mergeada a `main` todavía.
 
 - [x] `2026-09-05` — **Haptics verificados en dispositivo físico (Expo Go, iPhone) contra el
   flujo mockeado previo (antes de `feature-report-wiring`).** Confirmados los 3 puntos:
