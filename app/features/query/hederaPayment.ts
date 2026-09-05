@@ -47,11 +47,16 @@ export async function buildSignedPaymentHeader(
   const payerKey = parsePrivateKey(credentials.privateKey)
   const payToId = AccountId.fromString(requirements.payTo)
   const amountTinybar = Number(requirements.maxAmountRequired)
+  // The facilitator requires the transaction ID's payer to be its own fee-payer account (whoever
+  // covers gas), not the sender of the transferred amount — mirrors
+  // gateway/src/hedera-signer.ts's use of config.facilitatorFeePayer here.
+  const feePayer = requirements.extra?.feePayer
+  const transactionIdPayer = typeof feePayer === 'string' ? AccountId.fromString(feePayer) : payerId
 
   const transaction = new TransferTransaction()
     .addHbarTransfer(payerId, Hbar.fromTinybars(-amountTinybar))
     .addHbarTransfer(payToId, Hbar.fromTinybars(amountTinybar))
-    .setTransactionId(TransactionId.generate(payerId))
+    .setTransactionId(TransactionId.generate(transactionIdPayer))
     .setNodeAccountIds([new AccountId(3)])
     .freeze()
 
@@ -66,6 +71,10 @@ export async function buildSignedPaymentHeader(
       asset: requirements.asset,
       payTo: requirements.payTo,
       maxTimeoutSeconds: requirements.maxTimeoutSeconds,
+      // The facilitator requires `accepted.extra` to be an object (never absent) and to match
+      // paymentRequirements.extra byte-for-byte (e.g. `{ feePayer }`) — echo back exactly what
+      // the 402 challenge sent (gateway/src/index.ts's facilitatorExtra()), never invent it here.
+      extra: requirements.extra ?? {},
     },
     payload: { transaction: Buffer.from(signed.toBytes()).toString('base64') },
   }

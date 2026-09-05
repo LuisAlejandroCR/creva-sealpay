@@ -28,6 +28,14 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
+// The facilitator's /verify requires paymentPayload.accepted to match paymentRequirements
+// byte-for-byte, including `extra.feePayer` (toV2PaymentRequirements in facilitator.ts). A
+// client signing its own payment (e.g. app/features/query/hederaPayment.ts) has no other way to
+// learn the fee payer than reading it off this 402 challenge, so it's included here up front
+// instead of only being added server-side at verification time.
+const facilitatorExtra = () =>
+  config.facilitatorFeePayer ? { feePayer: config.facilitatorFeePayer } : {};
+
 const reportRequirements = (): PaymentRequirements => ({
   scheme: "exact",
   network: config.network,
@@ -38,6 +46,7 @@ const reportRequirements = (): PaymentRequirements => ({
   payTo: config.payToAddress,
   maxTimeoutSeconds: 60,
   asset: config.asset,
+  extra: facilitatorExtra(),
 });
 
 const verifyRequirements = (): PaymentRequirements => ({
@@ -50,6 +59,7 @@ const verifyRequirements = (): PaymentRequirements => ({
   payTo: config.payToAddress,
   maxTimeoutSeconds: 60,
   asset: config.asset,
+  extra: facilitatorExtra(),
 });
 
 app.post("/onboarding/verify-world-id", gatedRouteLimiter, (req, res) => {

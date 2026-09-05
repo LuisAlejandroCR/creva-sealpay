@@ -19,6 +19,10 @@ export type PaymentRequirements = {
   payTo: string;
   maxTimeoutSeconds: number;
   asset: string;
+  // Echoed back verbatim into the signed payload's `accepted` field by hederaPayment.ts — the
+  // facilitator rejects a payload whose `accepted.extra` doesn't byte-for-byte match the
+  // requirements it verifies against (e.g. `{ feePayer }`, gateway/src/index.ts).
+  extra?: Record<string, unknown>;
 };
 
 export type PaymentRequired = {
