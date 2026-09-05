@@ -32,6 +32,30 @@
 **Dónde queda el pendiente:** `docs/plan.md`, bloque Bazantic (Abiertos) — apunta a
 `docs/integrations/bazantic-recipes.md` para los detalles de qué falta y por qué.
 
+**Corrección, mismo día, tras ver el picker real del dashboard:** las tools de Bazantic no vienen
+del servidor MCP standalone — vienen de auto-importar la spec OpenAPI pública de Creva
+(`/api/docs-json`). Los nombres reales son `CrevaScoreController_radar`,
+`CrevaScoreController_verification` y `CrevaScoreController_report`, confirmados contra
+`creva_finance/backend/src/modules/creva-score/creva-score.controller.ts` (proyecto hermano, solo
+lectura). El DTO real (`VerifyBusinessDto`) es más angosto que el de la tool MCP: solo
+`businessName`/`stateCode`, sin `holderName` ni `rfc`. Descubrimiento nuevo, no verificado antes:
+las tres rutas están detrás de `JwtAuthGuard` — Bazantic necesita un JWT de un usuario de Creva
+además de su propia API key, y decidir de dónde sale ese JWT es una decisión del humano, no
+resuelta todavía. `docs/integrations/bazantic-recipes.md` actualizado con los nombres, schemas y
+este bloqueo nuevo.
+
+**Cierre de esta sesión, 2026-09-05 — handoff a otro agente.** Las 3 Recipes se crearon en DRAFT
+en el dashboard de Bazantic (`creva-report`, `creva-verify-business`, `creva-regulatory-radar`,
+16:46-16:49 UTC). Primer intento de llamada real sobre `creva-report` falló (`tool_failed`, ~5.3s,
+sin cobro) usando un payload con nombres de campo de la tool MCP standalone
+(`business_name`/`document`/`embed`) en vez del DTO REST real (`businessName`/`stateCode`). No se
+determinó si el fallo fue por ese payload incorrecto o por el `JwtAuthGuard` (o ambos) — sin acceso
+a logs del backend de Creva desde esta sesión para confirmarlo. Detalle completo, con las dos
+hipótesis y el orden recomendado para probarlas, en
+[`docs/integrations/bazantic-recipes.md`](integrations/bazantic-recipes.md) §"Primer intento real".
+`docs/plan.md` actualizado con el mismo estado para que el siguiente agente no repita el
+descubrimiento desde cero.
+
 ## 2026-09-05 — Nav de 5 pestañas + sheet "Más" + set de iconos SVG (worktree `feature-nav-icon-fix`)
 
 **Qué se hizo:**

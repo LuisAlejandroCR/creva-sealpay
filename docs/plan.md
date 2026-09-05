@@ -114,18 +114,32 @@ checklist.
   Ninguna de las dos entra al roadmap como bloque de trabajo hasta que una de estas formas se
   confirme con el humano como real (no hipotética) y se re-puntúe en `brainstorming.md` §4.
 
-- [ ] **Bazantic — $3,000, 3 pistas.** Prerrequisito **confirmado**: cuenta de Bazantic activa desde
-  2026-09-04, `gateway/.env` tiene `BAZANTIC_GATEWAY_URL` y `BAZANTIC_MCP_TOKEN` con valores reales
-  (`brainstorming.md` §"Bazantic — el hallazgo de la rev. 5"; checklist de finalista más abajo,
-  ítem 6). Especificación de las 3 Recipes (qué tool envuelve cada una, cuándo dispararla, precio
-  de prueba $0.00) en [`docs/integrations/bazantic-recipes.md`](integrations/bazantic-recipes.md).
-  **Queda abierto — falta la parte que ningún agente puede hacer:** crear las 3 Recipes en el
-  dashboard de Bazantic (acción de UI con la cuenta personal, no delegable a un agente) y confirmar
-  una llamada MCP real pagada con el crédito de prueba (0.30 USDC) — mismo criterio de cautela que
-  Hedera testnet y World ID, no gastar cuota real sin pedir antes. No hay código nuevo de este lado
-  del repo: el servidor MCP de `creva-score` vive en un proyecto hermano fuera de este `AGENTS.md`,
-  y Bazantic envuelve tools existentes con metadata, no con plomería — por eso no aplica un
-  `[VERIFY]` de tsc/jest a este bloque.
+- [ ] **Bazantic — $3,000, 3 pistas. Asignado a otro agente 2026-09-05 (handoff).** Prerrequisito
+  **confirmado**: cuenta de Bazantic activa desde 2026-09-04, `gateway/.env` tiene
+  `BAZANTIC_GATEWAY_URL` y `BAZANTIC_MCP_TOKEN` con valores reales. Las 3 Recipes **ya existen en
+  DRAFT** en el dashboard (`creva-report`, `creva-verify-business`, `creva-regulatory-radar`,
+  creadas 2026-09-05 16:46-16:49 UTC), apuntando a las tools reales `CrevaScoreController_radar`,
+  `CrevaScoreController_verification`, `CrevaScoreController_report` — auto-importadas por Bazantic
+  desde la spec OpenAPI pública de Creva, no del servidor MCP standalone (corrección registrada en
+  `docs/integrations/bazantic-recipes.md`).
+  **Primer intento de llamada real (2026-09-05) — falló, sin cobro:** `CrevaScoreController_report`
+  con `{business_name, document, embed, state_code}` devolvió `tool_failed` en ~5.3s, "No payment
+  occurred". Diagnóstico pendiente — dos hipótesis sin descartar, ver
+  [`docs/integrations/bazantic-recipes.md`](integrations/bazantic-recipes.md) §"Primer intento
+  real": (a) el payload usado no es el DTO real (`businessName`/`stateCode` camelCase, sin
+  `document`/`embed`) — posible drift entre el schema que ve el agente en el picker de Bazantic y
+  el DTO que aceptan el backend; (b) `JwtAuthGuard` en las tres rutas — Bazantic puede no estar
+  mandando un JWT de usuario de Creva, solo su propia API key.
+  **Queda abierto para el siguiente agente:**
+  1. Confirmar cuál de las dos hipótesis (o ambas) causó el fallo — revisar logs del backend de
+     Creva si están accesibles, o repetir la llamada con el payload correcto (`businessName`,
+     `stateCode`, sin campos extra) antes de tocar el tema de auth.
+  2. Si persiste, resolver el JWT: decidir de qué cuenta de Creva sale (o si se crea una cuenta de
+     servicio) — decisión que requiere al humano, no la toma un agente solo.
+  3. Confirmar una llamada real pagada, con cuidado de no agotar el crédito de prueba (0.30 USDC)
+     en reintentos — mismo criterio de cautela que Hedera testnet y World ID.
+  No hay código nuevo de este lado del repo: Bazantic envuelve tools existentes con metadata, no
+  con plomería — por eso no aplica un `[VERIFY]` de tsc/jest a este bloque, solo la llamada real.
 
 - [ ] **Ledger — $5,000, 2 pistas (AI Agents x Ledger $3.5k + Continuity $1.5k).** Prerrequisito:
   **Ledger Key Ring CLI** (`wallet-cli ring`) del Ledger Agent Stack, publicado 2026-09-03 en
