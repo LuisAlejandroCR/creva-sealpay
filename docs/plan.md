@@ -114,13 +114,18 @@ checklist.
   Ninguna de las dos entra al roadmap como bloque de trabajo hasta que una de estas formas se
   confirme con el humano como real (no hipotética) y se re-puntúe en `brainstorming.md` §4.
 
-- [ ] **Bazantic — $3,000, 3 pistas.** Prerrequisito: cuenta/acceso a Bazantic (gateway x402/MPP +
-  servidor MCP + Recipes) — hoy no indexado públicamente, confirmar que el signup existe antes de
-  prometer nada (`brainstorming.md` §1, fila Bazantic; §"Bazantic — el hallazgo de la rev. 5").
-  Integración: envolver el servidor MCP que ya existe (`creva-score`: `creva_regulatory_radar`,
-  `creva_verify_business`, `creva_report`) con Recipes de Bazantic — cero plomería nueva. **Si esto
-  no se resuelve, no podemos avanzar:** sin cuenta de Bazantic confirmada, este bloque completo
-  (las 3 pistas, $3k) se descarta del roadmap — no hay integración parcial posible.
+- [ ] **Bazantic — $3,000, 3 pistas.** Prerrequisito **confirmado**: cuenta de Bazantic activa desde
+  2026-09-04, `gateway/.env` tiene `BAZANTIC_GATEWAY_URL` y `BAZANTIC_MCP_TOKEN` con valores reales
+  (`brainstorming.md` §"Bazantic — el hallazgo de la rev. 5"; checklist de finalista más abajo,
+  ítem 6). Especificación de las 3 Recipes (qué tool envuelve cada una, cuándo dispararla, precio
+  de prueba $0.00) en [`docs/integrations/bazantic-recipes.md`](integrations/bazantic-recipes.md).
+  **Queda abierto — falta la parte que ningún agente puede hacer:** crear las 3 Recipes en el
+  dashboard de Bazantic (acción de UI con la cuenta personal, no delegable a un agente) y confirmar
+  una llamada MCP real pagada con el crédito de prueba (0.30 USDC) — mismo criterio de cautela que
+  Hedera testnet y World ID, no gastar cuota real sin pedir antes. No hay código nuevo de este lado
+  del repo: el servidor MCP de `creva-score` vive en un proyecto hermano fuera de este `AGENTS.md`,
+  y Bazantic envuelve tools existentes con metadata, no con plomería — por eso no aplica un
+  `[VERIFY]` de tsc/jest a este bloque.
 
 - [ ] **Ledger — $5,000, 2 pistas (AI Agents x Ledger $3.5k + Continuity $1.5k).** Prerrequisito:
   **Ledger Key Ring CLI** (`wallet-cli ring`) del Ledger Agent Stack, publicado 2026-09-03 en
