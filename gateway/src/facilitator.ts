@@ -62,32 +62,50 @@ export async function verifyPayment(
   paymentHeader: string,
   requirements: PaymentRequirements,
 ): Promise<FacilitatorVerifyResult> {
-  const res = await fetch(`${config.facilitatorUrl}/verify`, {
-    method: "POST",
-    headers: facilitatorHeaders(),
-    body: facilitatorBody(paymentHeader, requirements),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${config.facilitatorUrl}/verify`, {
+      method: "POST",
+      headers: facilitatorHeaders(),
+      body: facilitatorBody(paymentHeader, requirements),
+    });
+  } catch {
+    return { isValid: false, invalidReason: "facilitator_unreachable" };
+  }
 
   if (!res.ok) {
     return { isValid: false, invalidReason: `facilitator_verify_http_${res.status}` };
   }
 
-  return (await res.json()) as FacilitatorVerifyResult;
+  try {
+    return (await res.json()) as FacilitatorVerifyResult;
+  } catch {
+    return { isValid: false, invalidReason: "facilitator_bad_response" };
+  }
 }
 
 export async function settlePayment(
   paymentHeader: string,
   requirements: PaymentRequirements,
 ): Promise<FacilitatorSettleResult> {
-  const res = await fetch(`${config.facilitatorUrl}/settle`, {
-    method: "POST",
-    headers: facilitatorHeaders(),
-    body: facilitatorBody(paymentHeader, requirements),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${config.facilitatorUrl}/settle`, {
+      method: "POST",
+      headers: facilitatorHeaders(),
+      body: facilitatorBody(paymentHeader, requirements),
+    });
+  } catch {
+    return { success: false, errorReason: "facilitator_unreachable" };
+  }
 
   if (!res.ok) {
     return { success: false, errorReason: `facilitator_settle_http_${res.status}` };
   }
 
-  return (await res.json()) as FacilitatorSettleResult;
+  try {
+    return (await res.json()) as FacilitatorSettleResult;
+  } catch {
+    return { success: false, errorReason: "facilitator_bad_response" };
+  }
 }

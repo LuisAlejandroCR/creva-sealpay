@@ -102,4 +102,34 @@ describe("facilitator client", () => {
       },
     });
   });
+
+  it("returns a clean invalid result instead of throwing when the facilitator is unreachable", async () => {
+    global.fetch = vi.fn().mockRejectedValue(new TypeError("fetch failed")) as unknown as typeof fetch;
+
+    const { verifyPayment, settlePayment } = await import("../../src/facilitator.js");
+    await expect(verifyPayment("any-header", requirements)).resolves.toEqual({
+      isValid: false,
+      invalidReason: "facilitator_unreachable",
+    });
+    await expect(settlePayment("any-header", requirements)).resolves.toEqual({
+      success: false,
+      errorReason: "facilitator_unreachable",
+    });
+  });
+
+  it("returns a clean invalid result instead of throwing on a malformed facilitator response body", async () => {
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response("not json", { status: 200, headers: { "content-type": "application/json" } }),
+    ) as unknown as typeof fetch;
+
+    const { verifyPayment, settlePayment } = await import("../../src/facilitator.js");
+    await expect(verifyPayment("any-header", requirements)).resolves.toEqual({
+      isValid: false,
+      invalidReason: "facilitator_bad_response",
+    });
+    await expect(settlePayment("any-header", requirements)).resolves.toEqual({
+      success: false,
+      errorReason: "facilitator_bad_response",
+    });
+  });
 });
