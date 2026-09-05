@@ -17,33 +17,6 @@ checklist.
 
 ## Abiertos
 
-- [ ] **Hedera x402: dos intentos reales con HTTP 500, tercera causa corregida, falta reintentar.**
-  Dos intentos reales de agente 13 recibieron `facilitator_verify_http_500` (sin cargo). Dos
-  hipótesis descartadas: `TransactionId`=fee-payer (coincide con la referencia oficial
-  `@x402/hedera`) y falta de `dotenv`/defaults inválidos (ya corregidos, mismo error persistió).
-  Causa real encontrada al comparar contra el paquete `@x402/core` (zod schemas): nuestro
-  `paymentPayload` tenía forma de v1 (`{x402Version, scheme, network, payload}`) pero
-  `x402Version: 2` — falla la validación de **ambos** schemas del discriminated union a la vez
-  (v1 exige `x402Version===1`; v2 exige un campo `accepted` con los `PaymentRequirements`
-  elegidos, que nunca existía). Corregido: `hedera-signer.ts` arma
-  `{x402Version: 2, accepted: <scheme/network/amount/asset/payTo/maxTimeoutSeconds/extra>,
-  payload: {transaction}}`, y `facilitator.ts` expone `toV2PaymentRequirements` (mismo picker de
-  campos, ya no filtra `resource`/`description`/`mimeType` que tampoco existen en el schema v2
-  real). Falta: reintentar con un humano proveyendo
-  `HEDERA_PAYER_ACCOUNT_ID`/`HEDERA_PAYER_PRIVATE_KEY` y HBAR de testnet, guardar el tx hash.
-  Nuevo `gateway/test/integration/live-hedera-payment.spec.ts` (skip sin credenciales) queda listo
-  para ese reintento — corre el ciclo 402→pay→200 una sola vez, sin reintento automático.
-  **Tercer intento real (2026-09-05):** el fix de payload funcionó — ya no da 500, ahora
-  `invalid_exact_hedera_payload_amount_mismatch`. Causa confirmada leyendo el código del
-  facilitador (`@x402/hedera` `exact/facilitator`): usó self-pay (`PAY_TO_ADDRESS` = misma cuenta
-  que `HEDERA_PAYER_ACCOUNT_ID`, porque las dos direcciones EVM disponibles no eran cuentas Hedera
-  reales — 404 en mirror node testnet y mainnet). El facilitador suma las transferencias
-  atribuidas a `payTo`; con self-pay, `-amount` y `+amount` caen en la misma cuenta y se cancelan
-  a 0, que nunca es igual al monto requerido — **no es un bug de `hedera-signer.ts`**, es
-  matemáticamente imposible pagar con self-pay bajo este esquema. Falta: una cuenta Hedera testnet
-  real y distinta para `PAY_TO_ADDRESS` (no necesita llave privada, solo existir y poder recibir
-  HBAR) antes del cuarto intento.
-
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.
 
@@ -58,6 +31,19 @@ checklist.
 - [ ] **Haptics en dispositivo físico.** Código ya en `QueryScreen.tsx`/`VerifyScreen.tsx`
   (`expo-haptics`, 3 estados), `tsc`/`jest` pasan. Falta sentirlos en Expo Go real — sin
   dispositivo disponible hasta ahora.
+
+- [ ] **Safe-area insets: código listo, falta confirmar en Expo Go real.** Bug reportado desde
+  Expo Go en iPhone físico: el status bar (reloj/señal/batería) se solapaba con el header y los
+  títulos de sección en `SelfieCheckScreen.tsx`, `QueryScreen.tsx` y `VerifyScreen.tsx` porque
+  ninguna pantalla usaba `SafeAreaView`/`useSafeAreaInsets`. `App.tsx` ahora envuelve todo en
+  `SafeAreaProvider`, y las tres pantallas envuelven su contenedor raíz (todas las ramas de
+  estado, incluida `identity_unavailable`) en `SafeAreaView` con `edges={['top','bottom']}`.
+  `react-native-safe-area-context` ya era dependencia (`~5.7.0`), no hizo falta instalar nada.
+  `tsc`/`jest` pasan (98/98, una suite falla por un `EPERM` de caché de Jest preexistente y no
+  relacionado). No se encontró en el código ningún botón flotante de engranaje/ajustes — si existe,
+  vive en una rama o worktree que no llegó a este branch. **Falta:** confirmar visualmente en Expo
+  Go sobre el iPhone físico donde se vio el bug — no hay simulador/dispositivo disponible desde esta
+  sesión de agente.
 
 - [ ] **Selfie Check: verificación server-side real agregada, falta confirmar el payload v4 contra
   sandbox real.** `gateway/src/world-verify.ts` llama a la Developer Portal API de World con
@@ -115,10 +101,23 @@ checklist.
   `express.json` a 100kb, `helmet()`, `express-rate-limit` (120/min), replay de `X-PAYMENT` vía
   hash SHA-256 en memoria (limitación conocida: no distribuido, suficiente para una instancia).
 
-- [x] `2026-09-04` — **Firmante de pago Hedera + fix de config real.** `gateway/src/hedera-signer.ts`
-  construye y firma una `TransferTransaction` real; `dotenv` agregado (`gateway/` no cargaba
-  `.env`) y defaults de `config.ts` corregidos a formato CAIP-2/`0.0.0` válido. Primer intento
-  real sigue pendiente de reintentar (ver bloque abierto arriba).
+- [x] `2026-09-05` — **Gateway x402/Hedera: pago real liquidado en testnet — criterio de la pista
+  cumplido.** Cuatro intentos reales hasta cerrar: (1) `facilitator_verify_http_500` — hipótesis
+  `TransactionId`=fee-payer descartada (coincide con `@x402/hedera` oficial); (2) mismo 500 tras
+  agregar `dotenv`/corregir defaults de `config.ts` (`hedera-testnet`→`hedera:testnet`,
+  `HBAR`→`0.0.0`) — tampoco era la causa; causa real: `paymentPayload` con forma v1 pero
+  `x402Version: 2`, corregido en `hedera-signer.ts`/`facilitator.ts` con el campo `accepted` que
+  exige el schema v2 real de `@x402/core`; (3) ya sin 500, nuevo error
+  `invalid_exact_hedera_payload_amount_mismatch` probando autopago (`payTo`=mismo payer) — causa
+  confirmada en el propio código de `@x402/hedera`: el autopago cancela a neto 0, matemáticamente
+  incompatible con el chequeo `netToPayTo`, no un bug nuestro; (4) creada una segunda cuenta real
+  de testnet (`0.0.10374017`) fondeada por el payer vía `AccountCreateTransaction`
+  (`gateway/test/integration/create-payto-account.spec.ts`), usada como `PAY_TO_ADDRESS` —
+  **liquidación real exitosa**. Tx: `0.0.7162784-1788585962-768194628`, `result: SUCCESS`
+  confirmado en el mirror node de Hedera testnet, transferencia exacta
+  `0.0.10119469 → 0.0.10374017` por `10000000` tinybars (`REPORT_PRICE_ATOMIC`). HashScan:
+  https://hashscan.io/testnet/transaction/0.0.7162784-1788585962-768194628. Detalle completo de
+  los cuatro intentos: `docs/memoria.md`.
 
 - [x] `2026-09-04` — **Repo público + README reescrito.** `README.md` describe el producto de
   submission, no la carpeta de preparación.
