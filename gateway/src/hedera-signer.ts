@@ -10,6 +10,7 @@ import {
   TransferTransaction,
 } from "@hashgraph/sdk";
 import { config } from "./config.js";
+import { toV2PaymentRequirements } from "./facilitator.js";
 import type { HederaExactPaymentPayload, PaymentRequirements } from "./types.js";
 
 export interface HederaPayerCredentials {
@@ -68,9 +69,8 @@ export async function buildSignedPaymentHeader(
   const signed = await frozen.sign(payerKey);
 
   const payload: HederaExactPaymentPayload = {
-    x402Version: config.x402Version,
-    scheme: "exact",
-    network: config.network,
+    x402Version: 2,
+    accepted: toV2PaymentRequirements(requirements),
     payload: { transaction: Buffer.from(signed.toBytes()).toString("base64") },
   };
 

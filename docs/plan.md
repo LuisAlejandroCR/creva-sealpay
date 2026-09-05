@@ -17,13 +17,19 @@ checklist.
 
 ## Abiertos
 
-- [ ] **Hedera x402: primer intento real dio HTTP 500, causa probable corregida, falta reintentar.**
-  Agente 13 corrió una request real contra el facilitador y recibió `facilitator_verify_http_500`
-  (sin cargo, balance sin cambios). Su hipótesis (el patrón `TransactionId`=fee-payer) se descartó:
-  coincide exactamente con la referencia oficial `@x402/hedera`. Causa real encontrada por el
-  Auditor: `gateway/` no cargaba `.env` (sin `dotenv`), y los defaults de `config.ts` eran
-  inválidos (`network: "hedera-testnet"` sin los dos puntos, `asset: "HBAR"` en vez de `"0.0.0"`)
-  — corregido en ambos. Falta: reintentar la request real con un humano proveyendo
+- [ ] **Hedera x402: dos intentos reales con HTTP 500, tercera causa corregida, falta reintentar.**
+  Dos intentos reales de agente 13 recibieron `facilitator_verify_http_500` (sin cargo). Dos
+  hipótesis descartadas: `TransactionId`=fee-payer (coincide con la referencia oficial
+  `@x402/hedera`) y falta de `dotenv`/defaults inválidos (ya corregidos, mismo error persistió).
+  Causa real encontrada al comparar contra el paquete `@x402/core` (zod schemas): nuestro
+  `paymentPayload` tenía forma de v1 (`{x402Version, scheme, network, payload}`) pero
+  `x402Version: 2` — falla la validación de **ambos** schemas del discriminated union a la vez
+  (v1 exige `x402Version===1`; v2 exige un campo `accepted` con los `PaymentRequirements`
+  elegidos, que nunca existía). Corregido: `hedera-signer.ts` arma
+  `{x402Version: 2, accepted: <scheme/network/amount/asset/payTo/maxTimeoutSeconds/extra>,
+  payload: {transaction}}`, y `facilitator.ts` expone `toV2PaymentRequirements` (mismo picker de
+  campos, ya no filtra `resource`/`description`/`mimeType` que tampoco existen en el schema v2
+  real). Falta: reintentar con un humano proveyendo
   `HEDERA_PAYER_ACCOUNT_ID`/`HEDERA_PAYER_PRIVATE_KEY` y HBAR de testnet, guardar el tx hash.
 
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá

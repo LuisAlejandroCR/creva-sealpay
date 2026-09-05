@@ -27,20 +27,27 @@ function facilitatorHeaders() {
   return headers;
 }
 
-function facilitatorRequirements(requirements: PaymentRequirements) {
-  if (config.x402Version < 2) {
-    return requirements;
-  }
-
-  const { maxAmountRequired, ...rest } = requirements;
+export function toV2PaymentRequirements(requirements: PaymentRequirements) {
   return {
-    ...rest,
-    amount: maxAmountRequired,
+    scheme: requirements.scheme,
+    network: requirements.network,
+    amount: requirements.maxAmountRequired,
+    asset: requirements.asset,
+    payTo: requirements.payTo,
+    maxTimeoutSeconds: requirements.maxTimeoutSeconds,
     extra: {
       ...requirements.extra,
       ...(config.facilitatorFeePayer ? { feePayer: config.facilitatorFeePayer } : {}),
     },
   };
+}
+
+function facilitatorRequirements(requirements: PaymentRequirements) {
+  if (config.x402Version < 2) {
+    return requirements;
+  }
+
+  return toV2PaymentRequirements(requirements);
 }
 
 function facilitatorBody(paymentHeader: string, requirements: PaymentRequirements) {

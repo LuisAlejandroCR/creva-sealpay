@@ -31,8 +31,10 @@ describe("buildSignedPaymentHeader", () => {
       Buffer.from(header, "base64url").toString("utf8"),
     ) as HederaExactPaymentPayload;
 
-    expect(decoded.scheme).toBe("exact");
-    expect(decoded.network).toBe(config.network);
+    expect(decoded.x402Version).toBe(2);
+    expect(decoded.accepted.scheme).toBe("exact");
+    expect(decoded.accepted.network).toBe(config.network);
+    expect(decoded.accepted.amount).toBe(requirements.maxAmountRequired);
     expect(typeof decoded.payload.transaction).toBe("string");
     expect(decoded.payload.transaction.length).toBeGreaterThan(0);
   });
