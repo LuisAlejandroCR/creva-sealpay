@@ -171,7 +171,10 @@ bloque. Esta tabla es solo el checklist.
   en `origin/scaffold-monorepo`, no en `main`. El Solver (prompt 5) y el Auditor (prompt 6) no
   arrancan hasta que las 4 ramas `feature-*` existan en `origin` con su `[REPORT]` completo.
   Criterio de aceptación: `scaffold-monorepo` mergeado a `main` (vía Auditor o humano) antes de
-  que el Auditor mergee cualquier `feature-*`.
+  que el Auditor mergee cualquier `feature-*`. **Cumplido el 2026-09-04** — mergeado a `main` vía
+  PR #1 (`9ae8452`), ejecutado por un humano tras descubrirse que ninguna de las sesiones 0/5/6
+  era en realidad un agente en la nube (todas locales) y por lo tanto ninguna tenía autoridad real
+  de push a `main` bajo la regla de `AGENTS.md` §Colaboración punto 6.
 - [ ] **Estructura de tests obligatoria: `unit` + `fuzz` + `invariant`.** `2026-09-04` — decisión
   escogida, aplicada en `AGENTS.md` §Tests. Convención heredada de
   `creva_finance/backend/test/{unit,fuzz,invariant}` (Jest + `fast-check`), replicada en
@@ -186,6 +189,15 @@ bloque. Esta tabla es solo el checklist.
   `gateway/test/{unit,fuzz,invariant}`, 3 suites / 9 tests, `fast-check` agregado. `feature-selfie-
   check` (rama 2) y `feature-agent-loop` (rama 4) sin verificar desde esta sesión — ver bloque
   siguiente para el caso puntual de `feature-agent-loop`.
+- [x] `2026-09-04` — **Modelo de roles v2: Main solo instruye, Solver mergea/pushea él mismo,
+  Auditor revisa después, no antes.** Reemplaza el v1 (Auditor como gate bloqueante). Motivo:
+  demasiado tiempo de coordinación en la primera corrida real — ver
+  `procedures/knowledge/_drafts/multiagent-worktree-coordination.md`. `AGENTS.md` §Colaboración
+  actualizado con el modelo completo.
+- [x] `2026-09-04` — **Las 4 ramas de feature ya están en `origin`.** `feature-logic-port`
+  (agente 3) estaba commiteada localmente (`8e48bb0`) pero no pusheada — pusheada en este lote.
+  Solver ya tenía las otras 3 reconciliadas y en verde (typecheck/lint/test/bundle); falta
+  reconciliar esta última contra su propio `integration-solver`.
 - [ ] **`feature-agent-loop` con base rota — necesita rebase.** `2026-09-04` — su worktree local
   quedó en el commit `b70dace` (uno de docs, previo a que el scaffold real `f8b751d` existiera),
   con un `app/` propio sin trackear en vez del scaffold real. Diverge de `feature-gateway-x402` y
