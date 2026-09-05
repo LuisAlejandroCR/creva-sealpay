@@ -39,6 +39,56 @@ checklist.
   verificación y anclaje; `/score` todavía no está expuesto. Para datos personales
   debe conservarse la identidad Clerk del solicitante: la identidad de servicio
   devolvería el score de otra cuenta. No se ha verificado una sesión real.
+  **Tomado 2026-09-05 por Solver (Claude Code local, worktree `main`):** pantalla
+  `DeleteAccountScreen.tsx` vs. `/profile/delete-account`, fuera del área de las 4 ramas Codex
+  (nav/Ayuda/Inicio). Confirmado antes de empezar: las 4 ramas `codex/mobile-parity-*` están al
+  mismo commit (`83092cd`), ancestro de `main` — ninguna ruta fue auditada todavía pese a la
+  coordinación descrita arriba.
+
+- [ ] **2026-09-05 — Auditoría de paridad de `DeleteAccountScreen.tsx` vs. `/profile/delete-account`
+  (frontend real): comparación estructural hecha, comparación visual por screenshot BLOQUEADA en
+  ambos lados — no cerrar sin una segunda vista que además resuelva los dos bloqueos de abajo.**
+  **Hallazgo transversal nuevo (bloquea cualquier preview web de `app/` para cualquier agente):**
+  `npx expo start --web` fallaba de raíz por falta de `react-native-web` (dependencia nunca
+  instalada); instalado (`react-native-web`, `react-dom`, vía `npx expo install`) porque bloqueaba
+  a cualquiera que intentara este mismo camino, no solo a esta pantalla — `tsc --noEmit` y
+  `npx jest` corridos después, sin regresión (41/41 suites, 176/176 tests). Con la dependencia ya
+  puesta, el bundler igual truena en runtime: `TypeError: Class extends value undefined` +
+  `Cannot manually set color scheme` — incompatibilidad de versión entre `react-native-web` y
+  NativeWind/`react-native-css-interop` en este SDK de Expo (57). **No se intentó resolver esto
+  ahora** — es un problema de versiones que puede afectar a cualquier otra pantalla que alguien
+  quiera previsualizar por web, no algo puntual de Delete Account; diagnosticarlo y fijar versiones
+  compatibles es su propio bloque, no cabe en el presupuesto de auditar una sola pantalla.
+  **Segundo bloqueo, lado frontend:** `/profile/delete-account` vive detrás de `AuthGuard` (Clerk);
+  no hay credenciales de prueba en `.env.local` ni en ningún `.md` de este repo — no se intentó
+  adivinar ni crear una cuenta nueva sin confirmación del humano (mismo criterio que Hedera/World:
+  no gastar cuota o crear estado real sin permiso explícito). Confirma el mismo patrón que ya
+  documentaba el bloque de arriba ("No se ha verificado una sesión real").
+  **Lo que sí se comparó (fuente contra fuente, sin captura):**
+  - *Layout/estructura:* frontend tiene `ScreenHeader` (título + subtítulo + back) → 5 `Section`s
+    (qué se borra / cómo se pide / botón mailto / "desde la app todavía no" / nota "ten en cuenta" /
+    enlaces a Ayuda y Aviso de privacidad). Mobile tiene: `BackButton` + título + una sola `Card`
+    con el texto del artículo de ayuda (`borrar-mi-cuenta`) + una `Card` dashed de "Volver sin pedir
+    la baja". **No hay paridad de contenido** — mobile no tiene el botón `mailto:` real, ni el
+    aviso "es permanente", ni los enlaces a `/help/datos/borrar-mi-cuenta` ni a `/privacy`. Esto no
+    es un bug: el encabezado de `DeleteAccountScreen.tsx` ya declara que es deliberadamente mínima
+    ("confirmation-only... no backend exists for real deletion yet"), pero **la pantalla mobile no
+    ofrece ninguna forma de iniciar la solicitud** (el frontend sí, vía `mailto:`) — hueco de
+    producto real, no de integración. Reportado aquí, no construido (regla de límites duros: no
+    agregar features de producto sin permiso).
+  - *Colores:* mobile usa clases Tailwind `bg-bg`/`text-text`/`text-text/50,60,70` — mapean a los
+    tokens `--cr-*` de `tailwind.config.js`, cero hex nuevo encontrado en el archivo. No se pudo
+    confirmar el resultado visual renderizado (bloqueo de arriba).
+  - *Copy en español:* igual en ambos — "Eliminar mi cuenta"/"Eliminar tu cuenta", tono y
+    formalidad consistentes.
+  - *Wiring:* `onBack` (mobile) y `backHref="/profile"` (frontend) ambos reales, no no-op. El botón
+    "Volver sin pedir la baja" de mobile reutiliza el mismo `onBack` — correcto semánticamente, pero
+    sin equivalente al `mailto:` real del frontend (ver hueco de arriba).
+  **Pendiente para la segunda vista:** (1) fijar versión de `react-native-web` compatible con
+  NativeWind en este proyecto o documentar por qué no vale la pena para este sprint, (2) conseguir
+  credenciales de prueba (o confirmación de crearlas) para poder autenticar el frontend y repetir
+  el checklist con screenshots reales, (3) decidir si el hueco de "sin canal de solicitud real en
+  mobile" se resuelve en este ciclo o se marca como decisión de alcance aceptada.
 
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.

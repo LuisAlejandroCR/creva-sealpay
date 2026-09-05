@@ -1629,3 +1629,39 @@ ya no es un 500 genérico, es un error de validación específico y accionable. 
 
 **Dónde queda el pendiente:** ninguno propio del criterio de aceptación de la pista Hedera — cumplido
 con evidencia verificable on-chain. Pendiente cosmético: la aserción del test de integración.
+
+## 2026-09-05 — Auditoría de paridad (Solver, local): `DeleteAccountScreen.tsx` vs. `/profile/delete-account`
+
+**Qué se hizo:**
+- Confirmado contra el repo real, no contra `docs/plan.md`, que las 4 ramas `codex/mobile-parity-*`
+  (audit/foundation/help/dashboard) están todas en el mismo commit `83092cd`, ancestro de `main` —
+  ninguna ruta de la "tercera revisión" fue auditada todavía por esos worktrees Codex.
+- Elegida `DeleteAccountScreen.tsx` para esta pasada: pantalla real fuera de las áreas ya asignadas
+  a Codex (navegación/Ayuda/Inicio), con equivalente 1:1 comparable en el frontend
+  (`creva_finance/frontend/app/profile/delete-account/page.tsx`).
+- Comparación estructural completa (layout, copy, wiring) hecha leyendo ambos archivos fuente —
+  detalle del hallazgo de contenido (mobile no ofrece canal de solicitud real, frontend sí vía
+  `mailto:`) documentado en `docs/plan.md`.
+- Instalado `react-native-web` + `react-dom` en `app/` (nunca habían sido instalados) para poder
+  intentar `npx expo start --web` — sin esto, ningún preview web de `app/` arranca para nadie, no
+  solo para esta pantalla. `tsc --noEmit` y `npx jest` corridos después de instalar: sin regresión
+  (41 suites / 176 tests, todos verdes).
+
+**Qué NO se verificó, y por qué:**
+- Comparación visual por screenshot lado a lado — bloqueada en ambos lados:
+  - Mobile: con `react-native-web` ya instalado, el bundle de Expo web igual truena en runtime
+    (`TypeError: Class extends value undefined`, `Cannot manually set color scheme`) —
+    incompatibilidad de versión entre `react-native-web`/`react-dom` recién instalados y
+    NativeWind/`react-native-css-interop` bajo el SDK 57 de Expo. No se intentó fijar versiones
+    compatibles — es su propio bloque de diagnóstico, no cabía en el presupuesto de auditar una
+    sola pantalla.
+  - Frontend: `/profile/delete-account` vive detrás de `AuthGuard` (Clerk); no existen credenciales
+    de prueba en `.env.local` ni en ningún `.md` de este repo. No se intentó adivinar credenciales
+    ni crear una cuenta nueva sin confirmación directa del humano en el chat.
+- No se auto-certificó la pantalla como cerrada — queda en Abiertos esperando una segunda vista que
+  además resuelva los dos bloqueos de arriba.
+
+**Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Auditoría de paridad de
+`DeleteAccountScreen.tsx`...") con el checklist completo, los dos bloqueos y los tres pendientes
+para la segunda vista (versión de `react-native-web`, credenciales de prueba, decisión sobre el
+hueco de canal de solicitud real en mobile).
