@@ -237,6 +237,29 @@ bloque. Esta tabla es solo el checklist.
 
 ## Cerrados
 
+- [x] `2026-09-04` — **Gateway hardening: body cap, rate limit, helmet, replay protection.**
+  Worktree `feature-gateway-hardening`, agente local. `gateway/src/index.ts`: `express.json()`
+  limitado a `100kb` antes de cualquier ruta (un body más grande nunca llega al gate x402 ni al
+  proxy de Creva); `helmet()` montado con defaults; `express-rate-limit` (`120`/min por defecto,
+  configurable vía `GATEWAY_RATE_LIMIT_PER_MINUTE`) delante de `createX402Gate` en ambas rutas
+  gateadas — quien exceda recibe `429`, nunca llega al facilitador. CORS: decisión escogida de no
+  agregar middleware — el gateway es servidor-a-servidor, sin frontend web de origen distinto
+  llamándolo hoy; razonamiento completo en `docs/memoria.md`. Replay de `X-PAYMENT`: confirmado
+  que el gateway era vulnerable (el facilitador externo vive fuera de este repo, sin forma de
+  confirmar si dedupe del lado suyo) — fijado en `gateway/src/x402-gate.ts` con un `Set` en
+  memoria de hashes SHA-256 de proofs ya liquidados, rechazando la reutilización con
+  `402 payment_already_used` antes de llamar al facilitador. Tests nuevos:
+  `gateway/test/unit/hardening.spec.ts` y
+  `gateway/test/invariant/abuse-never-reaches-backend.invariant.spec.ts` (la invariante pedida: ni
+  un body sobredimensionado ni una request sobre el límite de rate llegan nunca a
+  `verifyPayment`/`settlePayment`/proxy). VERIFY: `tsc --noEmit`, `eslint src test` y
+  `vitest run test/unit test/fuzz test/invariant` — 7 archivos, 18 tests, todos en verde (salida
+  real en `docs/memoria.md`). **⏳ pendiente real, no de este bloque:** no se confirmó si el
+  facilitador vivo de BlockyDevs deduplica un `X-PAYMENT` del lado suyo (código externo, sin
+  acceso); el `Set` de replay vive en memoria de un solo proceso, no es una solución distribuida
+  si el gateway llegara a correr con más de una instancia. Detalle completo en `docs/memoria.md`
+  2026-09-04 (entrada "Gateway hardening").
+
 - [x] `2026-09-04` — **Tests de `feature-agent-loop` movidos a la convención `app/test/{unit,fuzz,invariant}`.**
   Los tests legacy de `app/features/query/__tests__/` y `app/features/verify/__tests__/` quedaron
   movidos a `app/test/unit/query/` y `app/test/unit/verify/`; no queda ningún test bajo
