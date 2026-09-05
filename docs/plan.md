@@ -33,6 +33,16 @@ checklist.
   `HEDERA_PAYER_ACCOUNT_ID`/`HEDERA_PAYER_PRIVATE_KEY` y HBAR de testnet, guardar el tx hash.
   Nuevo `gateway/test/integration/live-hedera-payment.spec.ts` (skip sin credenciales) queda listo
   para ese reintento — corre el ciclo 402→pay→200 una sola vez, sin reintento automático.
+  **Tercer intento real (2026-09-05):** el fix de payload funcionó — ya no da 500, ahora
+  `invalid_exact_hedera_payload_amount_mismatch`. Causa confirmada leyendo el código del
+  facilitador (`@x402/hedera` `exact/facilitator`): usó self-pay (`PAY_TO_ADDRESS` = misma cuenta
+  que `HEDERA_PAYER_ACCOUNT_ID`, porque las dos direcciones EVM disponibles no eran cuentas Hedera
+  reales — 404 en mirror node testnet y mainnet). El facilitador suma las transferencias
+  atribuidas a `payTo`; con self-pay, `-amount` y `+amount` caen en la misma cuenta y se cancelan
+  a 0, que nunca es igual al monto requerido — **no es un bug de `hedera-signer.ts`**, es
+  matemáticamente imposible pagar con self-pay bajo este esquema. Falta: una cuenta Hedera testnet
+  real y distinta para `PAY_TO_ADDRESS` (no necesita llave privada, solo existir y poder recibir
+  HBAR) antes del cuarto intento.
 
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.
