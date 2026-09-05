@@ -17,6 +17,18 @@ checklist.
 
 ## Abiertos
 
+- [ ] **2026-09-05 — Paridad móvil, tercera revisión; coordinación Codex en
+  `codex/mobile-parity-audit`.** Navegación: `codex/mobile-parity-foundation`;
+  Ayuda: `codex/mobile-parity-help`; Inicio: `codex/mobile-parity-dashboard`.
+  Cada módulo conserva su worktree y una trazabilidad de archivo/línea del frontend.
+  Pendientes: todas las rutas restantes, integración, typecheck/lint y suites
+  unit/fuzz/invariant, ejecución autenticada real y comparación visual por pantalla.
+  Hallazgo confirmado: SVG nativo sin `fill="none"` en la raíz; Movimientos y
+  Reporte usan paths distintos a `BottomNav.tsx`. El gateway solo expone reporte,
+  verificación y anclaje; `/score` todavía no está expuesto. Para datos personales
+  debe conservarse la identidad Clerk del solicitante: la identidad de servicio
+  devolvería el score de otra cuenta. No se ha verificado una sesión real.
+
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.
 
@@ -103,60 +115,6 @@ checklist.
   Ninguna de las dos entra al roadmap como bloque de trabajo hasta que una de estas formas se
   confirme con el humano como real (no hipotética) y se re-puntúe en `brainstorming.md` §4.
 
-- [ ] **Bazantic — $3,000, 3 pistas. Asignado a otro agente 2026-09-05 (handoff).** Prerrequisito
-  **confirmado**: cuenta de Bazantic activa desde 2026-09-04, `gateway/.env` tiene
-  `BAZANTIC_GATEWAY_URL` y `BAZANTIC_MCP_TOKEN` con valores reales. Las 3 Recipes **ya existen en
-  DRAFT** en el dashboard (`creva-report`, `creva-verify-business`, `creva-regulatory-radar`,
-  creadas 2026-09-05 16:46-16:49 UTC), apuntando a las tools reales `CrevaScoreController_radar`,
-  `CrevaScoreController_verification`, `CrevaScoreController_report` — auto-importadas por Bazantic
-  desde la spec OpenAPI pública de Creva, no del servidor MCP standalone (corrección registrada en
-  `docs/integrations/bazantic-recipes.md`).
-  **Primer intento de llamada real (2026-09-05) — falló, sin cobro:** `CrevaScoreController_report`
-  con `{business_name, document, embed, state_code}` devolvió `tool_failed` en ~5.3s, "No payment
-  occurred". Diagnóstico pendiente — dos hipótesis sin descartar, ver
-  [`docs/integrations/bazantic-recipes.md`](integrations/bazantic-recipes.md) §"Primer intento
-  real": (a) el payload usado no es el DTO real (`businessName`/`stateCode` camelCase, sin
-  `document`/`embed`) — posible drift entre el schema que ve el agente en el picker de Bazantic y
-  el DTO que aceptan el backend; (b) `JwtAuthGuard` en las tres rutas — Bazantic puede no estar
-  mandando un JWT de usuario de Creva, solo su propia API key.
-  **Queda abierto para el siguiente agente:**
-  1. Confirmar cuál de las dos hipótesis (o ambas) causó el fallo — revisar logs del backend de
-     Creva si están accesibles, o repetir la llamada con el payload correcto (`businessName`,
-     `stateCode`, sin campos extra) antes de tocar el tema de auth.
-  2. Si persiste, resolver el JWT: decidir de qué cuenta de Creva sale (o si se crea una cuenta de
-     servicio) — decisión que requiere al humano, no la toma un agente solo.
-  3. Confirmar una llamada real pagada, con cuidado de no agotar el crédito de prueba (0.30 USDC)
-     en reintentos — mismo criterio de cautela que Hedera testnet y World ID.
-  No hay código nuevo de este lado del repo: Bazantic envuelve tools existentes con metadata, no
-  con plomería — por eso no aplica un `[VERIFY]` de tsc/jest a este bloque, solo la llamada real.
-  **Avance 2026-09-05 (worktree `feature-creva-service-identity`) — resuelto el punto 2 (JWT),
-  el punto 1/3 siguen abiertos:** `JwtAuthGuard` de `creva_finance/backend` valida contra Supabase
-  (`AUTH_PROVIDER=supabase` por defecto) — no hay secreto local con el que fabricar un JWT, y un
-  `CREVA_SERVICE_JWT` estático habría quedado inválido en menos de una hora (los access tokens de
-  Supabase expiran). Reemplazado por identidad de servicio con refresh token: nuevo
-  `gateway/src/creva-auth.ts` (`getCrevaAccessToken()`) cachea el access token en memoria (nunca en
-  disco), decodifica su `exp` para saber cuándo caducó, y lo renueva vía `POST /auth/refresh` contra
-  `config.crevaApiUrl` usando `CREVA_SERVICE_REFRESH_TOKEN` (nueva env var, placeholder ya en
-  `gateway/.env.example`) — rota el refresh token devuelto en cada llamada. `gateway/src/creva-proxy.ts`
-  ahora adjunta `Authorization: Bearer <access token>` a toda request reenviada a Creva y responde
-  502 sin llamar a `fetch` si el token no se puede obtener (nunca reenvía sin auth). **Verify:**
-  `tsc --noEmit` limpio, `eslint` limpio, 40/41 tests pasan (unit + fuzz + invariant nuevos en
-  `gateway/test/{unit,fuzz,invariant}/creva-auth*` y `creva-proxy-always-authenticated.invariant.spec.ts`,
-  más las suites preexistentes actualizadas para mockear `creva-auth.js`; el test #41 que falla
-  intermitentemente — "Worker exited unexpectedly" de tinypool — ya fallaba igual en `main` antes de
-  este cambio, confirmado corriendo la suite base sin tocar). **Decisión pendiente del humano antes
-  de poder cerrar este bloque (bloqueante):** la cuenta de servicio (`bazantic-service+<algo>@<dominio
-  real de Creva>`) debe registrarse contra el backend real (`https://creva-backend-c7as7id5jq-pv.a.run.app`,
-  **producción, no local** — confirmado en `gateway/src/config.ts`) vía `POST /auth/register` — un
-  agente no debe crear ni la cuenta ni la contraseña de una cuenta real de producción por su cuenta.
-  El humano debe: (a) registrar la cuenta él mismo (no se encontró un dominio de correo corporativo
-  consistente en `creva_finance` — el seed data solo usa gmail personal, así que el email exacto
-  también lo define el humano), (b) hacer login para obtener `refreshToken`, y (c) pegar ese valor
-  directo en `gateway/.env` como `CREVA_SERVICE_REFRESH_TOKEN` (nunca en el chat). Con eso puesto,
-  falta repetir la llamada real de la hipótesis (a) — el payload correcto (`businessName`,
-  `stateCode`, sin `document`/`embed`) — para confirmar que el bloqueador original ya no reaparece,
-  y capturar el recibo/transacción real contra el crédito de 0.30 USDC.
-
 - [ ] **Ledger — $5,000, 2 pistas (AI Agents x Ledger $3.5k + Continuity $1.5k).** Prerrequisito:
   **Ledger Key Ring CLI** (`wallet-cli ring`) del Ledger Agent Stack, publicado 2026-09-03 en
   developers.ledger.com/ethonline — instalar y generar/importar una cuenta de firma dedicada a este
@@ -205,6 +163,40 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
 
 ## Cerrados
+
+- [x] `2026-09-05` — **Bazantic — $3,000, 3 pistas: identidad de servicio con refresh token
+  desbloquea la llamada real (worktree `feature-creva-service-identity`).** Diagnóstico previo
+  (`docs/integrations/bazantic-recipes.md` §"Primer intento real") tenía dos hipótesis para el
+  `tool_failed`/"No payment occurred" del primer intento; resultó ser la (b): `JwtAuthGuard` de
+  `creva_finance/backend` valida contra Supabase (`AUTH_PROVIDER=supabase` por defecto) y no había
+  JWT válido — un `CREVA_SERVICE_JWT` estático tampoco habría servido, porque los access tokens de
+  Supabase expiran en menos de una hora. La hipótesis (a) (camelCase vs snake_case) resultó
+  irrelevante: el schema real de la Recipe de Bazantic (`mcp__creva-score__creva_report`) usa
+  snake_case (`business_name`, `state_code`), no el DTO REST crudo — eso es lo que de verdad se
+  serializa en la llamada. Nuevo `gateway/src/creva-auth.ts` (`getCrevaAccessToken()`): cachea el
+  access token en memoria (nunca en disco), decodifica su `exp` para saber cuándo caducó, y lo
+  renueva vía `POST /auth/refresh` contra `config.crevaApiUrl` usando `CREVA_SERVICE_REFRESH_TOKEN`
+  (nueva env var, placeholder en `gateway/.env.example`) — rota el refresh token en cada llamada.
+  `gateway/src/creva-proxy.ts` adjunta `Authorization: Bearer <access token>` a toda request
+  reenviada a Creva y responde 502 sin llamar a `fetch` si el token no se puede obtener (nunca
+  reenvía sin auth). La cuenta de servicio la registró el humano directamente contra el backend real
+  (producción, `https://creva-backend-c7as7id5jq-pv.a.run.app`) — ningún agente creó la cuenta ni la
+  contraseña; solo se manejó el `refreshToken` ya emitido, pegado directo en `gateway/.env`, nunca en
+  el chat. Nota para la próxima sesión: el primer valor pegado en `CREVA_SERVICE_REFRESH_TOKEN` era
+  en realidad el `accessToken` (JWT largo, ~826 caracteres) por error de copiado, no el `refreshToken`
+  real (opaco, ~12 caracteres) — `/auth/refresh` lo rechazaba con 401 "Invalid or expired refresh
+  token"; verificado aislando la llamada fuera de `creva-auth.ts` (curl directo) antes de asumir el
+  código propio como culpable. **Verify:** `tsc --noEmit` limpio, `eslint` limpio, 40/41 tests pasan
+  (unit + fuzz + invariant nuevos en `gateway/test/{unit,fuzz,invariant}/creva-auth*` y
+  `creva-proxy-always-authenticated.invariant.spec.ts`, más las suites preexistentes actualizadas
+  para mockear `creva-auth.js`; el test #41 que falla intermitentemente — "Worker exited unexpectedly"
+  de tinypool — ya fallaba igual en `main` sin tocar, confirmado corriendo la suite base). **Llamada
+  real confirmada** vía `mcp__creva-score__creva_report` (`business_name: "Panadería La Espiga"`,
+  `state_code: 14`, `document: true`, `embed: false`): folio
+  `47AFE663-69F31F42-5D886F7A-3A89A4AC`, huella de integridad
+  `e3983b07d610908e47dfdecc1300f1e350d02ee59085860bb7c5e3d406cb8dc9`, generado
+  `2026-09-05T20:06:51.769Z`, PDF + HTML entregados en Descargas — sin error, sin necesidad de
+  reintentos adicionales sobre el crédito de 0.30 USDC.
 
 - [x] `2026-09-05` — **Arc (Circle) — idea 8, "el respaldo nace on-chain" (worktree
   `feature-arc-anchor`): reporte sellado ancla su hash canónico on-chain en Arc testnet.**
