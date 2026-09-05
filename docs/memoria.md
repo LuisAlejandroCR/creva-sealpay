@@ -4,6 +4,50 @@
 
 # Memoria — ETHOnline 2026
 
+## 2026-09-04 — Fix de safe-area insets (status bar solapado) (worktree `magical-taussig-acdc49`)
+
+**Qué se hizo:**
+- Worktree: `.claude/worktrees/magical-taussig-acdc49`, rama `claude/magical-taussig-acdc49`.
+- Bug reportado por el usuario probando en Expo Go sobre un iPhone físico: el status bar del
+  sistema (reloj, señal, wifi, batería) se dibujaba encima del header y de los títulos de sección
+  en `SelfieCheckScreen.tsx` (estado `identity_unavailable`), `QueryScreen.tsx` (header "Paid
+  signal query", secciones como "Payment required") y `VerifyScreen.tsx` (header "Comprobar un
+  reporte"). Causa raíz: ninguna de las tres pantallas ni `App.tsx` usaban `SafeAreaView` ni
+  `useSafeAreaInsets` de `react-native-safe-area-context`.
+- `App.tsx` ahora envuelve `ClerkAppProvider`/`AppFlow` en `SafeAreaProvider`.
+- `SelfieCheckScreen.tsx`: cada rama de estado (`identity_unavailable`, `idle`, `failed`,
+  `verifying`, el loader antes del WebView y el WebView mismo) ahora renderiza dentro de
+  `SafeAreaView` con `edges={['top','bottom']}` en vez de un `View` plano.
+- `QueryScreen.tsx` y `VerifyScreen.tsx`: el `ScrollView` de nivel superior (y el loader de
+  `VerifyScreen`) quedó anidado dentro de un `SafeAreaView` con `edges={['top','bottom']}`; se
+  bajó el `pt-12` fijo del `contentContainerClassName` a `pt-6` porque el inset real ya cubre el
+  espacio del status bar — el valor fijo anterior era una adivinanza que en algunos dispositivos
+  dejaba doble espacio y en otros (notch/Dynamic Island, Android con gesture nav) se quedaba corto.
+- `react-native-safe-area-context` ya era dependencia (`~5.7.0` en `app/package.json`), no hizo
+  falta `npx expo install`.
+- Se buscó en todo `app/features/**` un botón flotante de ajustes/engranaje mencionado en el
+  reporte del bug y no se encontró ninguno — no existe en este branch; si el usuario lo ve en el
+  dispositivo, vive en código que no llegó a este worktree.
+- Tests: `test/unit/onboarding/safe-area.spec.ts`, `test/unit/query/safe-area.spec.ts` y
+  `test/unit/verify/safe-area.spec.ts` agregados — verificación estructural (lectura del código
+  fuente) de que cada pantalla envuelve su contenido en `SafeAreaView`/`SafeAreaProvider` con
+  `top` en los edges. Se optó por este enfoque en vez de un render completo con
+  `@testing-library/react-native` porque `SafeAreaView` usa un componente nativo
+  (`NativeSafeAreaView`) que `jest-expo` no mockea por defecto — un render real habría requerido
+  registrar mocks nativos adicionales fuera del alcance de este fix.
+
+**Qué NO se verificó, y por qué:**
+- No se confirmó visualmente en Expo Go sobre el iPhone físico donde se vio el bug original — no
+  hay dispositivo ni simulador iOS/Android disponible desde esta sesión de agente. Expo web no
+  sirve para esto: un tab de navegador no tiene status bar de SO que solapar.
+- `npm run typecheck` limpio; `npm test` con 98/98 tests pasando (20 suites; la suite 21,
+  `test/unit/help-content.spec.ts`, falla por un `EPERM` al leer la caché de transform de Jest en
+  `%LOCALAPPDATA%\Temp\jest\...` — preexistente, no relacionado a este cambio, reproducible sin
+  tocar ningún archivo de este fix).
+
+**Dónde queda el pendiente:** `docs/plan.md`, bloque abierto "Safe-area insets: código listo,
+falta confirmar en Expo Go real".
+
 ## 2026-09-04 — Port visual de query pagada y verificación sellada (worktree `feature-ui-port`)
 
 **Qué se hizo:**
@@ -1035,3 +1079,45 @@ causa probable: `TransactionId` mal asignado en `hedera-signer.ts`". Sigue sin t
 
 **Dónde queda el pendiente:** `docs/plan.md`, bloque "Hedera x402" — sigue abierto, dos hipótesis
 descartadas, causa real del 500 todavía sin identificar. Sigue sin tx hash.
+
+## 2026-09-04 — Tercer intento: dos bugs más encontrados y corregidos, error nuevo (ya no 500)
+
+**Qué se hizo:**
+- Diagnóstico sin gastar cuota: reconstruido el body exacto que `facilitator.ts` envía a
+  `/verify` (nuevo archivo de debug `gateway/test/integration/debug-verify-body.spec.ts`,
+  solo local, sin llamada de red) y comparado campo por campo contra
+  `blocky402.com/docs/api-reference/`. Encontrado: `payTo` se enviaba como dirección EVM
+  (`0x9ac5EA59E6f68Ef3bfc8c29FA2bb2F9b71B5Bf93`, la cuenta de Bazantic del humano) — la doc exige
+  formato nativo Hedera `0.0.X`. Confirmado contra el mirror node público de Hedera
+  (`testnet.mirrornode.hedera.com` y `mainnet-public.mirrornode.hedera.com`, ambos 404) que esa
+  dirección **no es una cuenta Hedera real** — ni testnet ni mainnet. Una segunda dirección EVM
+  que el humano agregó después tampoco resolvió (mismo resultado). `HEDERA_PAYER_ACCOUNT_ID` sí
+  resolvió (`0.0.10119469`, cuenta real de testnet confirmada).
+- Paralelamente, el Auditor (misma sesión que corrigió `dotenv`/defaults) encontró y corrigió una
+  causa de payload distinta comparando contra `@x402/core` (zod schemas, npm): nuestro
+  `paymentPayload` tenía forma v1 pero declaraba `x402Version: 2`, fallando ambos schemas del
+  discriminated union a la vez — v2 exige un campo `accepted` con los `PaymentRequirements`
+  elegidos, que nunca se incluía. Corregido en `main` (`bab1e9b`):
+  `hedera-signer.ts`/`facilitator.ts` arman `{x402Version: 2, accepted: {...}, payload:
+  {transaction}}`.
+- Mergeado `main` (`bab1e9b`) a este worktree — conflicto en `docs/plan.md` (mismo bloque narrado
+  desde ambos lados), resuelto combinando ambos hallazgos. `npm install` corrido de nuevo.
+- Decisión escogida por el humano para validar el mecanismo sin depender de encontrar una cuenta
+  Hedera real ajena: usar `HEDERA_PAYER_ACCOUNT_ID` (`0.0.10119469`) también como `PAY_TO_ADDRESS`
+  (autopago). Escrito directamente al `.env` del worktree vía script que lee y reescribe el valor
+  sin nunca imprimirlo.
+- **Tercer intento real:** ya no hay `facilitator_verify_http_500`. Nuevo resultado: HTTP 402,
+  `error: "invalid_exact_hedera_payload_amount_mismatch"`. Sin `X-PAYMENT-RESPONSE`, sin tx hash.
+  El facilitador ahora valida el payload correctamente (progreso real) pero rechaza el monto.
+
+**Qué NO se verificó, y por qué:**
+- No se investigó todavía la causa exacta del mismatch de monto — dos hipótesis sin confirmar:
+  (a) el autopago (`payTo` = cuenta del payer) es degenerado para el facilitador, (b) desajuste
+  real entre `paymentRequirements.amount` (`REPORT_PRICE_ATOMIC=10000000`) y lo que
+  `TransferTransaction`/`Hbar.fromTinybars` codifica en `hedera-signer.ts`.
+- No se hizo un cuarto intento — restricción del humano, autorización explícita requerida cada vez.
+- No se confirmó si el balance de Bazantic cambió (el 402 con error de validación probablemente no
+  cobra, pero no se verificó el dashboard después de este intento).
+
+**Dónde queda el pendiente:** `docs/plan.md`, bloque "Hedera x402" — sigue abierto. Progreso real:
+ya no es un 500 genérico, es un error de validación específico y accionable. Sigue sin tx hash.
