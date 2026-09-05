@@ -56,6 +56,9 @@ the base URL in `app/lib/api.ts`. Details: [`app/`](app/), [`gateway/`](gateway/
 
 ## Status
 
-Both pieces run locally and speak the live BlockyDevs testnet payment format. Not yet exercised:
-a payment settled end-to-end against a live facilitator with real credentials — see commit history
-for current status rather than this file.
+Both pieces run locally and speak the live BlockyDevs testnet payment format. A real payment has
+settled end-to-end on Hedera testnet (2026-09-05): tx
+[`0.0.7162784-1788585962-768194628`](https://hashscan.io/testnet/transaction/0.0.7162784-1788585962-768194628),
+`result: SUCCESS`. World's Selfie Check is wired to real server-side verification but still
+blocked on World ID Sandbox approval — see commit history for current status rather than this
+file.
