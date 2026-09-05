@@ -63,8 +63,8 @@ export function ProfileScreen({
 
   const menuItems: MenuItem[] = [
     { key: "details", label: "Datos personales", icon: "profile", onPress: onOpenDetails },
-    { key: "fiscal", label: "Información fiscal", icon: "statement", onPress: onOpenFiscal },
-    { key: "security", label: "Seguridad", icon: "shield", onPress: onOpenSecurity },
+    { key: "fiscal", label: "Información fiscal", icon: "fiscal", onPress: onOpenFiscal },
+    { key: "security", label: "Seguridad", icon: "security", onPress: onOpenSecurity },
     { key: "notifications", label: "Avisos", icon: "bell", onPress: onOpenNotifications },
     { key: "help", label: "Ayuda", icon: "help", onPress: onOpenHelp },
   ];

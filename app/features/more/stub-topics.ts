@@ -52,19 +52,22 @@ export const STUB_TOPICS: StubTopic[] = [
   {
     key: "business-verification",
     label: "Sello de tu negocio",
-    icon: "registry",
+    // BottomNav.tsx NAV_GLYPHS['/business-verification'] (line 91) is the circle+ribbon seal.
+    icon: "seal",
     body: findArticle("gobierno", "no-listado")?.article.answer,
   },
   {
     key: "regulatory",
     label: "Reglas que te afectan",
-    icon: "seal",
+    // BottomNav.tsx NAV_GLYPHS['/regulatory'] (line 92) is the building/registry glyph.
+    icon: "registry",
     body: findArticle("gobierno", "reglas-que-me-afectan")?.article.answer,
   },
   {
     key: "report",
     label: "Tu reporte",
-    icon: "seal",
+    // BottomNav.tsx NAV_GLYPHS['/report'] (line 93) is document+circle, its own glyph.
+    icon: "report",
     body: findArticle("reporte", "que-es-el-reporte")?.article.answer,
   },
   {

@@ -1,7 +1,8 @@
 // Icon.tsx: shared hand-drawn line-art icon set for app/features/**, replacing every emoji glyph
-// found by the UI audit. Path data is copied from creva_finance/frontend/components/BottomNav.tsx
-// and components/help/HelpGlyph.tsx (the visual source of truth) and adapted from web <svg> to
-// react-native-svg. Colors resolve through theme-colors.ts (tailwind.config.js), never a literal hex.
+// found by the UI audit. Every path is copied exactly (viewBox, d, stroke/fill approach) from a
+// specific creva_finance/frontend source line — see the per-case comment for its file:line citation
+// — and adapted from web <svg> to react-native-svg. Colors resolve through theme-colors.ts
+// (tailwind.config.js), never a literal hex. Full citation table: docs/plan.md, icon audit block.
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 
 import { themeColors, type ThemeColorToken } from "./theme-colors";
@@ -15,10 +16,13 @@ export type IconName =
   | "bell"
   | "profile"
   | "statement"
+  | "fiscal"
+  | "security"
   | "shield"
   | "key"
   | "seal"
   | "registry"
+  | "report"
   | "back-chevron"
   | "eye"
   | "eye-off"
@@ -117,7 +121,6 @@ export function Icon({ name, size = 22, color, filled = false }: IconProps) {
         </Svg>
       );
     case "statement":
-    case "movements": // shares the document glyph — see docs/plan.md icon-set notes
       return (
         <Svg width={size} height={size} {...common}>
           <Path
@@ -128,8 +131,78 @@ export function Icon({ name, size = 22, color, filled = false }: IconProps) {
           <Path d="M14 3v5h5M8.5 13h7M8.5 17h4" stroke={stroke} strokeWidth={1.7} strokeLinecap="round" />
         </Svg>
       );
+    case "fiscal":
+      // creva_finance/frontend/app/profile/page.tsx:36-39 ("Información fiscal" row) — a plain
+      // folded-corner document, distinct from the lined "statement" glyph above.
+      return (
+        <Svg width={size} height={size} {...common}>
+          <Path
+            d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+            stroke={stroke}
+            strokeWidth={1.8}
+          />
+          <Path d="M14 2v6h6" stroke={stroke} strokeWidth={1.8} />
+        </Svg>
+      );
+    case "movements":
+      // creva_finance/frontend/components/BottomNav.tsx:87 (NAV_GLYPHS['/movements']) — swap
+      // arrows, not the document glyph "statement" used to share.
+      return (
+        <Svg width={size} height={size} {...common}>
+          <Path
+            d="M4 8h13m0 0-3-3m3 3-3 3M20 16H7m0 0 3-3m-3 3 3 3"
+            stroke={stroke}
+            strokeWidth={1.7}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      );
+    case "report":
+      // creva_finance/frontend/components/BottomNav.tsx:93 (NAV_GLYPHS['/report']) — the same
+      // document outline as "statement" but with a magnifying/summary circle instead of ruled lines.
+      return (
+        <Svg width={size} height={size} {...common}>
+          <Path
+            d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"
+            stroke={stroke}
+            strokeWidth={1.7}
+          />
+          <Path d="M14 3v5h5" stroke={stroke} strokeWidth={1.7} />
+          <Circle cx={12} cy={14.5} r={3} stroke={stroke} strokeWidth={1.7} />
+        </Svg>
+      );
+    case "security":
+      // creva_finance/frontend/app/profile/page.tsx:43-49 ("Seguridad" row) — a plain shield
+      // outline, distinct from both "shield" (collateral checkmark-shield) and "privacy" (padlock).
+      return (
+        <Svg width={size} height={size} {...common}>
+          <Path
+            d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+            fill={fillColor}
+            stroke={stroke}
+            strokeWidth={1.8}
+          />
+        </Svg>
+      );
     case "shield":
-    case "privacy": // creva_finance's /privacy row reuses the shield lock glyph too
+      // creva_finance/frontend/components/help/HelpGlyph.tsx:49-54 ("shield" HelpIcon) — the
+      // checkmark shield, same glyph as "collateral" below (BottomNav.tsx:90).
+      return (
+        <Svg width={size} height={size} {...common}>
+          <Path
+            d="M12 2.5 4.5 5.5V11c0 5.2 3.2 8.8 7.5 10 4.3-1.2 7.5-4.8 7.5-10V5.5z"
+            fill={fillColor}
+            stroke={stroke}
+            strokeWidth={1.7}
+            strokeLinejoin="round"
+          />
+          <Path d="m9 12 2 2 4-4" stroke={filled ? "none" : stroke} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      );
+    case "privacy":
+      // creva_finance/frontend/components/BottomNav.tsx:97 (NAV_GLYPHS['/privacy']) — the
+      // padlock-on-rect glyph. Kept as its own case, separate from "shield" above.
       return (
         <Svg width={size} height={size} {...common}>
           <Rect x={4.5} y={10.5} width={15} height={10} rx={2.5} stroke={stroke} strokeWidth={1.7} />
@@ -175,40 +248,42 @@ export function Icon({ name, size = 22, color, filled = false }: IconProps) {
         </Svg>
       );
     case "eye":
+      // creva_finance/frontend/components/auth/PasswordField.tsx:46-47 (shown === false branch).
       return (
         <Svg width={size} height={size} {...common}>
           <Path
-            d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"
+            d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
             stroke={stroke}
-            strokeWidth={1.7}
-            strokeLinejoin="round"
+            strokeWidth={1.8}
           />
-          <Circle cx={12} cy={12} r={2.6} stroke={stroke} strokeWidth={1.7} />
+          <Circle cx={12} cy={12} r={3} stroke={stroke} strokeWidth={1.8} />
         </Svg>
       );
     case "eye-off":
+      // creva_finance/frontend/components/auth/PasswordField.tsx:43 (shown === true branch).
       return (
         <Svg width={size} height={size} {...common}>
           <Path
-            d="M3.5 3.5l17 17M6.6 6.9C4.2 8.4 2 12 2 12s3.6 7 10 7c1.8 0 3.3-.5 4.6-1.2M9.9 9.9a2.6 2.6 0 0 0 3.7 3.7M10.6 5.2A9.9 9.9 0 0 1 12 5c6.4 0 10 7 10 7a15.6 15.6 0 0 1-2.3 3.3"
+            d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"
             stroke={stroke}
-            strokeWidth={1.7}
+            strokeWidth={1.8}
             strokeLinecap="round"
-            strokeLinejoin="round"
           />
         </Svg>
       );
     case "search":
+      // creva_finance/frontend/components/help/HelpSearch.tsx:31-32.
       return (
         <Svg width={size} height={size} {...common}>
-          <Circle cx={10.5} cy={10.5} r={6.5} stroke={stroke} strokeWidth={1.7} />
-          <Path d="m20 20-4.3-4.3" stroke={stroke} strokeWidth={1.7} strokeLinecap="round" />
+          <Circle cx={11} cy={11} r={6.5} stroke={stroke} strokeWidth={1.8} />
+          <Path d="m16 16 4.5 4.5" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" />
         </Svg>
       );
     case "close":
+      // creva_finance/frontend/components/help/HelpSearch.tsx:67 (search field's clear button).
       return (
         <Svg width={size} height={size} {...common}>
-          <Path d="M5 5l14 14M19 5 5 19" stroke={stroke} strokeWidth={1.7} strokeLinecap="round" />
+          <Path d="M6 6l12 12M18 6L6 18" stroke={stroke} strokeWidth={2} strokeLinecap="round" />
         </Svg>
       );
     case "calculator":

@@ -473,6 +473,74 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 - [x] `2026-09-04` — Acceso a Bazantic confirmado, crédito de prueba ~0.30 USDC.
 - [x] `2026-09-04` — Decisión: equipo humano + agentes de IA, no solo — falta trámite de dashboard (ver bloque abierto).
 
+- [x] `2026-09-05` — **Auditoría de citación del set de iconos (`app/features/shared/icons/Icon.tsx`)
+  y corrección de estado activo del nav.** Worktree `feature-icon-audit`. Un intento previo (con
+  rate limit) ya había confirmado que la señal de estado activo del nav en creva_finance vive en
+  `frontend/app/globals.css:176-199` (`.cr-nav-item` → `[aria-current='page']`): borde superior
+  `3px solid transparent → var(--cr-crimson)`, `font-weight 600 → 800`, y el icono mismo cambia
+  fill/stroke (no solo color). Este bloque completa la auditoría línea-por-línea contra
+  `creva_finance/frontend` y corrige lo que encontró.
+
+  **Bugs de citación encontrados y corregidos** (path exacto copiado del archivo:línea citado, sin
+  redondear ni aproximar):
+  - `eye` / `eye-off`: paths inventados → copiados exactos de
+    `components/auth/PasswordField.tsx:46-47` y `:43`.
+  - `search` / `close`: paths inventados → copiados exactos de
+    `components/help/HelpSearch.tsx:31-32` y `:67`.
+  - `movements`: compartía el glyph de documento de `statement` → ahora usa las flechas de
+    intercambio exactas de `BottomNav.tsx:87` (`NAV_GLYPHS['/movements']`), un glyph distinto.
+  - `stub-topics.ts` — `business-verification` usaba el icono `registry` (edificio) y `regulatory`
+    usaba `seal` (sello circular): estaban **cruzados** respecto a `BottomNav.tsx:91-92`
+    (`/business-verification` es el sello, `/regulatory` es el edificio) → corregidos.
+  - `report` (stub "Tu reporte"): usaba `seal`, una forma completamente distinta → nuevo caso
+    `report` con el path exacto de `BottomNav.tsx:93` (documento + círculo, no líneas ni cinta).
+  - `shield`: el caso combinaba `shield`+`privacy` en un solo candado-sobre-rect, pero
+    `HelpGlyph.tsx:49-54` define `shield` como el escudo-con-check (mismo glyph que `collateral`,
+    `BottomNav.tsx:90`) — se separaron en dos casos: `shield` (check) y `privacy` (candado,
+    `BottomNav.tsx:97`).
+  - `ProfileScreen.tsx` fila "Seguridad": usaba `shield` (candado) pero
+    `app/profile/page.tsx:43-49` tiene su propio escudo-outline sin check ni candado → nuevo icono
+    `security` con ese path exacto.
+  - `ProfileScreen.tsx` fila "Información fiscal": usaba `statement` (documento con líneas) pero
+    `app/profile/page.tsx:33-40` usa un documento de esquina doblada sin líneas → nuevo icono
+    `fiscal` con ese path exacto.
+
+  **Sin cambio (ya citaban exacto):** `home`, `score`, `card`, `credit`, `more`, `bell` (todos
+  `BottomNav.tsx`, tabs principales), `profile` (`BottomNav.tsx:94`), `statement`
+  (`NAV_GLYPHS['/statements']`, `BottomNav.tsx:89`), `key`/`seal`/`registry`/`shield` (post-fix)
+  (`HelpGlyph.tsx`), `back-chevron` (`components/BackControl.tsx:20-29`), `collateral`
+  (`BottomNav.tsx:90`), `calculator` (`NAV_GLYPHS['/calculator']`, `BottomNav.tsx:88`).
+
+  **Sin referencia en creva_finance (documentado, no inventado):** `logout` en
+  `ProfileScreen.tsx:107` sí tiene contraparte — el botón "Cerrar sesión" de
+  `app/profile/page.tsx:123-132` (path+polyline+line consolidados en un solo `<Path>` equivalente,
+  ya coincidía). Ningún icono del set quedó sin cita tras esta pasada.
+
+  **Fix de estado activo del nav** (`app/App.tsx`, `TabBar`): antes solo cambiaba el color del
+  texto/icono. Ahora reproduce las tres señales de `globals.css:176-199`: `filled={active}` en el
+  `<Icon>` (fill/stroke, igual que las funciones `icon(active)` de `BottomNav.tsx`), peso de texto
+  `font-semibold → font-extrabold` (600→800), y borde superior `border-t-[3px]`
+  `border-transparent → border-crimson` (indicador de canto).
+
+  **Verify:**
+  - `npm run typecheck` — limpio (0 errores).
+  - `npm test -- unit fuzz invariant` — **37 suites / 165 tests**, todos verdes (baseline previo:
+    36 suites / 157 tests; +1 suite `test/unit/icons/citation.spec.ts` con 8 tests nuevos que
+    fijan los paths corregidos, +2 asserts nuevos en `test/unit/nav/structure.spec.ts` para el fix
+    de estado activo). Un test de `test/unit/auth/auth-gate.spec.ts` había fallado en una corrida
+    junto a `nav/structure.spec.ts` antes del fix de ese archivo — confirmado no relacionado
+    (pasa solo, y sigue pasando en la corrida completa post-fix): flake de orden/act(), no
+    regresión de este cambio.
+  - `grep -rn "#[0-9A-Fa-f]\{3,6\}" app/features/` — vacío.
+  - `npx expo start --port 8098` + `curl .../index.bundle?platform=ios&dev=true` → HTTP 200,
+    log del bundler: `iOS Bundled 16192ms index.ts (1516 modules)`, `hasError: false`. Sin
+    dispositivo físico disponible (pendiente, igual que el resto del port — ver `docs/memoria.md`).
+    Puerto 8098 liberado y confirmado con `netstat` tras `taskkill` tras la verificación.
+
+  Archivos tocados: `app/features/shared/icons/Icon.tsx`, `app/features/more/stub-topics.ts`,
+  `app/features/profile/ProfileScreen.tsx`, `app/App.tsx`, `app/test/unit/nav/structure.spec.ts`,
+  `app/test/unit/icons/citation.spec.ts` (nuevo).
+
 ## Verify
 
 1. Todo bloque cerrado tiene fecha y aparece también, si aplica, como decisión en `brainstorming.md`.
