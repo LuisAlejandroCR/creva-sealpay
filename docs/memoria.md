@@ -958,3 +958,80 @@ verifique y ejecute.
 
 **Dónde queda el pendiente:** `docs/plan.md`, bloque "Selfie Check en el alta" — dejado abierto con
 el detalle preciso del nuevo bloqueo (forma del payload v4 sin confirmar contra sandbox real).
+
+## 2026-09-04 — Primer intento real de pago Hedera: falla en /verify del facilitador (HTTP 500)
+
+**Qué se hizo:**
+- Mergeado `main` (`fc3a3e9`) a este worktree para traer `gateway/src/hedera-signer.ts` (firmante
+  real ya cerrado en otro worktree). `npm install` corrido para traer `@hashgraph/sdk`.
+- `gateway/.env` completado con las variables públicas que faltaban para hablar con el facilitador
+  vivo (`FACILITATOR_URL`, `HEDERA_NETWORK`, `FACILITATOR_FEE_PAYER`, `X402_VERSION`,
+  `PAYMENT_ASSET`, `REPORT_PRICE_ATOMIC`, `VERIFY_PRICE_ATOMIC` — todas de `.env.example`, ninguna
+  secreta) y `PAY_TO_ADDRESS` con la cuenta EVM del gateway en Bazantic
+  (`0x9ac5EA59E6f68Ef3bfc8c29FA2bb2F9b71B5Bf93`, confirmada parseable por
+  `AccountId.fromString` del SDK: `0.0.9ac5ea59e6f68ef3bfc8c29fa2bb2f9b71b5bf93`). Corrección
+  aparte: el primer intento de escribir estas variables con `cat >> .env` quedó pegado a la línea
+  anterior porque el archivo no traía salto de línea final — corregido con un `sed` puntual que
+  solo insertó un `\n` antes de `FACILITATOR_URL=`, sin leer ningún valor.
+- Creado `gateway/test/integration/live-hedera-payment.spec.ts` (nuevo, fuera de las suites
+  mockeadas): carga `.env` en el proceso de test, construye el `X-PAYMENT` real con
+  `buildSignedPaymentHeader` usando `HEDERA_PAYER_ACCOUNT_ID`/`HEDERA_PAYER_PRIVATE_KEY`, y ejecuta
+  el ciclo 402→pay→200 una sola vez contra `POST /creva-score/report` (restricción explícita del
+  humano: un único intento real, sin reintento automático, por presupuesto de crédito de prueba
+  limitado).
+- **Resultado del intento real:** HTTP 402 con `error: "facilitator_verify_http_500"` — el
+  `/verify` del facilitador vivo (`https://api.testnet.blocky402.com`) devolvió 500. Sin
+  `X-PAYMENT-RESPONSE`, sin liquidación, **sin tx hash**. Confirmado vía el balance de Bazantic
+  ($0.26 sin cambio) que no se cobró nada — el fallo ocurrió antes de cualquier liquidación real.
+- Investigada la causa contra la documentación pública de BlockyDevs
+  (`blocky402.com/docs/api-reference/`): el payload de Hedera debe ser "a partially-signed
+  TransferTransaction ... The facilitator then co-signs during settlement". `hedera-signer.ts`
+  actual fija el `TransactionId` de la transacción a la cuenta `FACILITATOR_FEE_PAYER`
+  (`TransactionId.generate(AccountId.fromString(config.facilitatorFeePayer))`) pero solo firma con
+  la llave del payer real — Hedera exige que la cuenta nombrada en `TransactionId` firme la
+  transacción. Hipótesis fuerte de causa del 500: el `TransactionId` debería quedarse en la cuenta
+  del payer real (parcialmente firmada solo por él), dejando que el facilitador añada su propia
+  firma de patrocinador en `/settle` — no reclamarlo de antemano al firmar.
+
+**Qué NO se verificó, y por qué:**
+- No se reintentó el pago — restricción explícita del humano (un solo intento real).
+- No se corrigió `hedera-signer.ts` — fuera de `[POSEES]` de este bloque (test de integración +
+  docs solamente); el archivo es interfaz pública compartida, decisión de otro rol. Reportado por
+  mensaje directo a la sesión Auditor (`local_b559b1a0-...`) que lo escribió.
+- No se corrió de nuevo `unit`/`fuzz`/`invariant` tras este bloque — pendiente, se corre en el
+  mismo lote que el cierre final.
+
+**Dónde queda el pendiente:** `docs/plan.md`, bloque "Hedera x402" — permanece abierto, bloqueador
+actualizado de "falta ejecutar el intento" a "el intento real falló con `facilitator_verify_http_500`,
+causa probable: `TransactionId` mal asignado en `hedera-signer.ts`". Sigue sin tx hash.
+
+## 2026-09-04 — Segundo intento real de pago Hedera: mismo HTTP 500, hipótesis del Auditor descartada
+
+**Qué se hizo:**
+- El Auditor (sesión `local_b559b1a0-...`) revisó la hipótesis del `TransactionId`=fee-payer contra
+  el paquete oficial `@x402/hedera` (npm, mantenido por Coinbase) y la descartó: el código de
+  referencia hace exactamente lo mismo que `hedera-signer.ts`. Encontró en su lugar que
+  `gateway/` nunca cargaba `.env` (sin `dotenv` ni `--env-file`) y que los defaults de `config.ts`
+  eran inválidos (`network: "hedera-testnet"` sin los dos puntos CAIP-2, `asset: "HBAR"` en vez de
+  `"0.0.0"`). Corrigió ambos y pusheó a `main` (`0654864`).
+- Mergeado `main` (`0654864`) a este worktree — conflicto en `docs/plan.md` (ambos lados
+  documentando el mismo bloque desde ángulos distintos), resuelto a favor de la versión que refleja
+  el estado más reciente (causa real encontrada, corregida, reintento en curso). `npm install`
+  corrido de nuevo para traer `dotenv`.
+- **Segundo intento real, autorizado explícitamente por el humano tras el fix:** mismo resultado
+  exacto — HTTP 402, `error: "facilitator_verify_http_500"`, sin `X-PAYMENT-RESPONSE`, sin tx hash.
+  El fix de `dotenv`/defaults no era la causa real del 500 (mi test de integración ya cargaba
+  `.env` manualmente en el proceso desde el primer intento, así que ese gap específico no explicaba
+  mi fallo original — pero confirmar el fix igual era necesario para descartar la hipótesis).
+
+**Qué NO se verificó, y por qué:**
+- No se reintentó una tercera vez — restricción explícita del humano (un intento por autorización).
+- No se investigó una causa alternativa del 500 más allá de lo ya descartado (`TransactionId`,
+  carga de `.env`/defaults) — pendiente de que alguien con acceso a los logs del lado del
+  facilitador (Bazantic/BlockyDevs) diagnostique del otro lado, o de inspeccionar con más detalle
+  el payload exacto enviado (`paymentRequirements` normalizado a v2) contra el schema real.
+- No se confirmó si el balance de Bazantic cambió tras este segundo intento (no se volvió a
+  consultar el dashboard).
+
+**Dónde queda el pendiente:** `docs/plan.md`, bloque "Hedera x402" — sigue abierto, dos hipótesis
+descartadas, causa real del 500 todavía sin identificar. Sigue sin tx hash.

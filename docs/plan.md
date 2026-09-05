@@ -31,6 +31,8 @@ checklist.
   campos, ya no filtra `resource`/`description`/`mimeType` que tampoco existen en el schema v2
   real). Falta: reintentar con un humano proveyendo
   `HEDERA_PAYER_ACCOUNT_ID`/`HEDERA_PAYER_PRIVATE_KEY` y HBAR de testnet, guardar el tx hash.
+  Nuevo `gateway/test/integration/live-hedera-payment.spec.ts` (skip sin credenciales) queda listo
+  para ese reintento — corre el ciclo 402→pay→200 una sola vez, sin reintento automático.
 
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.
