@@ -17,6 +17,20 @@ checklist.
 
 ## Abiertos
 
+- [ ] **2026-09-05 — `FACILITATOR_URL` sin valor real en `gateway/.env` tumba el proceso del
+  gateway entero al liquidar un pago x402.** Encontrado ejerciendo el signer de demo de la app
+  (bloque cerrado abajo, `feature-hedera-mobile-signer`): `gateway/src/config.ts:8` cae a
+  `http://localhost:4020` cuando `FACILITATOR_URL` no está seteada; nada corre ahí, y
+  `gateway/src/facilitator.ts`'s `verifyPayment`/`settlePayment` no envuelven el `fetch` en
+  try/catch, así que el `ECONNREFUSED` sale como unhandled rejection y mata el proceso Node
+  completo (reproducido dos veces, mismo punto). **Bloquea el criterio de Hedera de "una petición
+  pagada real" desde la app** hasta que se resuelva. Dos cosas separadas: (1) poner el valor real
+  de `FACILITATOR_URL` en `gateway/.env` (el humano lo coloca, no un agente — candidato:
+  `https://api.testnet.blocky402.com`, ya en `.env.example`, o el facilitador de Bazantic si es
+  otro), y (2) endurecer `facilitator.ts` para que un facilitador caído devuelva 402
+  `settlement_failed`/`facilitator_verify_http_*` en vez de tumbar el proceso — ese segundo punto
+  es un bug de hardening real, independiente de qué URL se configure.
+
 - [ ] **2026-09-05 — Paridad móvil, tercera revisión; coordinación Codex en
   `codex/mobile-parity-audit`.** Navegación: `codex/mobile-parity-foundation`;
   Ayuda: `codex/mobile-parity-help`; Inicio: `codex/mobile-parity-dashboard`.
@@ -205,16 +219,42 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   subpath de `@noble/hashes` (fallback a resolución por archivo, sin error). `dist/` del export
   borrado tras verificar; sin servidor Metro corriendo al terminar (`netstat` confirma sin puertos
   8081/8098 en `LISTENING`).
-  **No verificado — gap real, documentado, no forzado:** el ciclo pagado 402→pago→200 **no se
-  ejecutó en vivo contra el gateway real** en esta sesión — hace falta que el humano coloque
-  `EXPO_PUBLIC_HEDERA_DEMO_ACCOUNT_ID`/`EXPO_PUBLIC_HEDERA_DEMO_PRIVATE_KEY` en `app/.env`
-  directamente (nunca por chat, mismo criterio que el resto de secretos de este proyecto) — puede
-  reusar el mismo valor que `HEDERA_PAYER_ACCOUNT_ID`/`HEDERA_PAYER_PRIVATE_KEY` de `gateway/.env`
-  (la cuenta que ya liquidó el pago real de la entrada de arriba, `0.0.10119469`) o una cuenta de
-  testnet separada. Tampoco se probó en Expo Go sobre dispositivo físico — mismo motivo que el
-  resto del repo (sin hardware disponible en esta sesión). **Bloquea, hasta que se ejerza:**
-  re-verificar en dispositivo físico real los haptics de Success/Error de `VerifyScreen.tsx`
-  contra el flujo pagado real (el cierre de haptics de abajo solo cubrió el mock anterior).
+  **Actualización `2026-09-05` (segunda pasada) — credenciales colocadas por el humano en
+  `app/.env`, ciclo ejercido contra el gateway real: firma correcta, liquidación bloqueada por un
+  gap de configuración pre-existente del gateway, no del signer nuevo.** `jest`/`jest-expo` resultó
+  no servir para esta verificación: su `fetch` global (implementación nativa de RN, sin runtime
+  nativo real bajo Jest) nunca completa una petición de red real — `.status` vuelve `undefined` —
+  así que `app/test/integration/live-app-payment.spec.ts` se escribió, se confirmó inútil para
+  esto, y **se borró** (no se deja un test roto en el repo). En su lugar se ejecutó un script
+  suelto con `tsx` (Node real, mismo `hederaPayment.ts` sin modificar) contra el gateway real ya
+  corriendo en `192.168.68.52:8787`:
+  1. `POST /creva-score/report` sin pago → **402 real**, `payTo` viene como dirección EVM
+     (`0x9ac5EA59E6f68Ef3bfc8c29FA2bb2F9b71B5Bf93`), no `0.0.x` — `AccountId.fromString` de
+     `@hashgraph/sdk` la acepta igual, sin cambios necesarios en `hederaPayment.ts`.
+  2. `buildSignedPaymentHeader` con las credenciales reales del humano → **header X-PAYMENT válido
+     generado** (682 caracteres) sin error — confirma que el signer de la app firma correctamente
+     contra un reto 402 real, no solo contra el fixture del test unitario.
+  3. Retry con `X-PAYMENT` → el gateway **crasheó** (`ECONNRESET` del lado del cliente). Log del
+     proceso: `TypeError: fetch failed` → `ECONNREFUSED` conectando a `localhost:4020` — el
+     `facilitator.ts` de `gateway/src/config.ts:8` cae a ese default porque **`FACILITATOR_URL` no
+     está seteada en `gateway/.env`** (sí está declarada en `gateway/.env.example` con
+     `https://api.testnet.blocky402.com`, pero el `.env` real no la tiene). El rechazo de red no
+     estaba en un `try/catch` en `gateway/src/facilitator.ts`'s `verifyPayment`, así que se
+     propagó como unhandled rejection y **tumbó el proceso del gateway entero** — no solo esa
+     request. Confirmado reproducible: reinicié el gateway (`npx tsx src/index.ts`, capturando
+     log) y crasheó exactamente igual en el mismo punto.
+  **Diagnóstico, no arreglado:** esto es un gap de configuración/hardening del **gateway
+  existente** (`FACILITATOR_URL` sin valor real + falta de manejo de error en
+  `facilitator.ts`), no del bloque de signer de esta sesión — el signer cumplió su parte (firma
+  válida, 402→firma correcta). No se tocó `gateway/.env` (el humano coloca esa URL, no un agente)
+  ni se cambió `facilitator.ts` sin permiso explícito, para no ensanchar el alcance de este bloque.
+  **El ciclo 402→pago→200 completo sigue sin verificarse en vivo** — falta que `FACILITATOR_URL`
+  apunte a un facilitador real y corriendo antes de repetir el intento (una sola liquidación real,
+  no un loop de reintentos, mismo criterio del resto del proyecto). Tampoco se probó en Expo Go
+  sobre dispositivo físico — mismo motivo que el resto del repo (sin hardware disponible en esta
+  sesión). **Bloquea, hasta que se ejerza:** re-verificar en dispositivo físico real los haptics de
+  Success/Error de `VerifyScreen.tsx` contra el flujo pagado real (el cierre de haptics de abajo
+  solo cubrió el mock anterior).
   Trabajo hecho en la rama `feature-hedera-mobile-signer`, no mergeada a `main` todavía.
 
 - [x] `2026-09-05` — **Haptics verificados en dispositivo físico (Expo Go, iPhone) contra el
