@@ -129,6 +129,33 @@ checklist.
      en reintentos — mismo criterio de cautela que Hedera testnet y World ID.
   No hay código nuevo de este lado del repo: Bazantic envuelve tools existentes con metadata, no
   con plomería — por eso no aplica un `[VERIFY]` de tsc/jest a este bloque, solo la llamada real.
+  **Avance 2026-09-05 (worktree `feature-creva-service-identity`) — resuelto el punto 2 (JWT),
+  el punto 1/3 siguen abiertos:** `JwtAuthGuard` de `creva_finance/backend` valida contra Supabase
+  (`AUTH_PROVIDER=supabase` por defecto) — no hay secreto local con el que fabricar un JWT, y un
+  `CREVA_SERVICE_JWT` estático habría quedado inválido en menos de una hora (los access tokens de
+  Supabase expiran). Reemplazado por identidad de servicio con refresh token: nuevo
+  `gateway/src/creva-auth.ts` (`getCrevaAccessToken()`) cachea el access token en memoria (nunca en
+  disco), decodifica su `exp` para saber cuándo caducó, y lo renueva vía `POST /auth/refresh` contra
+  `config.crevaApiUrl` usando `CREVA_SERVICE_REFRESH_TOKEN` (nueva env var, placeholder ya en
+  `gateway/.env.example`) — rota el refresh token devuelto en cada llamada. `gateway/src/creva-proxy.ts`
+  ahora adjunta `Authorization: Bearer <access token>` a toda request reenviada a Creva y responde
+  502 sin llamar a `fetch` si el token no se puede obtener (nunca reenvía sin auth). **Verify:**
+  `tsc --noEmit` limpio, `eslint` limpio, 40/41 tests pasan (unit + fuzz + invariant nuevos en
+  `gateway/test/{unit,fuzz,invariant}/creva-auth*` y `creva-proxy-always-authenticated.invariant.spec.ts`,
+  más las suites preexistentes actualizadas para mockear `creva-auth.js`; el test #41 que falla
+  intermitentemente — "Worker exited unexpectedly" de tinypool — ya fallaba igual en `main` antes de
+  este cambio, confirmado corriendo la suite base sin tocar). **Decisión pendiente del humano antes
+  de poder cerrar este bloque (bloqueante):** la cuenta de servicio (`bazantic-service+<algo>@<dominio
+  real de Creva>`) debe registrarse contra el backend real (`https://creva-backend-c7as7id5jq-pv.a.run.app`,
+  **producción, no local** — confirmado en `gateway/src/config.ts`) vía `POST /auth/register` — un
+  agente no debe crear ni la cuenta ni la contraseña de una cuenta real de producción por su cuenta.
+  El humano debe: (a) registrar la cuenta él mismo (no se encontró un dominio de correo corporativo
+  consistente en `creva_finance` — el seed data solo usa gmail personal, así que el email exacto
+  también lo define el humano), (b) hacer login para obtener `refreshToken`, y (c) pegar ese valor
+  directo en `gateway/.env` como `CREVA_SERVICE_REFRESH_TOKEN` (nunca en el chat). Con eso puesto,
+  falta repetir la llamada real de la hipótesis (a) — el payload correcto (`businessName`,
+  `stateCode`, sin `document`/`embed`) — para confirmar que el bloqueador original ya no reaparece,
+  y capturar el recibo/transacción real contra el crédito de 0.30 USDC.
 
 - [ ] **Ledger — $5,000, 2 pistas (AI Agents x Ledger $3.5k + Continuity $1.5k).** Prerrequisito:
   **Ledger Key Ring CLI** (`wallet-cli ring`) del Ledger Agent Stack, publicado 2026-09-03 en
