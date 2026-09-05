@@ -17,10 +17,14 @@ checklist.
 
 ## Abiertos
 
-- [ ] **Hedera x402: falta pago real en testnet, no solo el firmante.** `gateway/src/hedera-signer.ts`
-  ya arma y firma un `X-PAYMENT` real; falta que un humano provea
-  `HEDERA_PAYER_ACCOUNT_ID`/`HEDERA_PAYER_PRIVATE_KEY` con HBAR de testnet, ejecute la request, y
-  guarde el tx hash como evidencia. Detalle: `docs/memoria.md` (varias entradas 2026-09-04).
+- [ ] **Hedera x402: primer intento real dio HTTP 500, causa probable corregida, falta reintentar.**
+  Agente 13 corrió una request real contra el facilitador y recibió `facilitator_verify_http_500`
+  (sin cargo, balance sin cambios). Su hipótesis (el patrón `TransactionId`=fee-payer) se descartó:
+  coincide exactamente con la referencia oficial `@x402/hedera`. Causa real encontrada por el
+  Auditor: `gateway/` no cargaba `.env` (sin `dotenv`), y los defaults de `config.ts` eran
+  inválidos (`network: "hedera-testnet"` sin los dos puntos, `asset: "HBAR"` en vez de `"0.0.0"`)
+  — corregido en ambos. Falta: reintentar la request real con un humano proveyendo
+  `HEDERA_PAYER_ACCOUNT_ID`/`HEDERA_PAYER_PRIVATE_KEY` y HBAR de testnet, guardar el tx hash.
 
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.
@@ -93,9 +97,10 @@ checklist.
   `express.json` a 100kb, `helmet()`, `express-rate-limit` (120/min), replay de `X-PAYMENT` vía
   hash SHA-256 en memoria (limitación conocida: no distribuido, suficiente para una instancia).
 
-- [x] `2026-09-04` — **Firmante de pago Hedera.** `gateway/src/hedera-signer.ts` construye y firma
-  una `TransferTransaction` real vía `@hashgraph/sdk`; `PaymentPayload` ya tipado. Falta solo
-  credenciales de payer reales (ver bloque abierto arriba).
+- [x] `2026-09-04` — **Firmante de pago Hedera + fix de config real.** `gateway/src/hedera-signer.ts`
+  construye y firma una `TransferTransaction` real; `dotenv` agregado (`gateway/` no cargaba
+  `.env`) y defaults de `config.ts` corregidos a formato CAIP-2/`0.0.0` válido. Primer intento
+  real sigue pendiente de reintentar (ver bloque abierto arriba).
 
 - [x] `2026-09-04` — **Repo público + README reescrito.** `README.md` describe el producto de
   submission, no la carpeta de preparación.

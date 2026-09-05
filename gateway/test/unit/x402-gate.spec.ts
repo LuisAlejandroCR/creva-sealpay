@@ -33,7 +33,7 @@ describe("x402-gated creva-score routes", () => {
       expect(res.body.x402Version).toBe(1);
       expect(res.body.accepts[0]).toMatchObject({
         scheme: "exact",
-        network: "hedera-testnet",
+        network: "hedera:testnet",
         resource: route,
       });
     });
