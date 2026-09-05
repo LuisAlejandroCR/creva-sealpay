@@ -17,6 +17,17 @@ checklist.
 
 ## Abiertos
 
+- [ ] **`negocio.creva.eth`: bloqueado por migración a ENSv2 en Sepolia.** `creva.eth` confirmado
+  no registrado. La dirección de `ETHRegistrarController` que documentan ENS Labs para Sepolia
+  (`0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968`) **no está autorizada** hoy en el
+  `BaseRegistrarImplementation` real (`controllers() == false`, verificado on-chain) — Sepolia ya
+  corre ENSv2, cuyas direcciones reales no se confirmaron contra dos fuentes independientes en
+  esta sesión (ver `docs/memoria.md` 2026-09-05 para el detalle completo de la investigación).
+  Falta: confirmar direcciones ENSv2 reales, reescribir `scripts/ens/register-subname.mjs` contra
+  ellas, y solo entonces registrar `creva.eth` + crear el subname + escribir el folio sellado en
+  el resolver. Wallet en `.env` ya fondeado (0.05 ETH Sepolia, gastados ~0.00009 ETH en un
+  `commit()` de prueba).
+
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.
 

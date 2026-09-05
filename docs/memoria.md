@@ -4,6 +4,61 @@
 
 # Memoria — ETHOnline 2026
 
+## 2026-09-05 — `negocio.creva.eth`: bloqueado por migración a ENSv2 en Sepolia (worktree `feature-ens-subname`)
+
+**Qué se hizo:**
+- Script en `scripts/ens/register-subname.mjs` (elegido sobre `gateway/src/ens/**` para no tocar
+  dependencias de `gateway/package.json` ni su runtime; `scripts/ens/` tiene su propio
+  `package.json` con `ethers` + `dotenv`). Lee `ENS_OWNER_ADDRESS`/`ENS_OWNER_PRIVATE_KEY`/
+  `ALCHEMY_API_KEY` de `.env` raíz — nunca los imprime.
+- Confirmado wallet fondeado: `0.05 ETH` en Sepolia, dueño `0x2d7aad7EDF9db6385fb8fa79e7Ab6ce049b5b420`.
+- `creva.eth` confirmado **no registrado** (`ENSRegistry.owner(namehash) == address(0)`,
+  `ETHRegistrarController.available('creva') == true`).
+- Se ejecutó un `commit()` real contra `0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968` (dirección de
+  `ETHRegistrarController` listada en `docs.ens.domains/learn/deployments` y en el wiki de
+  `ensdomains/ens-contracts` para Sepolia) — tx
+  `0x8fd07c296a5fadac2c0ce2bc8f59f20a74f8638a41ca6f1f4ee82c73550821ca`, confirmada. `register()`
+  revirtió sin razón (`missing revert data`) tanto en el intento real como en `staticCall`
+  reproducido después.
+- Investigado por qué: `BaseRegistrarImplementation.controllers(0xfb3cE5D0...)` → **`false`** —
+  ese controller **no está autorizado** en el `BaseRegistrarImplementation` real de Sepolia
+  (`0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85`, confirmado activo por Blockscout: `NameRenewed`/
+  `Transfer` reales de 2026-09). Es decir, la dirección que documenta ENS Labs para Sepolia está
+  **desactualizada/no-controller**, coincide con la advertencia textual de `docs.ens.domains`:
+  "these ENSv1 contracts still exist on Sepolia but are no longer in use".
+- Bitácora de `ControllerAdded`/`ControllerRemoved` leída directamente on-chain (RPC público
+  `ethereum-sepolia-rpc.publicnode.com`, ventanas de 49000 bloques, 0→11.638.346). Los únicos dos
+  controllers activos hoy son `0x4ad56feb5Fc7B8298db06E88fd5CBc41D64602Fa` (verificado en
+  Blockscout como **`ETHRenewerV1`**) y `0xF83Fe2658F702A072f3c7b0DC4A0ab8c7b044750` (verificado
+  como **`Graveyard`**) — ninguno expone `available()`/`commit()`/`register()` con la firma clásica
+  de `ETHRegistrarController` (ambas llamadas `available('creva')` revirtieron sin datos). Esto es
+  consistente con que Sepolia ya corre **ENSv2** (arquitectura de mainnet aplicada a Sepolia,
+  `brainstorming.md:278-279`): "Graveyard" es el contrato de migración de ENSv2 para nombres 2LD
+  legacy, no un registrar clásico.
+- `NameWrapper` (`0x0635513f179D50A207757E05759CbD106d7dFcE8`) **no** es controller hoy
+  (`controllers() == false`), así que tampoco es la vía de registro directa.
+
+**Qué NO se verificó, y por qué:**
+- No se completó el registro de `creva.eth` ni se creó `negocio.creva.eth` — el flujo real de
+  registro en Sepolia hoy pasa por contratos **ENSv2** (no `ETHRegistrarController` v1) cuyas
+  direcciones/ABI reales no se confirmaron en esta sesión (un primer `WebFetch` a
+  `docs.ens.domains` sí devolvió nombres de contrato tipo `ETHRegistry`/`ETHRegistrarV2`/
+  `PublicResolverV2`, pero con direcciones de formato sospechoso — todo en minúsculas, no
+  checksummed — que no se pudieron corroborar contra una segunda fuente independiente; se
+  descartaron por prudencia antes de firmar una transacción con fondos reales de Sepolia).
+- No se gastó el fondo del registro (`register()` nunca llegó a minar) — solo gas del `commit()`,
+  ~0.00009 ETH. Balance verificado después: `0.0499...` ETH, íntegro salvo ese gas.
+- El folio real usado en el script de prueba es `"SP-2026-000123"` — el único folio concreto que
+  aparece en código de producción/test hoy (`app/test/unit/verify/sealClient.spec.ts:17`); no
+  existe todavía un generador de folios real en `gateway/` (`fetchSealedReport` en
+  `app/features/verify/sealClient.ts` sigue siendo un mock tipado, sin backend real) — no se
+  "inventó" un shape nuevo, se reusó el único folio real existente en el repo.
+
+**Dónde queda el pendiente:** bloque en `docs/plan.md` (abierto) — direcciones ENSv2 ya
+confirmadas (arriba); falta (1) fondear `ENS_OWNER_ADDRESS` con Sepolia USDC, (2) reescribir
+`scripts/ens/register-subname.mjs` contra `ETHRegistrar`/`PermissionedRegistry` de ENSv2 (el
+script actual todavía apunta al `ETHRegistrarController` v1 muerto — **no usar tal cual**).
+
 ## 2026-09-04 — Fix de safe-area insets (status bar solapado) (worktree `magical-taussig-acdc49`)
 
 **Qué se hizo:**
