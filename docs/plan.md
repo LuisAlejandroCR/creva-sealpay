@@ -76,7 +76,127 @@ checklist.
 - [ ] **Instalar el CLI de Codex, si se va a usar.** `engram setup codex` ya dejó la config MCP
   lista en `%APPDATA%\codex\`; falta el plugin/hooks, que requiere el CLI real.
 
+- [ ] **Arc (Circle) — idea 8, "el respaldo nace on-chain".** $10k, apuesta B
+  (`brainstorming.md` §4, fila 8: encaje 4, carga 5, riesgo 5 — greenfield real, no integración
+  pegada). **Criterio de aceptación:** el reporte sellado de Creva emite un evento on-chain en Arc
+  testnet (compromiso al mismo hash canónico que ya firma Ed25519 hoy) que representa el respaldo
+  del negocio; si se borra la pieza de Arc, el respaldo deja de tener rastro on-chain — con eso
+  cumple el descalificador #2 de `sponsor_track_rules.md`. Circle Agent Stack como wallet/firma del
+  lado del facilitador, reutilizando el mismo rol de "quien paga el gas" que ya tiene el
+  facilitador de Hedera en x402. **Secuencia:** después de que World ID Sandbox responda (o venza
+  el plazo razonable de espera) — no antes, para no partir el foco de dos bloqueos externos a la
+  vez.
+
+- [ ] **Uniswap Foundation — contribución al stack + `FEEDBACK.md`.** $5k, lift bajo: no exige
+  producto nuevo, exige una contribución real (código o documentación) al stack de Uniswap más un
+  `FEEDBACK.md` describiendo la experiencia de integrarlo. **Criterio de aceptación:** PR o commit
+  mergeable en un repo del stack de Uniswap (a definir cuál según lo que Creva realmente toca, si
+  es que toca algo — si no hay superficie de contacto real, esta pista se descarta en vez de
+  forzarla) + `FEEDBACK.md` en este repo. **Secuencia:** en paralelo a Arc, es la más barata de
+  ejecutar mientras se espera World ID.
+
+- [ ] **The Graph y 1inch — evaluar después de cerrar Hedera + World + ENS + Arc + Uniswap.**
+  Ninguna de las dos tiene hoy una forma de producto *load-bearing* en Creva (`brainstorming.md`
+  §1 y §4 no las mapea a ninguna idea con encaje ≥3) — no se agregan sin antes construir esa forma,
+  para no violar el descalificador #2. Formas candidatas a validar con el humano antes de tocar
+  código:
+  - **The Graph ($15k, pista Continuity $5k):** un subgraph que indexe los eventos on-chain que
+    Creva ya emite (registro `negocio.creva.eth` en ENSv2/Sepolia del bloque 28dbcde, y el evento
+    de respaldo de Arc de arriba si ese bloque cierra primero), y que el score-agent consulte en
+    vivo como una señal más del radar regulatorio — ej. "cuántas verificaciones externas ha tenido
+    este folio" vía `report-verification.controller.ts`. Se vuelve load-bearing solo si el score
+    real cambia cuando ese dato cambia, no si es un panel decorativo.
+  - **1inch ($7k):** el facilitador de x402 (Hedera) liquida hoy en la moneda que ya tiene; si en
+    algún punto necesita convertir (ej. USDC recibido → moneda nativa para gas), esa conversión es
+    candidata a ejecutarse vía Aqua/SwapVM de 1inch en vivo durante la demo. Solo tiene sentido si
+    existe esa necesidad real de conversión — si el facilitador nunca convierte, no hay pista que
+    integrar y se descarta.
+  Ninguna de las dos entra al roadmap como bloque de trabajo hasta que una de estas formas se
+  confirme con el humano como real (no hipotética) y se re-puntúe en `brainstorming.md` §4.
+
+- [ ] **Bazantic — $3,000, 3 pistas.** Prerrequisito: cuenta/acceso a Bazantic (gateway x402/MPP +
+  servidor MCP + Recipes) — hoy no indexado públicamente, confirmar que el signup existe antes de
+  prometer nada (`brainstorming.md` §1, fila Bazantic; §"Bazantic — el hallazgo de la rev. 5").
+  Integración: envolver el servidor MCP que ya existe (`creva-score`: `creva_regulatory_radar`,
+  `creva_verify_business`, `creva_report`) con Recipes de Bazantic — cero plomería nueva. **Si esto
+  no se resuelve, no podemos avanzar:** sin cuenta de Bazantic confirmada, este bloque completo
+  (las 3 pistas, $3k) se descarta del roadmap — no hay integración parcial posible.
+
+- [ ] **Ledger — $5,000, 2 pistas (AI Agents x Ledger $3.5k + Continuity $1.5k).** Prerrequisito:
+  **Ledger Key Ring CLI** (`wallet-cli ring`) del Ledger Agent Stack, publicado 2026-09-03 en
+  developers.ledger.com/ethonline — instalar y generar/importar una cuenta de firma dedicada a este
+  track. Regla dura ya anotada: el Key Ring **no puede competir** con la wallet del facilitador de
+  Hedera x402 (`brainstorming.md` línea 443) — necesita un rol de firma distinto y real (ej. firmar
+  el lado Arc/on-chain del respaldo), no una segunda wallet decorativa. **Si esto no se resuelve
+  (CLI instalado + rol de firma no-conflictivo definido), no podemos avanzar** con este bloque —
+  se descarta antes que forzar una integración pegada que viole el descalificador #2.
+
+- [ ] **Privy — $5,000, 2 pistas (B2B financial product $2.5k + Best financial flow $2.5k).**
+  Prerrequisito: cuenta Privy + `defineChain` de viem con chain ID **296** (Hedera) y su JSON-RPC
+  Relay, porque Privy no trae Hedera preconfigurada (`brainstorming.md` línea 336-337). Depende de
+  que el bloque Arc/wallet-layer de arriba exista primero — no tiene sentido antes. **Si el chain
+  296 custom no queda configurado y probado contra el Hedera JSON-RPC Relay real, no podemos
+  avanzar** con este bloque.
+
+- [ ] **Chainlink — $3,000, 2 pistas (Confidential Workflows CRE $2k + Upgrade $500).** Encaje
+  débil, solo vigilar (`brainstorming.md` líneas 113-116): la pista de $500 exige que la
+  integración **produzca un cambio de estado onchain** — *"simply displaying Chainlink data in a
+  frontend is not sufficient"* — y Creva hoy no tiene contratos propios (el bloque Arc de arriba
+  cambiaría eso). La de $2k (Confidential Workflows, CRE) todavía no publica requisitos.
+  Prerrequisito antes de comprometer: (1) que el bloque Arc cierre y deje un contrato/evento
+  onchain real que Chainlink pueda leer o disparar, y (2) que CRE publique los requisitos de
+  Confidential Workflows y se confirmen compatibles con la tesis de privacidad de Creva. **Si
+  ninguno de los dos prerrequisitos se cumple para el 09/14 (ver Q&A del dashboard), no podemos
+  avanzar** con Chainlink y el bloque se descarta sin penalidad — es el fit más débil del lote.
+
+## Variables de entorno por patrocinador — falta configurar
+
+Checklist de cuentas/API keys que hay que crear y meter en el `.env` correspondiente antes de que
+cualquier bloque de arriba pueda ejecutarse. `gateway/.env.example` y `app/.env.example` ya
+declaran las de Hedera/World actuales; lo nuevo por patrocinador:
+
+| Patrocinador | Variable(s) nuevas | Dónde | Fuente/cómo se obtiene |
+|---|---|---|---|
+| Hedera *(ya existe, confirmar valor real)* | `HEDERA_PAYER_ACCOUNT_ID`, `HEDERA_PAYER_PRIVATE_KEY`, `FACILITATOR_AUTH_TOKEN`, `FACILITATOR_FEE_PAYER`, `PAY_TO_ADDRESS` | `gateway/.env` | Cuenta testnet ya creada en `portal.hedera.com` (`brainstorming.md:396`) — el humano coloca la private key directo, nunca por chat |
+| World *(ya existe, pendiente sandbox)* | `WORLD_API_KEY`, `WORLD_APP_ID`, `EXPO_PUBLIC_WORLD_APP_ID` | `gateway/.env`, `app/.env` | Developer Portal de World — bloqueado por aprobación de Tools for Humanity (ver bloque de arriba) |
+| Arc (Circle) | `ARC_RPC_URL`, `ARC_NETWORK` (testnet/mainnet), `CIRCLE_AGENT_STACK_API_KEY`, cuenta/wallet de firma para el evento de respaldo | por definir (`gateway/.env` o nuevo `arc/.env`) | Cuenta Circle Developer + Arc testnet faucet |
+| Uniswap Foundation | Ninguna API key — es contribución al stack, no runtime | — | Repo del stack de Uniswap a definir |
+| Bazantic | `BAZANTIC_GATEWAY_URL`, `BAZANTIC_MCP_TOKEN` | `gateway/.env` | Signup en Bazantic — **confirmar que existe**, no está indexado públicamente hoy |
+| Ledger | Config del Key Ring CLI (no es una env var de app, es estado local del CLI: `~/.ledger/` o similar) | Máquina del agente que firma, no `.env` del repo | `wallet-cli ring` del Ledger Agent Stack |
+| Privy | `PRIVY_APP_ID`, `PRIVY_APP_SECRET`, RPC URL de Hedera para `defineChain(296, ...)` | `gateway/.env` o `app/.env` | Dashboard de Privy |
+| Chainlink | Por definir — CRE aún no publica requisitos de Confidential Workflows | — | Vigilar publicación, no crear cuenta todavía |
+
+**Ninguna de estas API keys/private keys se pega en el chat** — el humano las coloca directo en el
+`.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
+
 ## Cerrados
+
+- [x] `2026-09-05` — **Nav de 5 pestañas + sheet "Más" + set de iconos SVG (worktree
+  `feature-nav-icon-fix`): 15 hallazgos de la auditoría UI cerrados.** `app/App.tsx`'s `TabBar`
+  pasó de 2 pestañas (Inicio/Perfil) a las 5 del objetivo (Inicio, Score, Tarjeta, Crédito, Más);
+  Tarjeta queda visiblemente deshabilitada con badge "PRONTO", no tocable
+  (`disabled`/`accessibilityState`). "Más" abre `app/features/more/MoreSheet.tsx` ("Todo lo
+  demás"), 11 ítems: Mi perfil/Ayuda navegan a `ProfileScreen`/`HelpScreen` existentes sin
+  duplicarlas, los otros 9 (Movimientos, Calculadora, Estados de cuenta, Tu garantía, Sello de tu
+  negocio, Reglas que te afectan, Tu reporte, Avisos, Aviso de privacidad) van a `StubScreen.tsx`
+  genérico con copy tomado de `app/lib/help-content.ts` donde existe artículo. Set de iconos SVG
+  compartido en `app/features/shared/icons/Icon.tsx` (21 glyphs, `react-native-svg` recién
+  instalado vía `npx expo install`), paths copiados de
+  `creva_finance/frontend/components/BottomNav.tsx`/`components/help/HelpGlyph.tsx` donde existían;
+  colores resueltos desde `tailwind.config.js` (`theme-colors.ts`), cero hex nuevo en
+  `app/features/`. **Decisión escogida:** Score y Crédito son pantallas mínimas reales nuevas
+  (`ScoreScreen.tsx`/`CreditScreen.tsx`) que enlazan a `QueryScreen`/`VerifyScreen` respectivamente
+  sin repurposearlas — ambas mantienen su identidad y entradas actuales. Los 9 callbacks no-op que
+  la auditoría encontró (Dashboard: notificaciones/crédito/tarjeta; Profile: 5 filas de menú; Help:
+  artículo/categoría) quedan todos cableados a una pantalla real. `DeleteAccountScreen.tsx` dedicado
+  para "Eliminar mi cuenta" (no borra nada real, solo explica el canal de correo de
+  `help-content.ts`). **Verify:** `tsc --noEmit` limpio; `jest unit+fuzz+invariant` → 36 suites/157
+  tests verdes (antes 33/147, +10 tests nuevos: `test/unit/nav/structure.spec.ts`,
+  `test/unit/more/structure.spec.ts`, `test/unit/shared/no-emoji.spec.ts`); `grep` de hex y de
+  emoji sobre `app/features/` ambos vacíos; `npx expo start` bundleó `ios` sin error (CI mode,
+  HTTP 200, ~9.7MB), servidor detenido y puerto confirmado libre con `netstat`. **Falta:** Expo Go
+  en dispositivo físico real, mismo motivo que el resto del repo (sin hardware disponible). Detalle
+  completo, incluida la lista de los 15 hallazgos y su resolución uno a uno: `docs/memoria.md`.
 
 - [x] `2026-09-05` — **Auditoría UI/UX completa (worktree `feature-ui-audit-fix`): 6 hallazgos
   cerrados en el mismo lote.** (1) Bug de auth en reload corregido: `App.tsx`'s `AppFlow` ahora
