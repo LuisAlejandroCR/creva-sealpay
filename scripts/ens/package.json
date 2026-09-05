@@ -1,0 +1,9 @@
+{
+  "name": "creva-ens-scripts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "ethers": "^6.13.4"
+  }
+}

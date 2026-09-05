@@ -54,10 +54,64 @@
   `app/features/verify/sealClient.ts` sigue siendo un mock tipado, sin backend real) — no se
   "inventó" un shape nuevo, se reusó el único folio real existente en el repo.
 
-**Dónde queda el pendiente:** bloque en `docs/plan.md` (abierto) — direcciones ENSv2 ya
-confirmadas (arriba); falta (1) fondear `ENS_OWNER_ADDRESS` con Sepolia USDC, (2) reescribir
-`scripts/ens/register-subname.mjs` contra `ETHRegistrar`/`PermissionedRegistry` de ENSv2 (el
-script actual todavía apunta al `ETHRegistrarController` v1 muerto — **no usar tal cual**).
+**Actualización 2026-09-05 (continuación, cierre del bloque):**
+
+**Dónde se obtuvo el testnet fondeado — para la próxima vez que haga falta:**
+- **Sepolia ETH:** vía un faucet de Google Cloud Web3 (0.05 ETH recibidos en
+  `0x2d7aad7EDF9db6385fb8fa79e7Ab6ce049b5b420`, tx
+  `0x764d0cf32237c0908da638a2aeac016ca8904051de5f778c3c8757e0f9d5bc9c`).
+- **Sepolia USDC:** [faucet.circle.com](https://faucet.circle.com), red "Ethereum Sepolia", token
+  USDC, 20 USDC por request cada 2h — pide reCAPTCHA humano (correcto: un agente no debe
+  resolverlo). Token real recibido: `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` (tx
+  `0x780ccf5a06e706b121771f874a57ce25b1cf4447e40d2193a47e819083f73346`). Precio real de registrar
+  "creva" (5 letras, 1 año) en el `ETHRegistrar` de ENSv2: 8.000021 USDC.
+
+**Qué se hizo (registro real completo):**
+- `creva.eth` registrado vía `ETHRegistrar` (`0xa88553F454b77203B0D036A05c894d555EAAa2Cc`), pagado
+  en Sepolia USDC, resolver = `PublicResolverV2` (`0xe7b9a25607e02da8145e4eb1836ca539e53f11f7`).
+- Subregistro propio para `creva.eth` desplegado como copia exacta (mismo bytecode ya verificado
+  en Blockscout) del `PermissionedRegistry` real, con `rootAccount = ENS_OWNER_ADDRESS` y un
+  `roleBitmap` **propio, completo** (no el que trae ENS Labs para su despliegue de `.eth` — ver
+  gotcha abajo). Adjuntado a `creva.eth` vía `setSubregistry`.
+- `negocio` registrado dentro de ese subregistro.
+- Resolver de `negocio.creva.eth`: no se pudo usar `PublicResolverV2` (su `canModifyName` depende
+  de `NameWrapper.names(node)`, que está vacío para nombres nativos de ENSv2 — ese resolver es un
+  puente de compatibilidad para nombres que pasaron por el `NameWrapper` de ENSv1, no para
+  registros nuevos). En su lugar: clon EIP-1167 del `PermissionedResolver` verificado
+  (`0x9EAe5C2730a7dD16BDD1DeE6421a1B91e3B0365e`, el mismo patrón que usan las 10 registraciones
+  reales de prueba observadas en Sepolia — cada nombre tiene su propio resolver clonado, no uno
+  compartido), inicializado con nuestra wallet como admin y roles de `setText`/`setAddr`/etc.
+- Record de texto `creva.report.folio = "SP-2026-000123"` escrito y confirmado por lectura
+  (`text()` on-chain).
+
+**Gotcha real, para el próximo intento con ENSv2:** el `roleBitmap` del constructor de
+`PermissionedRegistry` **no es un valor genérico reutilizable** — es específico de qué
+capacidades quiere tener el `rootAccount` de esa instancia. Copiar literalmente el `roleBitmap`
+del despliegue real de `.eth` (que usa ENS Labs, con roles calculados para su propio caso de uso)
+dejó al primer subregistro **sin los bits `_ADMIN` de `ROLE_SET_RESOLVER`/`ROLE_SET_SUBREGISTRY`/
+`ROLE_UNREGISTER`** — y como esos bits solo pueden concederse por alguien que ya los tiene
+(`EACCannotGrantRoles` si no), ese primer subregistro (`0xc56DE50b1676D5EA1EcebD4d7B76618e2F332945`,
+tx `0x220757aaf62085173d992c30070c864bef025073f3ef9bf1aa7a05926c836d5e`) quedó **inutilizable para
+siempre** — no se puede arreglar después, solo abandonar y desplegar uno nuevo con el bitmap
+correcto. Corregido desplegando un segundo subregistro
+(`0xe8FB3c870cAf02362Aba74EB0Bf81373B4C0FF37`) con un `roleBitmap` propio que incluye los roles
+base **y** sus `_ADMIN` para el `rootAccount`, calculado desde `RegistryRolesLib.sol` (roles reales:
+`ROLE_REGISTRAR=1<<0`, `ROLE_UNREGISTER=1<<12`, `ROLE_RENEW=1<<16`, `ROLE_SET_SUBREGISTRY=1<<20`,
+`ROLE_SET_RESOLVER=1<<24`, cada uno con su admin en `<<128`). El primer subregistro
+(`0xc56DE5...`) queda huérfano on-chain, sin uso — no cuesta nada mantenerlo ahí, solo no
+apunta a nada real.
+
+**Qué NO se verificó:** no se probó el registro de un segundo nombre bajo `negocio.creva.eth`
+(subname de tercer nivel) ni la renovación (`renew()`) de `creva.eth`; tampoco se hizo `resolve()`
+vía el `UniversalResolver`/`ENSV2Resolver` público — la lectura se hizo directamente contra el
+`PermissionedResolver` clonado, que es donde vive el dato, así que la verificación es real pero
+no pasó por la ruta CCIP-read pública que usaría un cliente ENS estándar.
+
+**Dónde queda el pendiente:** ninguno para este bloque — cerrado en `docs/plan.md`.
+`scripts/ens/register-subname.mjs` en el repo solo cubre el registro de `creva.eth` (la parte
+reproducible/genérica); la creación del subname y el resolver se hizo con comandos ad-hoc
+documentados arriba, no con un segundo script — si se necesita repetir para otro nombre, escribir
+un script nuevo basado en esta secuencia en vez de reusar el primer subregistro huérfano.
 
 ## 2026-09-04 — Fix de safe-area insets (status bar solapado) (worktree `magical-taussig-acdc49`)
 

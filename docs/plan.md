@@ -17,17 +17,6 @@ checklist.
 
 ## Abiertos
 
-- [ ] **`negocio.creva.eth`: bloqueado por migración a ENSv2 en Sepolia.** `creva.eth` confirmado
-  no registrado. La dirección de `ETHRegistrarController` que documentan ENS Labs para Sepolia
-  (`0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968`) **no está autorizada** hoy en el
-  `BaseRegistrarImplementation` real (`controllers() == false`, verificado on-chain) — Sepolia ya
-  corre ENSv2, cuyas direcciones reales no se confirmaron contra dos fuentes independientes en
-  esta sesión (ver `docs/memoria.md` 2026-09-05 para el detalle completo de la investigación).
-  Falta: confirmar direcciones ENSv2 reales, reescribir `scripts/ens/register-subname.mjs` contra
-  ellas, y solo entonces registrar `creva.eth` + crear el subname + escribir el folio sellado en
-  el resolver. Wallet en `.env` ya fondeado (0.05 ETH Sepolia, gastados ~0.00009 ETH en un
-  `commit()` de prueba).
-
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.
 
@@ -88,6 +77,32 @@ checklist.
   lista en `%APPDATA%\codex\`; falta el plugin/hooks, que requiere el CLI real.
 
 ## Cerrados
+
+- [x] `2026-09-05` — **`negocio.creva.eth` registrado en Sepolia (ENSv2), folio sellado en el
+  resolver.** `creva.eth` registrado vía el `ETHRegistrar` de ENSv2 (pagado en Sepolia USDC del
+  faucet de Circle, no en ETH — la ruta ENSv1 documentada por ENS Labs para Sepolia está muerta,
+  ver `docs/memoria.md` 2026-09-05 para la investigación completa). `negocio.creva.eth` creado bajo
+  un `PermissionedRegistry` propio desplegado como subregistro de `creva.eth`, con un
+  `PermissionedResolver` (clon EIP-1167) inicializado y record de texto
+  `creva.report.folio = "SP-2026-000123"` — verificado con lectura on-chain (`text()` devuelve el
+  valor exacto) y con la cadena completa registry→subregistry→resolver confirmada por separado.
+  Evidencia (tx reales, Sepolia):
+  - Registro `creva.eth`: commit `0x1e1c6370fd7842ec478b77f185d613ebb61c4655c9a1542e4bc2f2032fce344b`,
+    approve USDC `0x14ce0d8c1386d91f99038a04965fc342aa58a6df6e909f3e3b0dd72308e20150`,
+    register `0x84c7f6c0596a3e5bf034cf7a82dc02ed76149d7b260c7af01c7d137f14ee106c`.
+  - Subregistro de `creva.eth`: deploy `0x5fbeb7a22ef310d42e62406ad3c8eea10aba5a8102f157795a607f1b0f1ea836`
+    (dirección `0xe8FB3c870cAf02362Aba74EB0Bf81373B4C0FF37`), `setSubregistry`
+    `0x3ca11cd18c6ae52b8240c242d87067aef6defa17c1eae45f20a6b0aa32e754ca`.
+  - Registro `negocio`: `0xa31acb51c6bcda51485f321d6c91565a224e9f879806dd27225502ae6af4b03c`.
+  - Resolver de `negocio.creva.eth`: deploy del clon
+    `0x6aebd901d21bf1b1321f7883d6a6fe28a070e39d281791fff6ecfa16e21c2cfe` (dirección
+    `0x9Ed7fF67BAb3f8fF254D0a966CFd1F94997B7E9E`), `initialize`
+    `0x4547c16113a393b744e2c82874bdff1cff048ad28ebaf5d984f682008ea239ce`, `setResolver`
+    `0x20f8e4ab13437b5e9040e2bae71592b5256a2aeca857e91329fa1b555a208250`, `setText`
+    `0x24a736bef485cefbb61db2481ac94339c24f93d4a6ad947a92df2c9e6509f6a9`.
+  - Explorer: https://sepolia.app.ens.domains/negocio.creva.eth
+  Detalle completo (incluidos dos intentos previos que fallaron por bitmaps de rol incompletos, ya
+  corregidos): `docs/memoria.md`.
 
 - [x] `2026-09-04` — **Scaffold monorepo + 4 ramas feature + integración + roles v2.** `app/`
   (Expo/NativeWind) y `gateway/` (Node/Express) creados, mergeados a `main`; las 4 ramas
