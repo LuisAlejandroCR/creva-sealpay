@@ -33,12 +33,11 @@ checklist.
     `HelpScreen.tsx`/`HelpCategoryScreen.tsx`/`HelpArticleScreen.tsx` — cubiertos por los worktrees
     Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
     coordinar (regla de §Colaboración punto 7).
-  - Sin pantalla mobile todavía: `movements`, `calculator`, `statements`, `collateral`,
+  - Sin pantalla mobile todavía: `calculator`, `statements`, `collateral`,
     `business-verification`, `regulatory`, `report`, `notifications`, `privacy` — hoy son
     `StubScreen.tsx` genéricos en mobile; migrarlos a pantallas reales 1:1 es el grueso de este
-    bloque. `profile/details`, `profile/fiscal` y `profile/security` ya no están en esta lista: ver
-    los incrementos de abajo (`PersonalDataScreen.tsx`/`FiscalInfoScreen.tsx`/`SecurityScreen.tsx`,
-    2026-09-05).
+    bloque. `profile/details`, `profile/fiscal`, `profile/security` y `movements` ya no están en
+    esta lista: ver los incrementos de abajo.
   - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
     evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
 
@@ -96,6 +95,29 @@ checklist.
   es pre-Clerk; si Clerk gestiona su propio flujo de contraseña por separado, este botón podría no
   tener efecto real para usuarios Clerk-only — no se investigó más a fondo, es una pregunta de
   arquitectura de auth más grande que esta sola pantalla). **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Quinto incremento de la migración: `MovementsScreen.tsx` nueva, reemplaza el
+  stub genérico de "Movimientos" en "Más".** Puerto real de
+  `creva_finance/frontend/app/movements/page.tsx`: mezcla movimientos de tarjeta
+  (`transactions.list()`) y de estados de cuenta (`statements.list()` + `statements.entries()`),
+  agrupados por "Hoy/Ayer/Esta semana/Antes", filtrables (Todos/Ingresos/Gastos), con modal de
+  detalle que permite corregir la categoría solo de los movimientos de estado de cuenta
+  (`statements.reclassify()`) y compartir el texto del movimiento (sin datos de cuenta) vía la hoja
+  nativa `Share.share()` de React Native — sin dependencia nueva, es API del framework. Toda la
+  lógica de bucketing/formateo/share-text es la misma del frontend, portada literalmente (mismo
+  criterio "as is" pedido). `App.tsx`: la clave de stub `"movements"` ahora se intercepta antes del
+  `StubScreen` genérico y monta `MovementsScreen`. El modal de detalle usa `Modal` nativo de React
+  Native (no `BottomSheet` del frontend, que es un componente web) — mismo contenido y acciones,
+  presentación adaptada al framework. `SegmentedField`/`SelectField` reusados de
+  `app/features/profile/components/FormField.tsx` para el filtro y el selector de categoría — son
+  controles genéricos, no específicos de perfil, así que reusarlos entre features es la decisión
+  correcta en vez de duplicar. Test nuevo `app/test/unit/more/movements.spec.ts`. `tsc --noEmit`
+  limpio, `npx jest` verde (45/45 suites, 191/191 tests).
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni el
+  modal/share/reclasificación contra datos reales (sin backend de Creva disponible desde esta
+  sesión). El modal usa `rounded-t-3xl` con `bg-bg` — no se confirmó que el contraste sobre
+  `bg-black/40` de fondo se vea bien en modo oscuro, si el proyecto llegara a soportarlo (hoy no lo
+  soporta, ver tema de esta app). **No autocertificada como cerrada.**
 
 - [ ] **2026-09-05 — Primer incremento de la migración: `DeleteAccountScreen.tsx` ganó paridad real
   con `/profile/delete-account`, confirmado visualmente vía sesión autenticada real en el

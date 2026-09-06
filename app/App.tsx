@@ -24,6 +24,7 @@ import { DeleteAccountScreen } from "./features/profile/DeleteAccountScreen";
 import { PersonalDataScreen } from "./features/profile/PersonalDataScreen";
 import { FiscalInfoScreen } from "./features/profile/FiscalInfoScreen";
 import { SecurityScreen } from "./features/profile/SecurityScreen";
+import { MovementsScreen } from "./features/more/MovementsScreen";
 import { HelpScreen } from "./features/help/HelpScreen";
 import { HelpCategoryScreen } from "./features/help/HelpCategoryScreen";
 import { HelpArticleScreen } from "./features/help/HelpArticleScreen";
@@ -297,6 +298,8 @@ function AppFlow() {
         onOpenHelp={() => setStep("help")}
       />
     );
+  } else if (step === "stub" && activeStub === "movements") {
+    screen = <MovementsScreen onBack={() => setStep(previousStep)} />;
   } else if (step === "stub" && activeStub) {
     const topic = findStubTopic(activeStub);
     screen = (

@@ -1753,3 +1753,33 @@ Seguridad, Aviso de privacidad, KYC, auth.
 migración..."). Backlog restante: Crédito, Tarjeta, 8 stubs de "Más", Aviso de privacidad, KYC,
 auth. Con esto los 3 menús reales de Perfil (Datos personales, Información fiscal, Seguridad)
 quedan con pantalla propia en vez de `StubScreen`.
+
+## 2026-09-05 — Migración PWA→nativa, quinto incremento: `MovementsScreen.tsx` (Solver, local)
+
+**Qué se hizo:**
+- Construida `MovementsScreen.tsx` (nueva), puerto de `creva_finance/frontend/app/movements/
+  page.tsx`: mezcla movimientos de tarjeta y de estados de cuenta, bucketing por día, filtro
+  Todos/Ingresos/Gastos, modal de detalle con corrección de categoría (solo estados de cuenta) y
+  compartir texto plano vía `Share.share()` nativo de React Native (sin dependencia nueva). Toda la
+  lógica de negocio (bucketing, formateo, texto a compartir) es la misma del frontend, portada
+  literalmente — es exactamente lo que "as is" pedía para esta pantalla.
+- `App.tsx`: interceptada la clave de stub `"movements"` antes del `StubScreen` genérico para
+  montar `MovementsScreen` en su lugar, sin tocar el mecanismo `openStub`/`previousStep` existente.
+- Reusados `SegmentedField`/`SelectField` de `app/features/profile/components/FormField.tsx` para
+  el filtro y el selector de categoría — son controles genéricos, no específicos de Perfil, así que
+  se decidió compartirlos entre features en vez de duplicar.
+- El `BottomSheet` del frontend (componente web) se tradujo a `Modal` nativo de React Native con el
+  mismo contenido — no existe una versión de `BottomSheet` en este proyecto mobile todavía.
+- Test nuevo `app/test/unit/more/movements.spec.ts`.
+
+**Qué NO se verificó, y por qué:**
+- Resultado visual/nativo — mismo bloqueo `react-native-web`/NativeWind ya diagnosticado.
+- Comportamiento real contra el backend de Creva (listar transacciones/estados de cuenta,
+  reclasificar, compartir) — sin credenciales de ese backend disponibles desde esta sesión.
+- Contraste del modal en modo oscuro — el proyecto no soporta modo oscuro hoy, así que no aplica
+  todavía, pero queda anotado por si se agrega más adelante.
+- No se cerró como definitiva — falta segunda vista antes de mover a Cerrados.
+
+**Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Quinto incremento de la
+migración..."). Backlog restante: Crédito, Tarjeta, Calculadora, Estados de cuenta, Tu garantía,
+Sello de tu negocio, Reglas que te afectan, Tu reporte, Avisos, Aviso de privacidad, KYC, auth.
