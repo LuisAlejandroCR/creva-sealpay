@@ -2286,3 +2286,41 @@ decidir qué se hace con `codex/mobile-parity-*`.
 
 **Dónde queda el pendiente:** bloque abierto "Migración: últimas 4 pantallas
 (`feature-last-screens-parity`)" en `docs/plan.md` §Abiertos. Siguientes: `kyc`, `credit`, `card`.
+
+## 2026-09-06 — Migración PWA→nativa, últimas 4 pantallas: `kyc` + fix de `MoreSheet` (Solver, cloud)
+
+**Qué se hizo:**
+- **Decisión del humano (2026-09-06):** portar el form de `kyc/page.tsx` como pantalla nueva
+  `KycFormScreen`, insertada como paso 2 del onboarding **después** de `SelfieCheckScreen`, NO
+  reemplazando World Selfie Check (que es integración de patrocinador y no se toca).
+- `KycFormScreen.tsx` (`app/features/onboarding/`): form nombre/apellido/CURP/email/teléfono →
+  `kyc.apply()` (`app/lib/api.ts`, ya existía). Estados loading/form/processing/pending/verified/
+  unavailable con copy 1:1 del frontend. `authorization_url` → `WebBrowser.openBrowserAsync`
+  (`expo-web-browser`, ya era dependencia — no se instaló nada) + poll de `kyc.status()`. Prefill
+  desde `useUser()` de Clerk + `profiles.get()`.
+- `kyc-format.ts` (`app/features/onboarding/`): `isValidCurp` (regex `page.tsx:80`) + `formatMxPhone`
+  (`page.tsx:90-93`), extraídos a un módulo puro para poder testearlos unit+fuzz+invariant.
+- `App.tsx`: paso `"kyc"` nuevo en el `Step` union y en el router; `SelfieCheckScreen`
+  `onVerified`/`onSkipped` ahora van a `"kyc"` en vez de `"home"`.
+- Tests: `test/unit/onboarding/kyc-form.spec.ts`, `test/fuzz/onboarding/kyc-format.fuzz.spec.ts`,
+  `test/invariant/onboarding/curp-never-false-positive.invariant.spec.ts`.
+- **Fix aparte** (reportado por el humano con captura, no era del inventario de 4):
+  `MoreSheet.tsx` usaba `w-[calc(50%-4px)]` en la celda — NativeWind no evalúa `calc()`, así que la
+  celda quedaba sin ancho, se encogía al icono y ocultaba la etiqueta. Cambiado a `w-[48%]` +
+  `leading-4`; regresión en `test/unit/more/structure.spec.ts` que rechaza `w-[calc(`.
+  Commiteado por separado (`ec59cd0`).
+
+**Observación:** las capturas del humano confirman que el **render nativo funciona** (dispositivo/
+simulador). El bloqueo `react-native-web` que citaron los 13 incrementos era solo del preview web
+(`expo start --web`). Eso habilita la segunda vista visual — owner sesión 2, no esta sesión.
+
+**Qué NO se verificó, y por qué:**
+- `kyc.apply`/`kyc.status` contra `/kyc/*` real — sin backend de Creva en esta sesión; tampoco el
+  retorno del `WebBrowser` tras completar la verificación en el proveedor externo.
+- Render nativo/visual de `KycFormScreen` — el humano puede verlo ahora, pero la certificación
+  pantalla-por-pantalla sigue siendo de la sesión 2.
+- `tsc --noEmit` limpio. `jest` full-run: 57 suites / 253 tests (incluyó el flake `auth-gate` verde
+  esta corrida). Baseline tras `auth`: 54 suites / 240 tests.
+
+**Dónde queda el pendiente:** bloque abierto "Migración: últimas 4 pantallas" en `docs/plan.md`.
+Siguientes: `credit`, `card`.

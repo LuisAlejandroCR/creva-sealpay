@@ -33,9 +33,26 @@ checklist.
     wordmark a color de Google (media de terceros, prohibido por AGENTS.md — se queda la "G" plana).
     Test nuevo `app/test/unit/auth/auth-parity.spec.ts`. `tsc` limpio; `jest` 54 suites / 240 tests
     (auth-gate.spec.ts es el flake documentado de full-run, pasa aislado). Antes: 53 / 236.
-  - `kyc` — pendiente.
+  - **`kyc` — hecho (decisión del humano 2026-09-06: portar el form, NO reemplazar World).**
+    `KycFormScreen.tsx` nuevo (`app/features/onboarding/`), puerto de
+    `creva_finance/frontend/app/kyc/page.tsx`: form nombre/apellido/CURP/email/teléfono →
+    `kyc.apply()` de `app/lib/api.ts` (ya existía). Estados loading/form/processing/pending/verified/
+    unavailable con el copy del frontend (`page.tsx:150-236`). Regex CURP y formateo de teléfono en
+    `app/features/onboarding/kyc-format.ts`, portados 1:1 de `page.tsx:80` y `:90-93`.
+    `authorization_url` → `WebBrowser.openBrowserAsync` (`expo-web-browser`, ya era dependencia),
+    luego poll de `kyc.status()`. `App.tsx`: paso `"kyc"` nuevo, **después** de `SelfieCheckScreen`
+    (`onVerified`/`onSkipped` → `setStep("kyc")` → `KycFormScreen` → `home`). **World Selfie Check
+    no se tocó.** Tests unit + fuzz + invariant (`test/unit/onboarding/kyc-form.spec.ts`,
+    `test/fuzz/onboarding/kyc-format.fuzz.spec.ts`,
+    `test/invariant/onboarding/curp-never-false-positive.invariant.spec.ts`). `tsc` limpio; `jest`
+    57 suites / 253 tests. Prefill de email/nombre desde `useUser()` de Clerk + `profiles.get()`.
+    **No se verificó:** `kyc.apply`/`kyc.status` contra `/kyc/*` real (sin backend), ni el retorno
+    del `WebBrowser` tras completar la verificación externa.
   - `credit` — pendiente.
   - `card` — pendiente.
+  - **Fix aparte (no era del inventario):** `MoreSheet.tsx` — `w-[calc(50%-4px)]` en la celda no lo
+    evalúa NativeWind, dejaba la celda sin ancho y ocultaba la etiqueta (reportado con captura por
+    el humano 2026-09-06). Cambiado a `w-[48%]`; regresión en `test/unit/more/structure.spec.ts`.
 
 - [ ] **2026-09-06 — Paridad móvil: segunda vista visual PENDIENTE (owner: sesión 2, "UI audit
   smoke test").** Las 13 pantallas nativas nuevas de `feature-mobile-native-parity` (datos

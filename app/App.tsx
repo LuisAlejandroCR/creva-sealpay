@@ -16,6 +16,7 @@ import "./global.css";
 import { ClerkAppProvider } from "./features/auth/ClerkAppProvider";
 import { SignInScreen } from "./features/auth/SignInScreen";
 import { SelfieCheckScreen } from "./features/onboarding/SelfieCheckScreen";
+import { KycFormScreen } from "./features/onboarding/KycFormScreen";
 import { QueryScreen } from "./features/query/QueryScreen";
 import { VerifyScreen } from "./features/verify/VerifyScreen";
 import { DashboardScreen } from "./features/dashboard/DashboardScreen";
@@ -50,6 +51,7 @@ import { setSessionSource } from "./lib/api";
 type Step =
   | "sign-in"
   | "onboarding"
+  | "kyc"
   | "home"
   | "score"
   | "credit"
@@ -213,11 +215,13 @@ function AppFlow() {
   } else if (step === "onboarding") {
     screen = (
       <SelfieCheckScreen
-        onVerified={() => setStep("home")}
-        onSkipped={() => setStep("home")}
+        onVerified={() => setStep("kyc")}
+        onSkipped={() => setStep("kyc")}
         onBack={() => setStep("home")}
       />
     );
+  } else if (step === "kyc") {
+    screen = <KycFormScreen onDone={() => setStep("home")} />;
   } else if (step === "home") {
     screen = (
       <DashboardScreen
