@@ -16,6 +16,7 @@ import {
   isValidCanonicalHash,
   readArcSignerCredentialsFromEnv,
 } from "./arc-anchor.js";
+import { handleRegulatoryPending } from "./regulatory.js";
 
 export const app = express();
 app.use(helmet());
@@ -108,6 +109,13 @@ app.post(
     void proxyToCreva(req, res, "/creva-score/verify", true);
   },
 );
+
+// Read-only feed for a Chainlink CRE workflow: "is there a regulatory norm newer than <since>, and
+// which anchored folios does it touch?". No payment gate — it carries no personal data (the radar
+// scan is identical for every caller) and its only consumer is an automated on-chain job.
+app.get("/regulatory/pending", gatedRouteLimiter, (req, res) => {
+  void handleRegulatoryPending(req, res);
+});
 
 app.post("/creva-score/anchor", gatedRouteLimiter, (req, res) => {
   const canonicalHash = (req.body as { canonicalHash?: unknown })?.canonicalHash;

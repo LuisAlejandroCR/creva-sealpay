@@ -2809,3 +2809,42 @@ más simple compatible con Expo Go. El nonce espeja `rp_context.nonce` de World 
 **Dónde queda el pendiente:** bloque "Selfie Check" en `docs/plan.md` (Abiertos). Cierre final =
 `node scripts/world-verify-smoke.mjs proof.json` cuando el Sandbox apruebe. Rama `sponsor-world-nonce`
 commiteada en el worktree, NO pusheada.
+---
+
+## `2026-09-06` — Chainlink: RegulatoryAlertRegistry + /regulatory/pending (GO)
+
+**Qué se hizo:**
+- Contrato `contracts/src/RegulatoryAlertRegistry.sol`: log on-chain de cambios regulatorios sobre
+  folios ya anclados. Implementa `AutomationCompatibleInterface` (`checkUpkeep`/`performUpkeep`,
+  interfaz vendida inline, sin dependencia externa). `reportPending(normId, folios[])` gateado por
+  `reporter` immutable; `performUpkeep` revierte salvo que el payload sea byte-idéntico a lo que
+  `checkUpkeep` devolvería (compara `keccak256`), luego emite `RegulatoryFlag` por folio y marca
+  `normFlagged[normId]`. `setForwarder` una sola vez por el reporter.
+- Suite `contracts/test/RegulatoryAlertRegistry.t.sol`: 12 tests unit+fuzz+invariant. Invariante
+  central: performUpkeep solo cambia estado con el payload exacto de checkUpkeep; toda norma
+  marcada pasó antes por reportPending. `AttestationRegistry` intacto (7 tests, sin regresión).
+- `contracts/script/DeployRegulatoryAlertRegistry.s.sol`: reusa `ARC_SIGNER_PRIVATE_KEY`.
+- `gateway/src/regulatory.ts` + ruta `GET /regulatory/pending` en `index.ts` (solo la ruta nueva).
+  Lee `/creva-score/radar` del core + `folioAttestations` del subgraph, deriva
+  `normId = keccak256("<source>|<external_id>")`, filtra por `since`. Try/catch total.
+- Tests gateway: unit + fuzz + invariant (`regulatory-pending-never-crashes`: 200 siempre + nunca
+  filtra el access token). Total gateway 23 archivos / 66 tests verde.
+- `gateway/.env.example`: `REGULATORY_ALERT_REGISTRY_ADDRESS`, `REGULATORY_REPORTER`.
+- `docs/integrations/chainlink-automation.md` (nuevo). `contracts/README.md`, `docs/plan.md`
+  barridos en el mismo lote.
+
+**Decisión escogida:** GO para la pista Upgrade ($500). El prerrequisito ("contrato on-chain real")
+lo resolvió `AttestationRegistry` (`f9457c8`). Servicio Chainlink usado: CRE (workflow cron), en la
+lista textual de la pista. El cambio de estado on-chain es `normFlagged` + eventos `RegulatoryFlag`.
+CRE Confidential Workflows ($2k): evaluado y descartado sin forzar — el path radar→folios es no
+sensible por diseño (invariante del core `radar-carries-no-personal-data`).
+
+**Qué NO se verificó, y por qué:**
+- El workflow CRE real y el registro del Upkeep: necesitan la cuenta del humano (no crear cuenta
+  Chainlink). Pasos exactos documentados en el doc de integración.
+- El endpoint contra el `/creva-score/radar` real: probado solo con radar mockeado. El token de
+  servicio podría no satisfacer el `JwtAuthGuard` del core; si falla, degrada a `radarError`.
+- Deploy a testnet: no hecho. Demo corrió en anvil local (evidencia en el doc de integración).
+
+**Dónde queda el pendiente:** bloque cerrado en `docs/plan.md` con la lista para el humano
+(deploy Sepolia + registrar Upkeep + `setForwarder`).

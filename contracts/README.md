@@ -1,5 +1,7 @@
-<!-- contracts/README.md: cómo compilar, testear y desplegar AttestationRegistry. El diseño y el
-     porqué del mecanismo viven en docs/integrations/onchain-attestation.md; aquí solo comandos. -->
+<!-- contracts/README.md: cómo compilar, testear y desplegar los contratos Foundry del proyecto
+     (AttestationRegistry y RegulatoryAlertRegistry). El diseño y el porqué de cada mecanismo viven
+     en docs/integrations/*.md; aquí solo comandos. Se distingue de subgraph/README.md, que cubre
+     el indexado de los eventos, no los contratos. -->
 
 # AttestationRegistry (Foundry)
 
@@ -28,3 +30,20 @@ forge script script/Deploy.s.sol --rpc-url "$SEPOLIA_RPC_URL" --broadcast    # S
 
 Record the deployed address + deploy tx in `docs/plan.md`, and set `REGISTRY_ADDRESS` in
 `gateway/.env` plus `address`/`startBlock` in `subgraph/networks.json`.
+
+# RegulatoryAlertRegistry (Foundry)
+
+On-chain log of regulatory changes that hit already-anchored folios. A Chainlink CRE workflow (or
+an Automation custom-logic upkeep) calls `checkUpkeep`/`performUpkeep`; `performUpkeep` emits
+`RegulatoryFlag` and marks the norm handled — the on-chain state change the $500 Chainlink Upgrade
+track requires. Full design, the CRE workflow, and the Upkeep registration steps are in
+`docs/integrations/chainlink-automation.md`.
+
+```bash
+forge test --match-contract RegulatoryAlertRegistry           # unit + fuzz + invariant
+export ARC_SIGNER_PRIVATE_KEY=<key>                           # already in gateway/.env
+export REGULATORY_REPORTER=<chainlink functions consumer>     # optional; defaults to the signer
+forge script script/DeployRegulatoryAlertRegistry.s.sol --rpc-url "$SEPOLIA_RPC_URL" --broadcast
+```
+
+Set `REGULATORY_ALERT_REGISTRY_ADDRESS` in `gateway/.env` after deploy.
