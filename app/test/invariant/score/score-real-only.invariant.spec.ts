@@ -19,6 +19,7 @@ jest.mock('../../../lib/api', () => ({
   score: { get: () => Promise.reject(new Error('boom')) },
   recommendations: { get: () => Promise.resolve({ status: 'ok', recommendations: [] }) },
   crevaScore: { disclosure: () => Promise.reject(new Error('none')) },
+  isBackendUnlinked: () => false,
 }))
 
 import { ScoreScreen } from '../../../features/score/ScoreScreen'

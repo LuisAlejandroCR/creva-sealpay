@@ -13,6 +13,7 @@ import { buildReminders, pendingCount } from "../../lib/reminders";
 import {
   collateral,
   credit,
+  isBackendUnlinked,
   score as scoreApi,
   statements,
   transactions,
@@ -22,6 +23,7 @@ import {
 } from "../../lib/api";
 import { Card, Section } from "../query/components/VisualPrimitives";
 import { ScoreGauge } from "../query/components/ScoreGauge";
+import { BackendPendingState } from "../shared/BackendPendingState";
 import {
   ActionCard,
   EmptyState,
@@ -50,6 +52,7 @@ export function DashboardScreen({
   const [scoreData, setScoreData] = useState<ScoreData | null>(null);
   const [scoreLoading, setScoreLoading] = useState(true);
   const [scoreError, setScoreError] = useState<string | null>(null);
+  const [backendPending, setBackendPending] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,8 +63,10 @@ export function DashboardScreen({
       .then((data) => {
         if (!cancelled) setScoreData(data);
       })
-      .catch(() => {
-        if (!cancelled) setScoreError("No pudimos cargar tu score. Intenta de nuevo más tarde.");
+      .catch((err) => {
+        if (cancelled) return;
+        if (isBackendUnlinked(err)) setBackendPending(true);
+        else setScoreError("No pudimos cargar tu score. Intenta de nuevo más tarde.");
       })
       .finally(() => {
         if (!cancelled) setScoreLoading(false);
@@ -92,8 +97,12 @@ export function DashboardScreen({
       statements.summary(),
       collateral.get(),
       transactions.list({ limit: 3 }),
-    ]).then(([elig, list, summary, coll, tx]) => {
+    ]).then((results) => {
       if (cancelled) return;
+      const [elig, list, summary, coll, tx] = results;
+      if (results.some((r) => r.status === "rejected" && isBackendUnlinked(r.reason))) {
+        setBackendPending(true);
+      }
       setCreditEligible(elig.status === "fulfilled" ? elig.value.eligible : null);
       setCreditMissing(elig.status === "fulfilled" ? elig.value.missing : []);
       setStatementCount(list.status === "fulfilled" ? list.value.length : null);
@@ -148,6 +157,8 @@ export function DashboardScreen({
                 <View className="items-center py-6" testID="dashboard-score-loading">
                   <ActivityIndicator />
                 </View>
+              ) : backendPending ? (
+                <BackendPendingState />
               ) : scoreError || scoreValue === null ? (
                 <Text className="text-sm text-danger" testID="dashboard-score-error">
                   {scoreError ?? "No pudimos cargar tu score."}

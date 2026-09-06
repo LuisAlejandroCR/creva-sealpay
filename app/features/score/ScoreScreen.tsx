@@ -12,6 +12,7 @@ import {
   score as scoreApi,
   recommendations as recsApi,
   crevaScore,
+  isBackendUnlinked,
   type ScoreData,
   type ScoreBandKey,
   type Recommendation,
@@ -19,6 +20,7 @@ import {
 } from "../../lib/api";
 import { factorHint, factorLabel, factorLever } from "../../lib/score-display";
 import { BackButton } from "../shared/BackButton";
+import { BackendPendingState } from "../shared/BackendPendingState";
 import { Card, Progress, Section } from "../query/components/VisualPrimitives";
 import { ScoreGauge } from "../query/components/ScoreGauge";
 
@@ -76,16 +78,20 @@ export function ScoreScreen({ onOpenQuery, onBack, onOpenHelp }: ScoreScreenProp
   const [disclosure, setDisclosure] = useState<ScoreDisclosure | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [backendPending, setBackendPending] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setBackendPending(false);
     Promise.allSettled([scoreApi.get(), recsApi.get(), crevaScore.disclosure()])
       .then(([scoreResult, recsResult, disclosureResult]) => {
         if (cancelled) return;
         if (scoreResult.status === "fulfilled") {
           setData(scoreResult.value);
+        } else if (isBackendUnlinked(scoreResult.reason)) {
+          setBackendPending(true);
         } else {
           setError("No pudimos cargar tu score. Intenta de nuevo más tarde.");
         }
@@ -133,6 +139,8 @@ export function ScoreScreen({ onOpenQuery, onBack, onOpenHelp }: ScoreScreenProp
               <View className="items-center py-8" testID="score-loading">
                 <ActivityIndicator />
               </View>
+            ) : backendPending ? (
+              <BackendPendingState />
             ) : error || scoreValue === null ? (
               <Text className="text-sm text-crimson" testID="score-error">
                 {error ?? "No pudimos cargar tu score."}

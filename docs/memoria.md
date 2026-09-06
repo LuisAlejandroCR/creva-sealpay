@@ -2575,3 +2575,34 @@ ScoreScreen movido a Cerrados en `docs/plan.md` en el mismo lote.
 
 **Dónde queda el pendiente:** commit en el worktree, sin push. Bloque abierto en `docs/plan.md`
 con el gap `GET /cards`, el código muerto y la duda de `JwtAuthGuard`↔Clerk.
+
+## 2026-09-06 — Estado "backend pendiente" para el gap de auth Clerk↔core (Solver, cloud) — `feature-backend-pending-state`
+
+**Decisión escogida (humano, relayed por Main):** mientras el core desplegado no acepte el token
+de Clerk (ver veredicto de auth — falta `AUTH_PROVIDER=both` + config), la app degrada a UN estado
+honesto y consistente por sección, no a un spinner infinito ni a un 401 crudo.
+
+**Qué se hizo (off `main` 73bf8fc):**
+- `app/lib/api.ts`: clase `ApiError extends Error` con `status`/`body`/`backendUnlinked`
+  (`= status === 401 && tokenAttached`); helper `isBackendUnlinked(err)`. Los dos `throw
+  Object.assign(new Error…)` de `request`/`requestMultipart` ahora lanzan `ApiError` con
+  `token !== null` — retrocompatible (los callers que leen `err.status`/`err.body` siguen igual).
+- `app/features/shared/BackendPendingState.tsx` (nuevo): una línea calmada, tono `text-text/60`,
+  sin rojo de error — *"Estás dentro. Tu información de Creva se conecta pronto."*
+- Wireado en `DashboardScreen` (score card + batch allSettled), `ScoreScreen`, `CreditScreen`
+  (`Step` nuevo `"backend_pending"`), `CardScreen`, `StatementsScreen`: en el `.catch` /
+  `.reason`, si `isBackendUnlinked` → render `BackendPendingState` en vez del estado de error; los
+  demás errores (403/500/red/401-sin-token) mantienen su ruta normal.
+- **No se tocó** el flujo x402 (QueryScreen/VerifyScreen report+verify) — Main lo confirmó
+  intacto.
+- Docs: se cargó el bloque de veredicto de auth de `aeca161` a esta rama + la decisión escogida.
+- Tests: `test/{unit,fuzz,invariant}/backend-pending*` (401+token→backendUnlinked; nunca enmascara
+  un error real: non-401 / plain Error / 401-sin-token nunca son backendUnlinked). 3 mocks de
+  `lib/api` en los tests de score actualizados con `isBackendUnlinked: () => false`.
+
+**Qué NO se verificó:** el estado real contra un core que rechace el token — sin sesión Clerk real
+ni el deploy en `AUTH_PROVIDER=both` (la confirmación en vivo la difirió el humano). `tsc` limpio;
+`jest` full-run 74/74 suites, 339/339 tests. Base de la rama: 68 suites.
+
+**Dónde queda el pendiente:** commit en el worktree, sin push. Va al batch del Solver
+(no-sponsor). Confirmación en vivo de la config de auth = bloque abierto en `docs/plan.md`.

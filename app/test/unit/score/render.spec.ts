@@ -20,6 +20,7 @@ jest.mock('../../../lib/api', () => ({
   score: { get: () => mockScoreGet() },
   recommendations: { get: () => mockRecsGet() },
   crevaScore: { disclosure: () => mockDisclosureGet() },
+  isBackendUnlinked: () => false,
 }))
 
 import { ScoreScreen } from '../../../features/score/ScoreScreen'

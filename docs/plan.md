@@ -67,14 +67,43 @@ checklist.
     y ahora también el web-dashboard; hoy cae al `.catch` → estado "Sin tarjetas aún". Efecto
     secundario: sin `list` no hay `id`, así que `cards.get/:id`, `freeze` y `unfreeze` son
     inalcanzables para una tarjeta ya emitida.
-  **Pendiente:** (1) el core necesita `GET /cards` (lista de tarjetas del usuario) para que
-  `CardScreen` muestre una tarjeta emitida — sin eso el flujo de tarjeta solo puede *emitir*, no
-  *ver*; (2) limpiar o cablear los 5 métodos muertos de `api.ts` (`recommendations.get`,
+  **Pendiente:** (1) `GET /cards` en el core — **código hecho directo en el repo `creva_finance`,
+  commit listo para el humano** (`cards.service.listCards()` + `@Get()` en `cards.controller`,
+  `test/unit/cards.service.spec.ts` nuevo, `tsc`+`jest cards` verdes); falta que el humano lo
+  commitee/despliegue y ajustar el tipo `api.ts` `cards.list` (declara camelCase, el core devuelve
+  snake_case `VirtualCardRow[]` — sin interceptor de transform en `backend/src/main.ts`).
+  (2) limpiar o cablear los 5 métodos muertos de `api.ts` (`recommendations.get`,
   `credit.selections`, `crevaScore.disclosure`, `crevaScore.verifyReport`,
-  `auth.register/login/getOAuthUrl`); (3) confirmar que `JwtAuthGuard` del core acepta el token de
-  sesión de Clerk que manda `session-source` — no verificable en esta sesión (sin backend
-  corriendo ni sesión Clerk real).
-  **WIRE hecho en esta rama:** `DashboardScreen` deja de usar mocks — `collateral.get()` →
+  `auth.register/login/getOAuthUrl`).
+
+- [ ] **2026-09-06 — Veredicto de auth Clerk↔core (análisis estático de `creva_finance/backend`).
+  El core NO aceptaría hoy el token de Clerk que manda la app; el código ya lo soporta, falta
+  config de deploy.** La app manda `Authorization: Bearer <clerk session token>` (`app/lib/api.ts`
+  vía `session-source`). Tres puertas en `jwt.guard.ts`, cada una un bloqueo duro:
+  1. `AUTH_PROVIDER` default = `supabase` (`config/configuration.ts:15`). Con `supabase`,
+     `jwt.guard.ts:56-59` manda el token a `supabase.admin.auth.getUser` → rechaza un JWT de Clerk
+     → `401 "Invalid or expired token"` (`jwt.guard.ts:71`). Confirmado contra el deploy con un
+     token basura (sin token real).
+  2. El verifier de Clerk requiere `CLERK_SECRET_KEY` + (`CLERK_JWKS_URL`/`CLERK_ISSUER`)
+     (`configuration.ts:147-161`); la factory `CLERK_TOKEN_VERIFIER` (`auth.module.ts:19-21`)
+     devuelve `null` si faltan.
+  3. Aun con 1+2 OK, sin fila de mapeo Clerk↔Supabase (`mapping.resolveClerkSub`, `jwt.guard.ts:117`)
+     → `401 UNLINKED_CLERK_ACCOUNT` (`:118`). La fila la crea `POST /webhooks/clerk` en
+     `user.created` (`clerk-webhook.controller.ts:33`).
+  **Fix = config de deploy, NO código:** `AUTH_PROVIDER=both` + claves/JWKS de Clerk +
+  `CLERK_AUTHORIZED_PARTY` en el core desplegado; webhook de la instancia Clerk de creva-sealpay a
+  `/webhooks/clerk` con `CLERK_WEBHOOK_SECRET`; backfill de identidades.
+  **Decisión escogida (humano, 2026-09-06):** mientras la config de deploy no aterrice, la app
+  muestra un estado "backend pendiente" — *"Estás dentro. Tu información de Creva se conecta
+  pronto."* — en cada sección que llama al core y recibe un 401 con token adjunto
+  (`api.ts` `isBackendUnlinked` / `ApiError.backendUnlinked`; componente
+  `app/features/shared/BackendPendingState.tsx`; wireado en Dashboard/Score/Credit/Card/Statements
+  en la rama `feature-backend-pending-state`). La **confirmación en vivo de la config de auth**
+  queda explícitamente diferida — sin token real de Clerk contra el deploy hasta que el humano
+  decida. Mientras el deploy siga en `AUTH_PROVIDER=supabase`, todo el wiring directo-al-core está
+  inerte contra el backend real y las pantallas muestran ese estado.
+
+  **WIRE hecho (`feature-app-core-api-wiring`, ya en `main`):** `DashboardScreen` deja de usar mocks — `collateral.get()` →
   capacidad de gasto real; `credit.eligibility()` + `statements.list()`/`summary()` → inputs
   reales de `buildReminders` (la campana ya no inventa un conteo); `transactions.list({limit:3})`
   → actividad reciente real (se borró `MOCK_TRANSACTIONS`). `cardReady` queda en `false` honesto
