@@ -203,19 +203,41 @@ checklist.
   Go sobre el iPhone físico donde se vio el bug — no hay simulador/dispositivo disponible desde esta
   sesión de agente.
 
-- [ ] **Selfie Check: verificación server-side real agregada, falta confirmar el payload v4 contra
+- [ ] **Selfie Check: nonce server-side cerrado en código contra la spec v4; falta ejercer contra
   sandbox real.** `gateway/src/world-verify.ts` llama a la Developer Portal API de World con
-  `WORLD_API_KEY`; el WebView ya no decide `verified` por su cuenta. Bloqueo preciso: la API v4
-  espera un `nonce` que el flujo de redirect WebView no produce — el mapeo a `protocol_version:
-  "3.0"` es mejor esfuerzo, sin ejercer contra sandbox real (mismo criterio que Hedera: no gastar
-  cuota real sin confirmar con el humano). Falta también Expo Go real en dispositivo físico.
+  `WORLD_API_KEY`; el WebView ya no decide `verified` por su cuenta.
+  **Actualización `2026-09-06` (rama `sponsor-world-nonce`):** el gap del `nonce` se cerró en
+  código. **Decisión escogida:** nonce emitido por el gateway (espeja `rp_context.nonce` de World
+  ID 4.0 — `signRequest(signingKeyHex, action)` → `{ sig, nonce, createdAt, expiresAt }`, doc
+  `docs.world.org/world-id/idkit/integrate`). Flujo: `GET /onboarding/world-id/session` acuña un
+  nonce de un solo uso con TTL 10 min y lo ata a la `action`; el cliente abre el WebView con ese
+  nonce; en el callback el cliente reenvía **solo** el nonce emitido (nunca uno inyectado en la
+  URL); `POST /onboarding/verify-world-id` valida el nonce contra el ledger en memoria (existe /
+  no gastado / no expirado / action coincide) **antes** de tocar la API de World, lo marca usado,
+  y arma el body v4 `protocol_version:"3.0"` (`{ nonce, action, allow_legacy_proofs:true,
+  responses:[{ identifier, merkle_root, nullifier, proof, signal_hash? }] }`, doc
+  `docs.world.org/api-reference/developer-portal/verify`). Se descartó el flujo de redirect
+  `id.worldcoin.org/verify` clásico porque no transporta ni devuelve un nonce; el URL hospedado
+  con params `nonce/signature/created_at/expires_at` es la variante más simple que Expo soporta
+  (solo WebView, sin Dev Client). **Firma del nonce:** hoy es un HMAC propio (sin deps nuevas)
+  porque sin Sandbox no hay `WORLD_RP_SIGNING_KEY` ni `rp_id` reales — `mintNonceSignature` es el
+  costurón para cambiar a `@worldcoin/idkit-core/signing` cuando lleguen. Tests: `gateway` unit +
+  fuzz + invariant (2 invariantes duras: el cliente/WebView nunca marca `verified` por su cuenta;
+  un nonce que no coincide con el emitido siempre se rechaza y nunca llega a World) y `app`
+  unit + invariant equivalentes. **Qué NO se pudo verificar sin el Sandbox:** el round-trip real
+  del proof contra `developer.world.org/api/v4/verify/{rp_id}` (shape de `proof`/`identifier`
+  exactos, si `allow_legacy_proofs` basta, si el hosted flow acepta esos param names). Script de
+  humo listo: `node scripts/world-verify-smoke.mjs [proof.json]` con el gateway corriendo — paso 1
+  (sesión) siempre corre, paso 2 (verificación + replay) corre con un proof real de IDKit.
   **Actualización `2026-09-05`:** enrollment al World ID Sandbox solicitado para
   `bankingluisalejandro@gmail.com`, iOS (TestFlight) y Android (Google Play internal test) — ambas
   solicitudes en estado "pending", aprobación por correo de Tools for Humanity todavía no llega.
   Primer intento de contacto rebotó (`sandbox.access@toolsforhumanity.org` no resuelve; dominio
-  real es `toolsforhumanity.com`), reenviado a la dirección correcta. Bloquea este bloque y el de
-  "Riesgo Expo Go" de abajo hasta que llegue la aprobación — nada más que avanzar aquí mientras se
-  espera.
+  real es `toolsforhumanity.com`), reenviado a la dirección correcta. Bloquea el cierre final de
+  este bloque y el de "Riesgo Expo Go" de abajo hasta que llegue la aprobación — con el nonce ya
+  en código, lo único que falta aquí es correr el script de humo. Vars nuevas para el humano en
+  `gateway/.env`: `WORLD_RP_ID`, `WORLD_RP_SIGNING_KEY`, `WORLD_ENVIRONMENT` (ver
+  `gateway/.env.example`).
 
 - [ ] **Publicación en App Store / Play Store — después del evento.** Decisión escogida: la
   revisión de iOS consumiría la ventana que queda. Se demuestra con Expo Go + video durante el

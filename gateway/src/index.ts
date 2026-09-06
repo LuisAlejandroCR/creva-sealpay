@@ -6,7 +6,11 @@ import { config } from "./config.js";
 import { proxyToCreva } from "./creva-proxy.js";
 import type { PaymentRequirements } from "./types.js";
 import { createX402Gate } from "./x402-gate.js";
-import { isValidProofPayload, verifyWorldIdProof } from "./world-verify.js";
+import {
+  isValidProofPayload,
+  issueWorldIdSession,
+  verifyWorldIdProof,
+} from "./world-verify.js";
 import {
   anchorReportHash,
   isValidCanonicalHash,
@@ -60,6 +64,20 @@ const verifyRequirements = (): PaymentRequirements => ({
   maxTimeoutSeconds: 60,
   asset: config.asset,
   extra: facilitatorExtra(),
+});
+
+// Mint a single-use, TTL-bound nonce for one Selfie Check attempt. The client hands the nonce
+// (and signature) to the World verification flow, which returns it inside the proof; the gateway
+// then only accepts a proof carrying a nonce it issued for that action. A 503 here means World
+// is not configured, so the client degrades to identity_unavailable.
+app.get("/onboarding/world-id/session", gatedRouteLimiter, (req, res) => {
+  const action = typeof req.query.action === "string" ? req.query.action : undefined;
+  const session = issueWorldIdSession(action);
+  if (!session) {
+    res.status(503).json({ reason: "world_verify_not_configured" });
+    return;
+  }
+  res.status(200).json(session);
 });
 
 app.post("/onboarding/verify-world-id", gatedRouteLimiter, (req, res) => {
