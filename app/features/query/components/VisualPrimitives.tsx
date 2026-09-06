@@ -31,10 +31,20 @@ export function Section({
   );
 }
 
-export function Card({ children, dashed = false, testID }: { children: ReactNode; dashed?: boolean; testID?: string }) {
+export function Card({
+  children,
+  dashed = false,
+  tone = "default",
+  testID,
+}: {
+  children: ReactNode;
+  dashed?: boolean;
+  tone?: "default" | "highlight";
+  testID?: string;
+}) {
   return (
     <View
-      className={`rounded-2xl bg-surface-1 p-4 ${dashed ? "border-2 border-dashed" : "border"} border-text/10`}
+      className={`rounded-2xl p-4 ${tone === "highlight" ? "bg-surface-2" : "bg-surface-1"} ${dashed ? "border-2 border-dashed" : "border"} border-text/10`}
       testID={testID}
     >
       {children}

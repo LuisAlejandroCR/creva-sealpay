@@ -2,19 +2,35 @@
 // dedicated flow rather than reusing the generic Avisos stub, since deletion needs its own copy
 // (help-content.ts's "borrar-mi-cuenta" article already has the exact steps and warning). No
 // backend exists for real deletion yet, so this never deletes anything — it only explains the
-// real path (an email request) and lets the reader back out.
-import { Pressable, Text, View } from "react-native";
+// real path (an email request, opened via Linking so it hits the reader's own mail app) and lets
+// the reader back out. Mailbox/subject/body mirror creva_finance/frontend's
+// app/profile/delete-account/page.tsx exactly, so the two channels never drift.
+import { Linking, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { findArticle } from "../../lib/help-content";
 import { BackButton } from "../shared/BackButton";
 import { Card, Section } from "../query/components/VisualPrimitives";
 
+const MAILBOX = "privacidad@finarahub.mx";
+const SUBJECT = "Solicitud de eliminación de cuenta";
+const BODY = [
+  "Hola:",
+  "",
+  "Quiero que se elimine mi cuenta de Creva y todo lo que guardan de mí.",
+  "Escribo desde el correo con el que me registré.",
+  "",
+  "Gracias.",
+].join("\n");
+
+const MAILTO = `mailto:${MAILBOX}?subject=${encodeURIComponent(SUBJECT)}&body=${encodeURIComponent(BODY)}`;
+
 export interface DeleteAccountScreenProps {
   onBack: () => void;
+  onOpenPrivacy: () => void;
 }
 
-export function DeleteAccountScreen({ onBack }: DeleteAccountScreenProps) {
+export function DeleteAccountScreen({ onBack, onOpenPrivacy }: DeleteAccountScreenProps) {
   const article = findArticle("datos", "borrar-mi-cuenta")?.article;
 
   return (
@@ -35,11 +51,31 @@ export function DeleteAccountScreen({ onBack }: DeleteAccountScreenProps) {
                 ))}
               </View>
             ) : null}
-            {article?.note ? (
-              <Text className="mt-3 text-xs leading-4 text-text/50">{article.note}</Text>
-            ) : null}
           </Card>
         </Section>
+
+        <Pressable onPress={() => Linking.openURL(MAILTO)} testID="delete-account-mailto-cta">
+          <Card>
+            <Text className="text-center text-sm font-semibold text-crimson">Escribir el correo</Text>
+          </Card>
+        </Pressable>
+
+        <Section>
+          <Card tone="highlight">
+            <Text className="text-xs font-bold uppercase text-text/70">Ten en cuenta</Text>
+            <Text className="mt-1 text-sm leading-5 text-text">
+              {article?.note ??
+                "Es permanente: no hay copia que podamos devolverte después. Si lo que quieres es dejar de usar Creva por un tiempo, basta con cerrar sesión."}
+            </Text>
+          </Card>
+        </Section>
+
+        <Pressable onPress={onOpenPrivacy} testID="delete-account-open-privacy">
+          <Text className="mt-4 text-center text-sm text-text/60">
+            Antes de decidir, lee el{" "}
+            <Text className="font-semibold text-crimson">Aviso de privacidad</Text>
+          </Text>
+        </Pressable>
 
         <Pressable onPress={onBack} testID="delete-account-back-cta">
           <Card dashed>

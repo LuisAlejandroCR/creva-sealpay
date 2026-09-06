@@ -1629,3 +1629,37 @@ ya no es un 500 genérico, es un error de validación específico y accionable. 
 
 **Dónde queda el pendiente:** ninguno propio del criterio de aceptación de la pista Hedera — cumplido
 con evidencia verificable on-chain. Pendiente cosmético: la aserción del test de integración.
+
+## 2026-09-05 — Migración PWA→nativa, primer incremento: `DeleteAccountScreen.tsx` (Solver, local)
+
+**Qué se hizo:**
+- Confirmada la comparación visual bloqueada en la sesión anterior: con credenciales de prueba
+  suministradas directamente en el chat, se autenticó `creva_finance/frontend` (sesión de Clerk
+  persistida en el navegador) y se tomaron capturas reales a 375×812 de `/profile/delete-account`.
+- Con la captura real en mano, se confirmó el hueco ya sospechado por lectura de código: mobile no
+  tenía ningún botón/canal para iniciar la solicitud de borrado, solo texto. Se agregó un botón
+  real que abre `mailto:` (`Linking.openURL`) con el mismo `MAILBOX`/`SUBJECT`/`BODY` que el
+  frontend, una card de advertencia de permanencia, y un enlace a "Aviso de privacidad" (stub
+  `privacy` ya existente, cableado con el mismo patrón `openStub` del resto de `Más`).
+- `VisualPrimitives.tsx`'s `Card` ganó `tone?: "default" | "highlight"` (token `surface-2` ya
+  existente) para la card destacada, sin inventar color nuevo.
+- Nueva rama `feature-mobile-native-parity` (distinta de `codex/mobile-parity-delete-account`, que
+  solo tenía la auditoría sin fix) — pedido explícito de mantener `localhost:3001` corriendo y
+  encarar la migración completa PWA→nativa pantalla por pantalla, no en un lote.
+- `docs/plan.md`: nuevo bloque con el backlog completo de rutas del frontend contra su pantalla
+  mobile (o su ausencia), y el resultado de este primer incremento.
+
+**Qué NO se verificó, y por qué:**
+- Confirmación visual nativa del cambio (Expo Go / simulador / `expo start --web`) — sigue
+  bloqueada por el conflicto de versión `react-native-web`/NativeWind (`TypeError: Class extends
+  value undefined`) ya diagnosticado y no resuelto en la pasada anterior; diagnosticarlo es su
+  propio bloque, no se intentó de nuevo aquí para no ensanchar el alcance de un solo screen.
+  Verificado solo por `tsc --noEmit` + `npx jest` (41/41 suites, 176/176 tests, sin regresión) y
+  por paridad de texto/wiring leída contra el frontend ya screenshoteado.
+- El resto del backlog de pantallas (Crédito, Tarjeta, los 9 stubs de "Más", KYC, auth) — listado en
+  `docs/plan.md` pero no tocado en esta pasada; sigue la disciplina de una pantalla por vez.
+- No se cerró el fix como definitivo — falta segunda vista (humano o Auditor) antes de mover a
+  Cerrados, igual que la auditoría de la sesión anterior.
+
+**Dónde queda el pendiente:** bloques nuevos en `docs/plan.md` ("Migración de PWA a app nativa..." y
+"Primer incremento de la migración..."), con el backlog completo de rutas restantes.

@@ -17,6 +17,52 @@ checklist.
 
 ## Abiertos
 
+- [ ] **2026-09-05 — Migración de PWA a app nativa (iOS/Android): replicar cada pantalla y acción
+  de `creva_finance/frontend` en `app/`, uno por uno.** Decisión escogida: **no** un lote — se
+  sigue la misma disciplina que "Paridad móvil, tercera revisión" de abajo (una pantalla por pasada,
+  documentada, sin autocertificar cierre). Worktree/rama: `feature-mobile-native-parity`.
+  **Backlog de rutas del frontend (`creva_finance/frontend/app/**/page.tsx`) contra su pantalla
+  mobile**, para ir tomando una a la vez:
+  - `profile/delete-account` → `DeleteAccountScreen.tsx` — **primer incremento hecho 2026-09-05**
+    (ver más abajo), pendiente de segunda vista.
+  - `credit` → `CreditScreen.tsx` — mobile es intencionalmente mínima (decisión ya registrada,
+    "Crédito son pantallas mínimas reales nuevas"); no replicar el flujo completo de 6 pasos sin
+    reconfirmar que ese es el alcance querido para la migración nativa.
+  - `cards` / `card-create` → `CardScreen.tsx` — mobile es un stub "PRONTO"; mismo caso que Crédito.
+  - `score` → `ScoreScreen.tsx`, `dashboard` → `DashboardScreen.tsx`, `help`/`help/[category]` →
+    `HelpScreen.tsx`/`HelpCategoryScreen.tsx`/`HelpArticleScreen.tsx` — cubiertos por los worktrees
+    Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
+    coordinar (regla de §Colaboración punto 7).
+  - Sin pantalla mobile todavía: `movements`, `calculator`, `statements`, `collateral`,
+    `business-verification`, `regulatory`, `report`, `notifications`, `privacy`, `profile/details`,
+    `profile/fiscal`, `profile/security` — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a
+    pantallas reales 1:1 es el grueso de este bloque, no se ha empezado.
+  - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
+    evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
+
+- [ ] **2026-09-05 — Primer incremento de la migración: `DeleteAccountScreen.tsx` ganó paridad real
+  con `/profile/delete-account`, confirmado visualmente vía sesión autenticada real en el
+  frontend.** Screenshots reales tomados a 375×812 con la cuenta de prueba del frontend (login
+  persistido en el navegador, sesión ya autenticada). **Cambios:**
+  - Botón real "Escribir el correo" (`Linking.openURL(mailto:...)`) — mismo `MAILBOX`/`SUBJECT`/
+    `BODY` que `creva_finance/frontend/app/profile/delete-account/page.tsx`, antes la pantalla no
+    tenía ningún canal para iniciar la solicitud (hueco documentado en la auditoría anterior de
+    esta misma pantalla, ver bloque de arriba de "Paridad móvil").
+  - Card "Ten en cuenta" con la advertencia de permanencia (mismo texto que el `note` de
+    `borrar-mi-cuenta` en `help-content.ts`, que ya existía pero no se mostraba en esta pantalla).
+  - Enlace "Aviso de privacidad" que abre el stub `privacy` (`stub-topics.ts`), cableado en
+    `App.tsx` vía `openStub("privacy", "profile-delete-account")` — mismo patrón que el resto de la
+    navegación de `Más`.
+  - `VisualPrimitives.tsx`'s `Card` ganó un prop `tone?: "default" | "highlight"` (usa el token
+    `surface-2` ya existente en `tailwind.config.js`) para la card destacada — no se inventó ningún
+    color nuevo.
+  - `tsc --noEmit` y `npx jest` verdes (41/41 suites, 176/176 tests) después del cambio.
+  **No se verificó:** el resultado nativo (Expo Go / simulador) — sigue bloqueado por el conflicto
+  de versión `react-native-web`/NativeWind ya documentado arriba (`TypeError: Class extends value
+  undefined`), así que no se pudo confirmar visualmente en `app/` mismo, solo por lectura de código
+  y por paridad de texto/wiring contra el frontend ya screenshoteado. **No autocertificada como
+  cerrada** — falta segunda vista antes de mover a Cerrados.
+
 - [ ] **2026-09-05 — `facilitator.ts` no envuelve su `fetch` en try/catch: un facilitador
   caído tumba el proceso del gateway entero, no solo la request.** Sobrevive del bloque de abajo
   (ya resuelto el gap de config que lo disparó): con `FACILITATOR_URL` apuntando a

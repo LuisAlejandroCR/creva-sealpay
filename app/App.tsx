@@ -268,7 +268,12 @@ function AppFlow() {
       />
     );
   } else if (step === "profile-delete-account") {
-    screen = <DeleteAccountScreen onBack={() => setStep("profile")} />;
+    screen = (
+      <DeleteAccountScreen
+        onBack={() => setStep("profile")}
+        onOpenPrivacy={() => openStub("privacy", "profile-delete-account")}
+      />
+    );
   } else if (step === "help") {
     screen = (
       <HelpScreen
