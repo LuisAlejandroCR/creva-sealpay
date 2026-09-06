@@ -2111,3 +2111,39 @@ móvil (incluida `feature-mobile-native-parity`) en HOLD hasta un go/no-go expl�
 su regla dura es no pushear a `main` sin bloque "Cerrados" o aprobación escrita en su prompt. Se le
 pasó el paso a paso de integración por SendMessage; ninguna de estas 13 pantallas está
 autocertificada como cerrada.
+---
+
+## 2026-09-05 — Paridad barra de navegación inferior (sexto intento, worktree `feature-nav-parity-render`)
+
+**Qué se hizo (resultado verificable):**
+- Render-vs-render real por primera vez para esta pantalla: `creva_finance/frontend` en
+  `localhost:3001` y `app/` vía Expo web (`react-native-web`, instalado solo en el worktree, no
+  commiteado) en `localhost:8090`, ambos a 375x812. Screenshots antes/después en el reporte de
+  sesion para certificacion.
+- Causa raiz del "parecido pero no igual": `Icon.tsx` no fijaba `fill="none"` en la raiz `<Svg>`.
+  `react-native-svg` rellena de negro por defecto todo `<Path>`/`<Rect>` sin `fill` — Score salia
+  como medio disco negro, Tarjeta como bloque relleno. La web hereda `fill="none"` del
+  `<svg fill="none">` de `BottomNav.tsx:25,40,51`.
+- Fix 1 (`app/features/shared/icons/Icon.tsx`): `common` pasa a `{ viewBox, fill: "none" }` —
+  cubre los 26 glyphs; los rellenos mantienen su `fill` propio.
+- Fix 2-5 (`app/App.tsx` `TabBar`): `size={20}`->`22`; badge "PRONTO" flotante absoluto ->
+  `<Text>` plano bajo la etiqueta (`text-[8px] font-bold tracking-[0.04em] text-text-subtle`,
+  espeja `.cr-nav-pending` de `globals.css`); se quito `opacity-40` de la pestana deshabilitada;
+  `text-xs`->`text-[10px]`, `gap-1`->`gap-[3px]`, `py-3`->`py-[9px]` (valores de `.cr-nav-item`).
+- `docs/plan.md`: nota de actualizacion en el bloque abierto de paridad movil, sin mover a
+  Cerrados (pendiente de certificacion visual).
+
+**Qué NO se verificó, y por qué:**
+- Certificacion visual del par antes/despues: se deja al humano o al Auditor, no se autocertifica
+  (protocolo de la leccion 14).
+- Expo Go en dispositivo fisico real: sin hardware. El render fue Expo web; `react-native-svg-web`
+  reproduce el default `fill` pero no es identico byte a byte a Hermes/nativo.
+- `box-shadow: 0 -1px 20px rgba(0,0,0,0.06)` de `.cr-nav`: no portado (casi invisible, sin
+  equivalente RN fiable). Anotado como diferencia menor conocida.
+- `react-native-web`/`react-dom`/`@expo/metro-runtime` se instalaron en el worktree para poder
+  renderizar; `package.json`/`package-lock.json` se revirtieron con `git checkout` — NO forman
+  parte del commit.
+
+**Dónde queda el pendiente:** bloque "Paridad movil, tercera revision" en `docs/plan.md` sigue
+abierto — esta sesion solo toco la barra de navegacion inferior. Falta certificacion visual de
+esta pantalla y todas las demas rutas.
