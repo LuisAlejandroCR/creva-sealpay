@@ -9,6 +9,28 @@
 > o `gateway/` se refieren a lo que hoy es `frontend/` / `backend/` (el log histórico no se
 > reescribió). `creva_finance/frontend/app/…` (proyecto hermano) no cambia.
 
+## 2026-09-06 — Pasada visual render-vs-render, primer lote de 6 pantallas (worktree `feature-ui-parity-pass`)
+
+**Qué se hizo:** Expo web en `:3002` (sin `CI=1`, si no Metro no rebundlea) contra
+`creva_finance/frontend` en `:3001` (server de la sesión 2, read-only), viewport 375x812. El
+bloqueo de render está resuelto: `react-native-web ^0.21.2` ya vive en `main`. Para saltar el gate
+de Clerk sin sesión real se usó un override temporal en `App.tsx` (`?dev=<step>` / `?stub=<key>`),
+**revertido antes de commitear** (el diff commiteado es solo `docs/plan.md`). Se compararon limpio
+6 pantallas: sign-in, home, score, credit, help índice, privacy. Catálogo rankeado en
+`docs/plan.md` bajo el bloque "segunda vista visual".
+**Hallazgo principal:** la app móvil no carga ninguna fuente (`App.tsx` sin `useFonts`,
+`tailwind.config.js` sin `fontFamily`); la referencia corre Manrope + Montserrat en todo. Es la
+causa raíz de que cada encabezado/párrafo se vea distinto. Otros: el móvil mete `Card` blancas
+donde la web no las tiene (gauge de score, lista de temas de Ayuda); `(?)`/back cambiados; chevron
+de texto vs icono; "Tarjeta" sin "PRONTO" en el nav.
+**Qué NO se verificó:** ~20 pantallas restantes (onboarding, kyc, card, query, verify, profile*,
+delete-account, help-category/article, more, stubs). Las de datos (home/score/credit/card/
+movements/statements/report/regulatory/business-verification/personal-data) sin backend caen a
+spinner/error — su segunda vista real necesita sesión Clerk contra un core desplegado. Nada del
+catálogo está autocertificado (`[ ]`, no `[x]`).
+**Dónde queda:** bloque abierto "Paridad móvil: segunda vista visual pendiente" en `docs/plan.md`,
+con método (`?dev=`/`?stub=`) y lista de pendientes.
+
 ## 2026-09-06 — Paridad de Ayuda: cierre funcional + arranque de la pasada visual (worktree `feature-ui-parity-pass`)
 
 **Qué se hizo:** se auditó `frontend/features/help/**` contra `creva_finance/frontend/app/help/**`

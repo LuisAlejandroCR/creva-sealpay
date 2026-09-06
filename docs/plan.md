@@ -63,6 +63,54 @@ checklist.
   Pendiente: segunda vista pantalla por pantalla y Expo Go físico; no afirmar paridad visual final
   hasta cerrar esa revisión.
 
+  **Pasada visual `2026-09-06` (`feature-ui-parity-pass`, render-vs-render 375x812, Expo web
+  `:3002` vs `creva_finance/frontend` `:3001`).** Bloqueo de render RESUELTO: `react-native-web`
+  `^0.21.2` ya está en `main`, el bundle web arranca. Método: override temporal NO commiteado en
+  `App.tsx` (`?dev=<step>` / `?stub=<key>`) para saltar el gate de Clerk sin sesión real —
+  revertido antes del commit. Limitación: sin backend vivo, las pantallas con datos (home, score,
+  credit, card, movements, statements, report, regulatory, business-verification, personal-data)
+  caen a spinner/error; su segunda vista real necesita una sesión Clerk contra un core desplegado.
+  Pantallas comparadas limpio esta pasada: sign-in, home, score, credit, help (índice), privacy.
+  Hallazgos rankeados (NO autocertificados, sin `[x]`, catálogo — no se arregló nada salvo lo ya
+  hecho en el lote de Ayuda):
+
+  - **blocker — tipografía: la app móvil no carga ninguna fuente.** `App.tsx` no tiene
+    `useFonts`/`expo-font`, `tailwind.config.js` `extend` no tiene `fontFamily`. La referencia
+    corre **Manrope** en todo el cuerpo (`--font-inter`, aliased en `app/layout.tsx:6-21`) +
+    **Montserrat** en `.cr-name`/display (`--font-playfair`, `tailwind.config.ts:51-53`,
+    `globals.css:441`). En móvil todo el texto sale en la fuente del SO → cada encabezado y
+    párrafo se ve distinto. Fuente: `creva_finance/frontend/app/layout.tsx:6`,
+    `creva_finance/frontend/tailwind.config.ts:51`.
+  - **visible — el móvil envuelve listas/gauges en `Card` blancas que la referencia renderiza sin
+    tarjeta.** ScoreScreen: el gauge va dentro de un `Card` con sombra; en `app/score/page.tsx` el
+    ring va directo sobre el fondo. HelpScreen "Entra por tema": lista dentro de `Card`; en
+    `app/help/page.tsx:38-50` los `MenuRow` van sueltos con divisores y el badge de icono cuelga
+    en el margen. Fuente: `creva_finance/frontend/app/score/page.tsx:106`,
+    `creva_finance/frontend/app/help/page.tsx:38`.
+  - **visible — botón "Ayuda"/`(?)` ausente o cambiado.** ScoreScreen referencia: botón circular
+    `(?)` arriba a la derecha junto al back (`app/score/page.tsx:95-102`); móvil lo cambia por un
+    link de texto "Ayuda sobre tu score" bajo el subtítulo. HelpScreen referencia tiene back arriba
+    a la izquierda (`ScreenHeader backHref="/profile"`); la `HelpScreen.tsx` móvil no tiene back
+    (se llega por tab, pero desde Perfil/MoreSheet queda sin salida salvo el tab bar).
+  - **visible — chevron de fila.** Referencia usa un chevron `>` (glifo de icono) en filas de menú
+    y "Sigue por aquí"; móvil usa `›` (U+203A, carácter de texto, más fino) o nada (ScoreScreen
+    "Sigue por aquí" sin chevron). Fuente: `creva_finance/frontend/app/score/page.tsx:170-176`.
+  - **visible — bottom nav "Tarjeta" sin sublabel "PRONTO".** Referencia marca la pestaña Tarjeta
+    con "PRONTO" debajo (`components/BottomNav.tsx`); el `TABS` de `App.tsx:89` no pone
+    `disabled`/PRONTO. Verlo contra el estado real de tarjeta antes de fijarlo.
+  - **nitpick — encabezados más chicos y pegados al top en móvil.** "Aviso de Privacidad" ~32px
+    pegado al back; referencia ~40px con más aire arriba. Recurrente en todas las pantallas con
+    header propio.
+  - **nitpick — el cuerpo de texto móvil envuelve antes** (subtítulo de HelpScreen a 3 líneas vs
+    2 en referencia) — revisar escala de texto global / ancho de contenedor (`px-6`).
+  - **nitpick — bullets de lista.** PrivacyScreen móvil antepone "• " manual con sangría colgante;
+    la referencia usa lista CSS sin viñeta visible.
+
+  Pendiente del catálogo: onboarding, kyc, card-info, card-create, query, verify, profile,
+  profile-details/fiscal/security, delete-account, help-category, help-article, more, y los stubs
+  movements/statements/notifications/regulatory/report/collateral/business-verification/calculator
+  (~20 pantallas) — mismo método, `?dev=`/`?stub=`; las de datos requieren backend.
+
 - [ ] **2026-09-06 — AUDIT app↔core de `frontend/lib/api.ts`.** Duplicado del bloque superior,
   conservado como recordatorio compacto: la mayoría de métodos ya apunta a endpoints reales del
   core; `GET /cards` falta, varios métodos no se usan, y los shapes requieren prueba con sesión
