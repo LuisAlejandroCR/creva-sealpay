@@ -134,11 +134,12 @@ checklist.
   `react-native-web`/NativeWind (`TypeError: Class extends value undefined`). **No se afirma
   paridad visual en ninguna parte.** Pendiente: (1) certificación visual pantalla por pantalla
   cuando se resuelva el bloqueo de render — owner sesión 2; (2) alcance de `credit`/`card`/`kyc`/
-  `auth` a decidir con el humano; (3) el gateway no expone `/score` todavía; (4) `kyc`/`welcome`/
-  `auth/callback` sin evaluar contra su equivalente mobile.
+  `auth` a decidir con el humano; (3) `kyc`/`welcome`/`auth/callback` sin evaluar contra su
+  equivalente mobile. *(El sub-punto "el gateway no expone `/score`" se cerró el `2026-09-06`: el
+  score es core-directo, el gateway no interviene — ver Cerrados.)*
   **Actualización 2026-09-06 — el bloqueo de render se resolvió; primera pasada visual de la
   sesión 2 hecha (~22 hallazgos).** Fixes VISIBLE + NITPICK aplicados en
-  `feature-visual-fixes-1` (off `main` 29b635f, sin push):
+  `feature-visual-fixes-1`:
   - `SelfieCheckScreen`: CTAs `bg-text` (negro) → `bg-crimson`; `BackButton` sale del contenedor
     centrado a top-left vía un helper `CenteredState` (como QueryScreen/VerifyScreen).
   - `DashboardScreen`: saludo `Hola` → `Hola,` con coma (ref `dashboard/page.tsx:199`); los inputs
@@ -154,9 +155,8 @@ checklist.
     (`delete-account/page.tsx:30-31`).
   Tests: `test/unit/visual-fixes-1.spec.ts` + `test/invariant/dashboard-bell-honest.invariant.spec.ts`.
   `tsc` limpio; `jest` 66 suites / 300 tests.
-  **Sigue abierto:** `ScoreScreen` (necesita trabajo de `/score` en el gateway — en revisión con el
-  humano); el render nativo lado a lado de todo (owner sesión 2); los hallazgos de sesión 2 más
-  allá de VISIBLE/NITPICK si los hubiera.
+  **Sigue abierto:** el render nativo lado a lado de todo (owner sesión 2); los hallazgos de sesión 2
+  más allá de VISIBLE/NITPICK si los hubiera.
 
 - [ ] **2026-09-05 — `facilitator.ts` no envuelve su `fetch` en try/catch: un facilitador
   caído tumba el proceso del gateway entero, no solo la request.** Sobrevive del bloque de abajo
@@ -177,8 +177,9 @@ checklist.
   descarta ahora que `feature-mobile-native-parity` + las 4 ramas de ajuste cubren el sheet "Más",
   el dashboard y los primitivos (ver Cerrados `2026-09-06`). No re-tomar un módulo Codex sin
   coordinarlo aquí primero (regla de §Colaboración punto 7). Nota de contexto que sigue vigente:
-  el gateway no expone `/score`, y para datos personales debe conservarse la identidad Clerk del
-  solicitante (la identidad de servicio devolvería el score de otra cuenta).
+  para datos personales debe conservarse la identidad Clerk del solicitante (la identidad de
+  servicio devolvería el score de otra cuenta). El gateway no expone `/score` ni hace falta: el
+  score se consume core-directo con la sesión Clerk (cerrado `2026-09-06`, ver Cerrados).
 
 - [ ] **2026-09-05 — `claude/bazantic-sponsor-block-6s1iv6`: no mergear, descartar.** Solo añade
   +32 líneas a `docs/plan.md` documentando un bloqueo de `JwtAuthGuard` de Bazantic que **ya está
@@ -316,6 +317,34 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
 
 ## Cerrados
+
+- [x] `2026-09-06` — **`ScoreScreen` deja de ser el stub mínimo: muestra el score real, no un
+  `74` hardcodeado (`feature-scorescreen-real`, off `origin/main` `29b635f`).** El blocker
+  documentado en `docs/memoria.md` (`2026-09-05`, paridad ScoreGauge) decía "necesita `score.get()`
+  con factors + recommendations + `crevaScore.disclosure()`, y `/score` no está expuesto en el
+  gateway". **Decisión escogida:** el score se obtiene **core-directo**, no por el gateway — es
+  exactamente el patrón que `DashboardScreen.tsx` ya usa. Evidencia archivo:línea:
+  `app/lib/api.ts:7` (`BASE = process.env.EXPO_PUBLIC_API_URL`, el backend Clerk del core),
+  `app/lib/api.ts:312` (`score.get()` = `request<ScoreData>('/score')` → `${BASE}/score`),
+  `app/lib/api.ts:89-96` (adjunta `Authorization: Bearer <clerk token>` de `sessionSource`, la
+  identidad del usuario, nunca una estática), `app/features/dashboard/DashboardScreen.tsx:55-69`
+  (mismo `score.get()` directo con loading/error). `gateway/src/index.ts` solo tiene
+  `/creva-score/{report,verify,anchor}` (x402 + identidad de servicio) — no hay `/score` ni hace
+  falta: el score es por-cuenta y necesita la identidad Clerk del solicitante, que en core-directo
+  se conserva. **No se tocó el gateway.** `ScoreScreen.tsx` reconstruida contra
+  `creva_finance/frontend/app/score/page.tsx`: título "Score Creva" (`page.tsx:97`), gauge `ring`
+  con el valor real (`page.tsx:106`), factores "De dónde sale tu score" (`page.tsx:110-154`),
+  "Qué puedes hacer" (recomendaciones, `page.tsx:156-168`), "Sigue por aquí" (`NEXT_STOPS`,
+  `page.tsx:170-176`), disclosure "qué no hace este puntaje" (`page.tsx:180-210`), back + "Ayuda
+  sobre tu score" (`page.tsx:95-102`). Estados loading (spinner, `testID="score-loading"`) y error
+  (mensaje visible, `testID="score-error"`, nunca un número inventado) igual que `DashboardScreen`.
+  `App.tsx` cablea `onBack`→home y `onOpenHelp`→`/help/score/como-se-calcula`.
+  **Verify:** `npx tsc --noEmit` limpio; `npx jest` → 68 suites / 309 tests verdes (antes 64/295;
+  +5 suites nuevas en `test/{unit,fuzz,invariant}/score/`, +14 tests: render real, loading/error,
+  invariante "core-directo, nunca identidad de servicio", fuzz "pinta exactamente el score de la
+  API, nunca un número en el error"). **Falta:** render lado a lado real (mismo bloqueo
+  `react-native-web` del resto del repo); score real contra un core desplegado con sesión Clerk
+  real (sin backend en esta sesión — los tests mockean `score.get()` en la frontera de red).
 
 - [x] `2026-09-06` — **`QueryScreen` ya recoge los datos del negocio del usuario, se acabó el
   `BUSINESS_NAME` hardcodeado (`feature-query-business-form`, off `main` 7638dbb).** El flujo

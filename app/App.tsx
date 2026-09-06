@@ -262,7 +262,13 @@ function AppFlow() {
       />
     );
   } else if (step === "score") {
-    screen = <ScoreScreen onOpenQuery={() => setStep("query")} />;
+    screen = (
+      <ScoreScreen
+        onOpenQuery={() => setStep("query")}
+        onBack={() => setStep("home")}
+        onOpenHelp={() => openHelpArticle("/help/score/como-se-calcula")}
+      />
+    );
   } else if (step === "credit") {
     screen = (
       <CreditScreen
