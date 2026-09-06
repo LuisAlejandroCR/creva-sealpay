@@ -2257,3 +2257,187 @@ Icon.tsx fill=none NO esta en esta rama (no toca iconos) — sigue en las otras 
 **Dónde queda el pendiente:** bloque abierto "Paridad móvil: segunda vista visual PENDIENTE" en
 `docs/plan.md` §Abiertos (owner sesión 2); bloque abierto "Paridad móvil, revisión Codex" para
 decidir qué se hace con `codex/mobile-parity-*`.
+
+## 2026-09-06 — Migración PWA→nativa, últimas 4 pantallas: `auth` (Solver, cloud)
+
+**Qué se hizo:**
+- Rama nueva `feature-last-screens-parity` off `main` 93616fa. Alcance (auth+kyc+credit+card)
+  aprobado por el humano el 2026-09-06 tras preguntarle — un mensaje del Main orchestrator no
+  contaba como su aprobación para una regla del prompt que exigía confirmación humana.
+- `auth`: `SignInScreen.tsx` ya era un formulario `@clerk/clerk-expo` hecho a mano (la fuente
+  `creva_finance/frontend/app/sign-in/[[...sign-in]]/page.tsx` envuelve el widget hosted `<SignIn>`
+  de Clerk, que no tiene build Expo). El único delta de paridad real era el copy del chrome
+  Creva-autored, no el formulario. Alineado: título/subtítulo por modo a `AuthHeader.tsx:26-27` y
+  `sign-up/[[...sign-up]]/page.tsx:11`; cross-link del footer a `sign-in/page.tsx:33`.
+- Test nuevo `app/test/unit/auth/auth-parity.spec.ts`.
+
+**Fuera de alcance (documentado):**
+- `DemoOverlay` "Ver el recorrido" (`sign-in/page.tsx:35`) — tour grabado, feature aparte.
+- Wordmark a color de Google — media de terceros, prohibido por AGENTS.md; `GoogleButton.tsx` del
+  frontend lo dice también. Se queda la "G" plana de la versión mobile.
+
+**Qué NO se verificó, y por qué:**
+- Render nativo/visual — mismo bloqueo `react-native-web`/NativeWind; batch marcado
+  code-verified-only, segunda vista visual junto con las otras 17 (owner sesión 2).
+- Flujo real de Clerk (sign-in/sign-up/SSO) contra la instancia real — sin entorno de auth en esta
+  sesión; la lógica de hooks no se tocó, solo copy.
+- `tsc --noEmit` limpio. `jest` full-run: 53 suites limpias / 240 tests; `auth-gate.spec.ts` es el
+  flake de timeout documentado (pasa aislado). Baseline previo: 53 suites / 236 tests.
+
+**Dónde queda el pendiente:** bloque abierto "Migración: últimas 4 pantallas
+(`feature-last-screens-parity`)" en `docs/plan.md` §Abiertos. Siguientes: `kyc`, `credit`, `card`.
+
+## 2026-09-06 — Migración PWA→nativa, últimas 4 pantallas: `kyc` + fix de `MoreSheet` (Solver, cloud)
+
+**Qué se hizo:**
+- **Decisión del humano (2026-09-06):** portar el form de `kyc/page.tsx` como pantalla nueva
+  `KycFormScreen`, insertada como paso 2 del onboarding **después** de `SelfieCheckScreen`, NO
+  reemplazando World Selfie Check (que es integración de patrocinador y no se toca).
+- `KycFormScreen.tsx` (`app/features/onboarding/`): form nombre/apellido/CURP/email/teléfono →
+  `kyc.apply()` (`app/lib/api.ts`, ya existía). Estados loading/form/processing/pending/verified/
+  unavailable con copy 1:1 del frontend. `authorization_url` → `WebBrowser.openBrowserAsync`
+  (`expo-web-browser`, ya era dependencia — no se instaló nada) + poll de `kyc.status()`. Prefill
+  desde `useUser()` de Clerk + `profiles.get()`.
+- `kyc-format.ts` (`app/features/onboarding/`): `isValidCurp` (regex `page.tsx:80`) + `formatMxPhone`
+  (`page.tsx:90-93`), extraídos a un módulo puro para poder testearlos unit+fuzz+invariant.
+- `App.tsx`: paso `"kyc"` nuevo en el `Step` union y en el router; `SelfieCheckScreen`
+  `onVerified`/`onSkipped` ahora van a `"kyc"` en vez de `"home"`.
+- Tests: `test/unit/onboarding/kyc-form.spec.ts`, `test/fuzz/onboarding/kyc-format.fuzz.spec.ts`,
+  `test/invariant/onboarding/curp-never-false-positive.invariant.spec.ts`.
+- **Fix aparte** (reportado por el humano con captura, no era del inventario de 4):
+  `MoreSheet.tsx` usaba `w-[calc(50%-4px)]` en la celda — NativeWind no evalúa `calc()`, así que la
+  celda quedaba sin ancho, se encogía al icono y ocultaba la etiqueta. Cambiado a `w-[48%]` +
+  `leading-4`; regresión en `test/unit/more/structure.spec.ts` que rechaza `w-[calc(`.
+  Commiteado por separado (`ec59cd0`).
+
+**Observación:** las capturas del humano confirman que el **render nativo funciona** (dispositivo/
+simulador). El bloqueo `react-native-web` que citaron los 13 incrementos era solo del preview web
+(`expo start --web`). Eso habilita la segunda vista visual — owner sesión 2, no esta sesión.
+
+**Qué NO se verificó, y por qué:**
+- `kyc.apply`/`kyc.status` contra `/kyc/*` real — sin backend de Creva en esta sesión; tampoco el
+  retorno del `WebBrowser` tras completar la verificación en el proveedor externo.
+- Render nativo/visual de `KycFormScreen` — el humano puede verlo ahora, pero la certificación
+  pantalla-por-pantalla sigue siendo de la sesión 2.
+- `tsc --noEmit` limpio. `jest` full-run: 57 suites / 253 tests (incluyó el flake `auth-gate` verde
+  esta corrida). Baseline tras `auth`: 54 suites / 240 tests.
+
+**Dónde queda el pendiente:** bloque abierto "Migración: últimas 4 pantallas" en `docs/plan.md`.
+Siguientes: `credit`, `card`.
+
+## 2026-09-06 — Migración: Ayuda reasignada, `HelpArticleScreen` reconstruida (Solver, cloud)
+
+**Qué se hizo:**
+- El humano reasignó `app/features/help/**` a esta sesión (2026-09-06). Main orchestrator confirmó
+  que el worktree `codex/mobile-parity-help` está abandonado (44 commits detrás de main, working
+  tree limpio, nunca pusheado) — sin colisión. Bloque de coordinación en `docs/plan.md`.
+- `HelpArticleScreen.tsx` reconstruida de 50 líneas (una card con todo apilado) al nivel de
+  `creva_finance/frontend/app/help/[category]/[article]/page.tsx`: `<ScrollView>`, `answer` como
+  lead, "Cómo se hace" con pasos numerados en círculo, card "Ten en cuenta" (`tone="highlight"`),
+  botón CTA `resolvedBy`, "Otras de este tema" (`relatedArticles`), footer de privacidad.
+- `App.tsx`: `openHelpResolve(href)` — mapa de los 14 `resolvedBy.href` que puede producir
+  `help-content.ts` (7 a stubs vía `openStub`, 7 a steps directos). `onOpenArticle` para las
+  relacionadas. `HelpArticleScreen` ahora recibe `onResolve` + `onOpenArticle`.
+- Test nuevo `app/test/unit/help/article-parity.spec.ts`.
+
+**Qué NO se verificó, y por qué:**
+- Render nativo/visual — el humano tiene el simulador y puede verlo; la certificación pantalla por
+  pantalla sigue siendo tarea de la sesión 2. El `/login` como destino de `resolvedBy` en móvil
+  lleva a `SignInScreen` (el usuario ya está dentro) — se mapeó igual que el frontend, no se probó
+  el caso de borde.
+- `tsc --noEmit` limpio. `jest` full-run: 58 suites / 256 tests. Baseline tras `kyc`: 57 / 253.
+
+**Dónde queda el pendiente:** bloque abierto "COORDINACIÓN: `app/features/help/**`" en
+`docs/plan.md`. Siguientes: `HelpCategoryScreen`, `HelpScreen`, luego `credit`, `card`, business
+form.
+
+## 2026-09-06 — Migración: `HelpCategoryScreen` + `HelpScreen` a paridad web (Solver, cloud)
+
+**Qué se hizo (un commit, cambios acoplados — ambos dependen de `HelpSearch` y del ruteo por href):**
+- `HelpCategoryScreen.tsx`: `<View>` → `<ScrollView>`; se agregó el `HelpSearch` del índice completo
+  arriba de la lista (search nunca se limita a una categoría, `help/[category]/page.tsx` lo hace
+  igual); cada fila ahora muestra `article.answer` como descripción, no solo la pregunta. Prop
+  `onOpenArticle` cambiado de `(article) => void` a `(href) => void` para unificar con el índice —
+  `App.tsx` le pasa `openHelpArticle`.
+- `HelpScreen.tsx`: tiles "Lo que más se pregunta" de `w-[47%]` (2-col) a `flex-1` 4-en-fila, como
+  `<Stack columns={4}>` del frontend; cada fila de "Entra por tema" con el badge de icono
+  `38px rounded-xl bg-surface-2` de `MenuRow.tsx:33-46`.
+- Test nuevo `app/test/unit/help/index-and-category-parity.spec.ts`.
+
+**Qué NO se verificó, y por qué:**
+- Render nativo/visual — el humano lo puede ver en el simulador; certificación pantalla-por-pantalla
+  es de la sesión 2.
+- `tsc --noEmit` limpio. `jest` full-run: 59 suites / 261 tests. Baseline tras `HelpArticleScreen`:
+  58 / 256.
+
+**Dónde queda el pendiente:** las 3 pantallas de Ayuda quedan al nivel de la web. Siguientes:
+`credit`, `card`, business form. El bloque de coordinación de `app/features/help/**` sigue abierto
+hasta la segunda vista visual.
+
+## 2026-09-06 — Migración: `credit` reconstruida al flujo completo (Solver, cloud)
+
+**Qué se hizo:**
+- `CreditScreen.tsx`: del stub mínimo ("Próximamente" + link a VerifyScreen) al puerto completo de
+  `creva_finance/frontend/app/credit/page.tsx`: gate de contacto (email link + phone OTP), petición
+  de 4 pasos, opciones con match explicado (cada criterio visible, `FactorMark` → círculo ✓/!), las
+  4 ramas de estado, y la elección con gate de KYC opcional. Endpoints reales:
+  `credit.eligibility/recommend/select/updateSelection`, `auth.sendPhoneCode/verifyPhoneCode/me/
+  forgotPassword`, `profiles.get`.
+- `CreditRequestForm.tsx` nuevo — puerto de `components/credit/RequestForm.tsx` (532 líneas): 4
+  pasos, prefill de `profiles.getFiscal()` + `declarations.latest()`, salto al paso 4 si la
+  declaración cubre los 3 meses actuales, guarda `profiles.updateFiscal` + `declarations.create`
+  antes de `onSubmit`. `<Chip>` → `ChipRow` local; `<Consent>` → checkbox pressable.
+- `App.tsx`: `CreditScreen` recibe `onOpenKyc` (paso `"kyc"`) y `onOpenStatements`
+  (`openStub("statements", "credit")`); `onOpenVerify` conservado.
+- Test nuevo `app/test/unit/credit/structure.spec.ts` (unit — mismo método que las 13; el
+  unit+fuzz+invariant que pidió Main es para el business form).
+
+**Desviaciones / fuera de alcance:**
+- `DemoOverlay` no portado. Barra de progreso `step N/6` del `ScreenHeader` → texto "Paso N de 6".
+- `Field`/`FieldGroup`/`ScreenHeader`/`Chip`/`Consent` del frontend no existen en la app — se usó
+  `TextField`/`SelectField` compartidos + primitivas locales.
+
+**Qué NO se verificó, y por qué:**
+- Ningún endpoint de crédito contra el backend real de Creva — sin credenciales; la forma de
+  `CreditRecommendationResult`/`CreditMatch`/`CreditProfile` se tomó de `app/lib/api.ts` (ya
+  portado), no se confirmó contra el servicio.
+- Render nativo/visual — el humano tiene el simulador; certificación es de la sesión 2.
+- `tsc --noEmit` limpio. `jest` full-run: 60 suites / 270 tests. Baseline tras Ayuda: 59 / 261.
+
+**Dónde queda el pendiente:** bloque "Migración: últimas 4 pantallas" en `docs/plan.md`.
+Siguientes: `card`, business form.
+
+## 2026-09-06 — Migración: `card` reconstruida, tab Tarjeta habilitado (Solver, cloud)
+
+**Qué se hizo (revierte la decisión previa "tab Tarjeta deshabilitado a propósito", aprobado por
+el humano el 2026-09-06):**
+- `CardScreen.tsx`: del stub "PRONTO" al puerto de `app/cards/page.tsx` + `app/cards/[id]/page.tsx`
+  (límite + freeze plegados en una pantalla, una sola tarjeta): `cards.list()` → `VirtualCard`,
+  `cards.get(id)` para `spendingLimit`, `cards.freeze/unfreeze`, `transactions.list({limit:20})`,
+  estado vacío que ramifica por `kyc.status()`.
+- `CardCreateScreen.tsx` nuevo — puerto de `app/card-create/page.tsx`: `cards.issue({})` al montar
+  tras confirmar KYC; estados checking/kyc-pending/creating/ready/error, ramas 409/400.
+- `VirtualCard.tsx` nuevo — cara de tarjeta nativa (gradiente CSS → token `bg-crimson`; overlay
+  "Congelada").
+- `App.tsx`: tab "Tarjeta" habilitado (`step: "card-info"`), paso `"card-create"`, `card-info` en
+  `TAB_STEPS`, `isTabActive` extendido. Comentario de cabecera y `nav/structure.spec.ts`
+  actualizados (el test que exigía "Tarjeta disabled/PRONTO" ahora verifica ruta viva — cambio
+  necesario por la reversión aprobada).
+- Test nuevo `app/test/unit/card/structure.spec.ts`.
+
+**Qué NO se verificó, y por qué:**
+- Endpoints de tarjeta contra el backend real de Creva — sin credenciales.
+- Que la emisión real (`cards.issue`) exija colateral + KYC aprobados: las ramas 400/409 se
+  portaron de la lógica del frontend, no se probaron contra el servicio.
+- Render nativo/visual — el humano tiene el simulador; certificación es de la sesión 2.
+- `tsc --noEmit` limpio. `jest` full-run: 61 suites / 276 tests. Baseline tras `credit`: 60 / 270.
+
+**Business form (5º ítem del Main orchestrator):** NO construido. El bloque en `docs/plan.md` pide
+confirmación explícita del humano; el humano autorizó "seguir con las pantallas pendientes" de
+forma general pero no respondió a ese ítem en concreto — se deja intacto. Un mensaje de peer no
+cuenta como su aprobación.
+
+**Dónde queda el pendiente:** las 4 pantallas del lote aprobado (auth, kyc, credit, card) + las 3
+de Ayuda + el fix de MoreSheet están hechas y pusheadas en `feature-last-screens-parity`. Falta:
+(1) confirmación del humano para el business form; (2) segunda vista visual de todo (sesión 2);
+(3) que el Main orchestrator integre la rama.

@@ -28,7 +28,8 @@ export function HelpScreen({ onOpenArticle, onOpenCategory }: HelpScreenProps) {
         <HelpSearch onOpenArticle={onOpenArticle}>
           <>
             <Section title="Lo que más se pregunta">
-              <View className="flex-row flex-wrap gap-3">
+              {/* Four across, like the reference's <Stack columns={4}> (help/page.tsx:29). */}
+              <View className="flex-row gap-2">
                 {MOST_ASKED.map(({ category, article, short, icon }) => {
                   const href = articleHref(category, article);
                   return (
@@ -36,10 +37,10 @@ export function HelpScreen({ onOpenArticle, onOpenCategory }: HelpScreenProps) {
                       key={href}
                       onPress={() => onOpenArticle?.(href)}
                       testID={`help-most-asked-${article}`}
-                      className="w-[47%] items-center gap-2 rounded-xl border border-text/10 bg-surface-1 p-4"
+                      className="flex-1 items-center gap-1.5 rounded-xl border border-text/10 bg-surface-1 px-1.5 py-3"
                     >
-                      <HelpGlyph icon={icon} size={22} />
-                      <Text className="text-center text-sm font-semibold text-text">{short}</Text>
+                      <HelpGlyph icon={icon} size={20} />
+                      <Text className="text-center text-[11px] font-semibold leading-3 text-text">{short}</Text>
                     </Pressable>
                   );
                 })}
@@ -54,12 +55,15 @@ export function HelpScreen({ onOpenArticle, onOpenCategory }: HelpScreenProps) {
                       key={category.slug}
                       onPress={() => onOpenCategory?.(categoryHref(category))}
                       testID={`help-category-${category.slug}`}
-                      className="flex-row items-center gap-3 border-b border-text/5 py-4"
+                      className="flex-row items-center gap-3 border-b border-text/5 py-3"
                     >
-                      <HelpGlyph icon={category.icon} />
+                      {/* Icon badge: 38px rounded-xl surface-2, per MenuRow.tsx:33-46. */}
+                      <View className="h-[38px] w-[38px] items-center justify-center rounded-xl bg-surface-2">
+                        <HelpGlyph icon={category.icon} size={18} />
+                      </View>
                       <View className="flex-1">
-                        <Text className="text-base font-semibold text-text">{category.title}</Text>
-                        <Text className="text-xs text-text/50">{category.lead}</Text>
+                        <Text className="text-sm font-semibold text-text">{category.title}</Text>
+                        <Text className="text-xs leading-4 text-text/50">{category.lead}</Text>
                       </View>
                       <Text className="text-text/30">›</Text>
                     </Pressable>

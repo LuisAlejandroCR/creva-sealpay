@@ -17,6 +17,126 @@ checklist.
 
 ## Abiertos
 
+- [ ] **2026-09-06 — COORDINACIÓN: `app/features/help/**` reasignado a la sesión "1 UI/UX"
+  (`feature-last-screens-parity`).** El humano lo reasignó el 2026-09-06 tras comparar las
+  pantallas de Ayuda nativas contra la web y verlas a medio construir. Sale del área
+  `codex/mobile-parity-help` — ese worktree Codex **no debe editar `app/features/help/**` mientras
+  este bloque esté abierto** (regla §Colaboración punto 7). Se avisó al Main orchestrator por
+  mensaje. Gap concreto: `HelpArticleScreen.tsx` (50 líneas) vs
+  `creva_finance/frontend/app/help/[category]/[article]/page.tsx` (105) — faltan la sección "Cómo
+  se hace" con `Steps`, la card "Ten en cuenta" (`surface-2`), el botón CTA `resolvedBy` (va a la
+  pantalla que resuelve la duda), la lista "Otras de este tema" (`relatedArticles`), el footer, y
+  usa `<View>` en vez de `<ScrollView>`. `HelpScreen`/`HelpCategoryScreen` con huecos análogos
+  (tiles "Lo que más se pregunta", descripciones por tema). `app/lib/help-content.ts` ya está
+  portado — es port de contenido, mismo método que las 13.
+  - **`HelpArticleScreen` — hecho.** Reconstruida al nivel de
+    `help/[category]/[article]/page.tsx`: `<ScrollView>` (antes `<View>`, cortaba artículos
+    largos), `answer` como párrafo lead, sección "Cómo se hace" con pasos numerados en círculo,
+    card "Ten en cuenta" (`tone="highlight"` = `surface-2`), botón CTA `resolvedBy`, lista "Otras
+    de este tema" (`relatedArticles`), y el footer de contacto de privacidad. `App.tsx`:
+    `openHelpResolve(href)` mapea los 14 `resolvedBy.href` posibles a steps/stubs del router
+    nativo; `onOpenArticle` para las relacionadas. Test nuevo
+    `app/test/unit/help/article-parity.spec.ts` (verifica las 6 secciones + que ningún href
+    quede sin ruta). `tsc` limpio; `jest` 58 suites / 256 tests.
+  - **`HelpCategoryScreen` + `HelpScreen` — hecho (un commit, cambios acoplados).**
+    `HelpCategoryScreen`: `<ScrollView>`, `HelpSearch` del índice completo arriba de la lista
+    (search nunca se limita a una categoría, como el frontend), y cada fila muestra
+    `article.question` + `article.answer` como descripción (antes solo la pregunta). Todas las filas
+    ruteadas vía `onOpenArticle(articleHref(...))` — mismo handler que el índice.
+    `HelpScreen`: tiles "Lo que más se pregunta" a 4-en-fila (`flex-1`, como `<Stack columns={4}>`
+    de `help/page.tsx:29`); cada fila de tema con el badge de icono `38px rounded-xl surface-2` de
+    `MenuRow.tsx:33-46`. Test nuevo `app/test/unit/help/index-and-category-parity.spec.ts`.
+    `tsc` limpio; `jest` 59 suites / 261 tests. **Ayuda: las 3 pantallas al nivel de la web.**
+
+- [ ] **2026-09-06 — `QueryScreen` no tiene form de datos del negocio: el flujo "Comprobar
+  un reporte" manda un `BUSINESS_NAME` hardcodeado a `/creva-score/report`.**
+  `app/features/query/QueryScreen.tsx:31` y `:58` llaman `requestSignal({ businessName:
+  BUSINESS_NAME })` con una constante fija; `gatewayClient.ts:46-47` ya acepta `businessName?`
+  y `stateCode?` pero la pantalla nunca los recoge del usuario. El frontend sí tiene esa
+  entrada (`creva_finance/frontend/app/report/page.tsx`, `app/business-verification/page.tsx`).
+  Gap load-bearing: el producto es "verificar ESTE negocio" y en cámara un valor fijo se lee
+  como demo falsa. **Alcance mínimo:** campo de nombre + selector de estado (catálogo
+  `state_code`), pasados a `requestSignal`; sin tocar el ciclo x402 ni el sellado. **Prioridad
+  escogida:** después del lote kyc/auth/credit/card, antes de los spikes de patrocinador —
+  bloquea que el video demo muestre el flujo real de entrada. Añadido al scope de
+  `feature-last-screens-parity` por el Main orchestrator el 2026-09-06 (5º ítem del lote); el
+  humano aprobó las 4 pantallas — este ítem se confirma con el humano antes de construirlo.
+
+- [ ] **2026-09-06 — Migración: últimas 4 pantallas del inventario (`feature-last-screens-parity`,
+  off `main` 93616fa).** Alcance aprobado por el humano el 2026-09-06 (las 4, revirtiendo la
+  decisión previa de "credit/card mínimas a propósito"). Mismo método que las 13 anteriores: leer
+  la fuente web, portar a RN, citas `archivo:línea`, tests, `tsc`+`jest` verde antes de entregar.
+  Batch marcado **code-verified-only** — la segunda vista visual va junto con las otras 17 cuando
+  la sesión 2 desbloquee el render (`react-native-web`/NativeWind).
+  - **`auth` — hecho.** `SignInScreen.tsx` ya era un formulario Clerk-expo hecho a mano (la fuente
+    `creva_finance/frontend/app/sign-in/[[...sign-in]]/page.tsx` envuelve el widget hosted `<SignIn>`
+    de Clerk, sin build Expo). Delta real = copy del chrome Creva: título/subtítulo por modo
+    alineados a `components/auth/AuthHeader.tsx:26-27` ("Iniciar sesión" / "Tu plataforma
+    financiera") y `app/sign-up/[[...sign-up]]/page.tsx:11` ("Crear cuenta" / "Empieza a tomar el
+    control"); cross-link del footer a `sign-in/page.tsx:33` ("Crear cuenta" / "Iniciar sesión").
+    **Fuera de alcance:** el `DemoOverlay` "Ver el recorrido" (tour grabado, feature aparte) y el
+    wordmark a color de Google (media de terceros, prohibido por AGENTS.md — se queda la "G" plana).
+    Test nuevo `app/test/unit/auth/auth-parity.spec.ts`. `tsc` limpio; `jest` 54 suites / 240 tests
+    (auth-gate.spec.ts es el flake documentado de full-run, pasa aislado). Antes: 53 / 236.
+  - **`kyc` — hecho (decisión del humano 2026-09-06: portar el form, NO reemplazar World).**
+    `KycFormScreen.tsx` nuevo (`app/features/onboarding/`), puerto de
+    `creva_finance/frontend/app/kyc/page.tsx`: form nombre/apellido/CURP/email/teléfono →
+    `kyc.apply()` de `app/lib/api.ts` (ya existía). Estados loading/form/processing/pending/verified/
+    unavailable con el copy del frontend (`page.tsx:150-236`). Regex CURP y formateo de teléfono en
+    `app/features/onboarding/kyc-format.ts`, portados 1:1 de `page.tsx:80` y `:90-93`.
+    `authorization_url` → `WebBrowser.openBrowserAsync` (`expo-web-browser`, ya era dependencia),
+    luego poll de `kyc.status()`. `App.tsx`: paso `"kyc"` nuevo, **después** de `SelfieCheckScreen`
+    (`onVerified`/`onSkipped` → `setStep("kyc")` → `KycFormScreen` → `home`). **World Selfie Check
+    no se tocó.** Tests unit + fuzz + invariant (`test/unit/onboarding/kyc-form.spec.ts`,
+    `test/fuzz/onboarding/kyc-format.fuzz.spec.ts`,
+    `test/invariant/onboarding/curp-never-false-positive.invariant.spec.ts`). `tsc` limpio; `jest`
+    57 suites / 253 tests. Prefill de email/nombre desde `useUser()` de Clerk + `profiles.get()`.
+    **No se verificó:** `kyc.apply`/`kyc.status` contra `/kyc/*` real (sin backend), ni el retorno
+    del `WebBrowser` tras completar la verificación externa.
+  - **`credit` — hecho.** `CreditScreen.tsx` reconstruida del stub mínimo ("Próximamente") al
+    flujo completo de `app/credit/page.tsx`: gate de contacto (enlace de correo vía
+    `auth.forgotPassword` + verificación de teléfono con código vía
+    `auth.sendPhoneCode`/`verifyPhoneCode`), la petición de 4 pasos, las opciones con cada
+    criterio del match visible (`FactorMark` → círculo ✓/!), y las 4 ramas de resultado
+    (ok/insufficient_data/no_match/not_eligible) + la elección con gate de KYC opcional
+    (`credit.select`/`updateSelection`). `CreditRequestForm.tsx` nuevo — puerto de
+    `components/credit/RequestForm.tsx` (532 líneas): 4 pasos (negocio / ingresos 3 meses /
+    gastos 3 meses / solicitud), prefill de `profiles.getFiscal()` + `declarations.latest()`,
+    salto directo al paso 4 si la última declaración cubre los 3 meses actuales, guarda
+    `profiles.updateFiscal` + `declarations.create` antes de `onSubmit`. `<Chip>` del frontend →
+    `ChipRow` local (pressables redondeados en `flex-wrap`); `<Consent>` → checkbox pressable.
+    `App.tsx`: `CreditScreen` ahora recibe `onOpenKyc` (→ paso `"kyc"`) y `onOpenStatements`
+    (→ `openStub("statements", "credit")`); se conservó `onOpenVerify` (el puente a VerifyScreen).
+    Test nuevo `app/test/unit/credit/structure.spec.ts`. `tsc` limpio; `jest` 60 suites / 270 tests.
+    **Fuera de alcance:** el `DemoOverlay`, el header con barra de progreso `step 5/6` visual
+    (se puso "Paso N de 6" en texto), y el `RequestForm` no usa `Field`/`FieldGroup`/`ScreenHeader`
+    del frontend (no existen en la app). **No se verificó:** ninguno de los endpoints de crédito
+    contra el backend real (sin credenciales).
+  - **`card` — hecho (revierte la decisión "tab Tarjeta deshabilitado a propósito").**
+    `CardScreen.tsx` del stub "PRONTO" (38 líneas) al puerto de `app/cards/page.tsx` +
+    `app/cards/[id]/page.tsx` (el límite y el freeze se pliegan en la misma pantalla — una sola
+    tarjeta, sin ruta de detalle aparte): `cards.list()` → tarjeta activa con `VirtualCard`,
+    `cards.get(id)` para `spendingLimit`, `cards.freeze/unfreeze`, `transactions.list({limit:20})`,
+    y estado vacío que ramifica según `kyc.status()` (→ crear tarjeta o → completar KYC).
+    `CardCreateScreen.tsx` nuevo — puerto de `app/card-create/page.tsx`: emite con `cards.issue({})`
+    al montar (tras confirmar KYC), estados checking/kyc-pending/creating/ready/error con las ramas
+    409/400. `VirtualCard.tsx` nuevo — cara de tarjeta nativa (el gradiente CSS del web se aplana al
+    token `bg-crimson`; overlay "Congelada").
+    `App.tsx`: **tab "Tarjeta" habilitado** (`step: "card-info"`, sin `disabled`), paso
+    `"card-create"` nuevo, `"card-info"` en `TAB_STEPS` (mantiene el bottom nav visible),
+    `isTabActive` cubre `card-info`/`card-create`. `CardScreen` recibe `onOpenCreate`/`onOpenKyc`.
+    Test nuevo `app/test/unit/card/structure.spec.ts`; `app/test/unit/nav/structure.spec.ts`
+    actualizado (el test "Tarjeta disabled/PRONTO" ahora verifica que es ruta viva).
+    `tsc` limpio; `jest` 61 suites / 276 tests. **No se verificó:** endpoints de tarjeta contra el
+    backend real; que la emisión real requiera colateral/KYC aprobados (ramas 400/409 portadas de
+    memoria del frontend, no probadas).
+  - **`QueryScreen` business-data form (5º ítem del Main) — NO construido.** Sigue pendiente de
+    confirmación explícita del humano (ver bloque arriba). El humano autorizó "seguir con las
+    pantallas pendientes" pero no respondió específicamente a este ítem; se deja como estaba.
+  - **Fix aparte (no era del inventario):** `MoreSheet.tsx` — `w-[calc(50%-4px)]` en la celda no lo
+    evalúa NativeWind, dejaba la celda sin ancho y ocultaba la etiqueta (reportado con captura por
+    el humano 2026-09-06). Cambiado a `w-[48%]`; regresión en `test/unit/more/structure.spec.ts`.
+
 - [ ] **2026-09-06 — Paridad móvil: segunda vista visual PENDIENTE (owner: sesión 2, "UI audit
   smoke test").** Las 13 pantallas nativas nuevas de `feature-mobile-native-parity` (datos
   personales, info fiscal, seguridad, movimientos, estados de cuenta, avisos, radar regulatorio,
@@ -557,9 +677,12 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 
 - [x] `2026-09-05` — **Nav de 5 pestañas + sheet "Más" + set de iconos SVG (worktree
   `feature-nav-icon-fix`): 15 hallazgos de la auditoría UI cerrados.** `app/App.tsx`'s `TabBar`
-  pasó de 2 pestañas (Inicio/Perfil) a las 5 del objetivo (Inicio, Score, Tarjeta, Crédito, Más);
-  Tarjeta queda visiblemente deshabilitada con badge "PRONTO", no tocable
-  (`disabled`/`accessibilityState`). "Más" abre `app/features/more/MoreSheet.tsx` ("Todo lo
+  pasó de 2 pestañas (Inicio/Perfil) a las 5 del objetivo (Inicio, Score, Tarjeta, Crédito, Más).
+  **Actualización — decisión escogida 2026-09-06 con el humano tras ver el render
+  (`feature-last-screens-parity`):** la pestaña Tarjeta es tocable y abre el flujo de tarjeta
+  completo (`CardScreen`: estado vacío + emisión + freeze + movimientos, gateado por KYC;
+  `CardCreateScreen`; `VirtualCard`). Ya no hay badge "PRONTO" ni pestaña deshabilitada. "Más" abre
+  `app/features/more/MoreSheet.tsx` ("Todo lo
   demás"), 11 ítems: Mi perfil/Ayuda navegan a `ProfileScreen`/`HelpScreen` existentes sin
   duplicarlas, los otros 9 (Movimientos, Calculadora, Estados de cuenta, Tu garantía, Sello de tu
   negocio, Reglas que te afectan, Tu reporte, Avisos, Aviso de privacidad) van a `StubScreen.tsx`

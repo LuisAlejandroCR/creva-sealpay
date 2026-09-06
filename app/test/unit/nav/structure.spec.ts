@@ -1,7 +1,7 @@
-// structure.spec.ts: App.tsx's bottom nav has the target 5-item shape (Inicio, Score, Tarjeta
-// disabled/PRONTO, Crédito, Más) and every previously-dead-end callback (Dashboard's
-// credit/card/notifications, Profile's five menu rows, Help's article/category rows) is now wired
-// to a real setStep call instead of being left undefined.
+// structure.spec.ts: App.tsx's bottom nav has the target 5-item shape (Inicio, Score, Tarjeta,
+// Crédito, Más), the Tarjeta tab now routes to the real CardScreen (the PRONTO stub was replaced
+// on feature-last-screens-parity), and every previously-dead-end callback is wired to a real
+// setStep call instead of being left undefined.
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -18,10 +18,10 @@ describe("App.tsx bottom nav structure", () => {
     }
   });
 
-  it("marks the Tarjeta tab disabled with a PRONTO badge, not tappable", () => {
-    expect(source).toMatch(/key:\s*"card"[^}]*disabled:\s*true/s);
-    expect(source).toMatch(/PRONTO/);
-    expect(source).toMatch(/disabled=\{tab\.disabled\}/);
+  it("makes the Tarjeta tab a live destination that routes to the card screen", () => {
+    expect(source).toMatch(/key:\s*"card"[^}]*step:\s*"card-info"/s);
+    expect(source).not.toMatch(/key:\s*"card"[^}]*disabled:\s*true/s);
+    expect(source).toMatch(/step === "card-info"[\s\S]*?<CardScreen/);
   });
 
   it("wires every no-op callback the UI audit found to a real navigation handler", () => {

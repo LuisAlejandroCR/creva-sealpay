@@ -1,5 +1,5 @@
 // App.tsx: wires every feature screen into one flow (sign-in -> onboarding -> home) plus the
-// restructured bottom nav: Inicio, Score, Tarjeta (disabled/PRONTO), Crédito, Más. "Más" opens
+// restructured bottom nav: Inicio, Score, Tarjeta, Crédito, Más. "Más" opens
 // MoreSheet ("Todo lo demás"), which routes Mi perfil/Ayuda to the existing ProfileScreen/
 // HelpScreen and everything else to minimal stub screens (StubScreen). Every onPress the UI audit
 // found as a no-op (Dashboard's score/credit/card/notifications, Profile's five menu rows, Help's
@@ -16,6 +16,7 @@ import "./global.css";
 import { ClerkAppProvider } from "./features/auth/ClerkAppProvider";
 import { SignInScreen } from "./features/auth/SignInScreen";
 import { SelfieCheckScreen } from "./features/onboarding/SelfieCheckScreen";
+import { KycFormScreen } from "./features/onboarding/KycFormScreen";
 import { QueryScreen } from "./features/query/QueryScreen";
 import { VerifyScreen } from "./features/verify/VerifyScreen";
 import { DashboardScreen } from "./features/dashboard/DashboardScreen";
@@ -39,6 +40,7 @@ import { HelpArticleScreen } from "./features/help/HelpArticleScreen";
 import { ScoreScreen } from "./features/score/ScoreScreen";
 import { CreditScreen } from "./features/credit/CreditScreen";
 import { CardScreen } from "./features/card/CardScreen";
+import { CardCreateScreen } from "./features/card/CardCreateScreen";
 import { MoreSheet } from "./features/more/MoreSheet";
 import { StubScreen } from "./features/shared/StubScreen";
 import { findStubTopic, type StubTopicKey } from "./features/more/stub-topics";
@@ -50,10 +52,12 @@ import { setSessionSource } from "./lib/api";
 type Step =
   | "sign-in"
   | "onboarding"
+  | "kyc"
   | "home"
   | "score"
   | "credit"
   | "card-info"
+  | "card-create"
   | "query"
   | "verify"
   | "profile"
@@ -68,7 +72,7 @@ type Step =
   | "stub";
 
 /** Steps the tab bar highlights as one of its five destinations. */
-const TAB_STEPS: Step[] = ["home", "score", "credit", "profile", "help", "more"];
+const TAB_STEPS: Step[] = ["home", "score", "card-info", "credit", "profile", "help", "more"];
 
 interface TabDef {
   key: "home" | "score" | "card" | "credit" | "more";
@@ -81,7 +85,7 @@ interface TabDef {
 const TABS: TabDef[] = [
   { key: "home", label: "Inicio", icon: "home", step: "home" },
   { key: "score", label: "Score", icon: "score", step: "score" },
-  { key: "card", label: "Tarjeta", icon: "card", step: null, disabled: true },
+  { key: "card", label: "Tarjeta", icon: "card", step: "card-info" },
   { key: "credit", label: "Crédito", icon: "credit", step: "credit" },
   { key: "more", label: "Más", icon: "more", step: "more" },
 ];
@@ -89,6 +93,7 @@ const TABS: TabDef[] = [
 function isTabActive(tabKey: TabDef["key"], step: Step): boolean {
   if (tabKey === "home") return step === "home";
   if (tabKey === "score") return step === "score" || step === "query";
+  if (tabKey === "card") return step === "card-info" || step === "card-create";
   if (tabKey === "credit") return step === "credit" || step === "verify";
   if (tabKey === "more") {
     return (
@@ -207,17 +212,46 @@ function AppFlow() {
     setStep("help-article");
   }
 
+  // A help article's `resolvedBy.href` is a web route — map it to this app's step machine so the
+  // "Cada respuesta termina en la pantalla que la resuelve" promise holds on native too.
+  const HELP_RESOLVE_STUBS: Partial<Record<string, StubTopicKey>> = {
+    "/collateral": "collateral",
+    "/statements": "statements",
+    "/movements": "movements",
+    "/report": "report",
+    "/business-verification": "business-verification",
+    "/regulatory": "regulatory",
+    "/privacy": "privacy",
+  };
+  const HELP_RESOLVE_STEPS: Partial<Record<string, Step>> = {
+    "/login": "sign-in",
+    "/credit": "credit",
+    "/score": "score",
+    "/cards": "card-info",
+    "/profile/security": "profile-security",
+    "/profile/details": "profile-details",
+    "/profile/delete-account": "profile-delete-account",
+  };
+  function openHelpResolve(href: string) {
+    const stub = HELP_RESOLVE_STUBS[href];
+    if (stub) return openStub(stub, "help-article");
+    const next = HELP_RESOLVE_STEPS[href];
+    if (next) setStep(next);
+  }
+
   let screen: React.ReactNode;
   if (step === "sign-in") {
     screen = <SignInScreen onSignedIn={() => setStep("onboarding")} />;
   } else if (step === "onboarding") {
     screen = (
       <SelfieCheckScreen
-        onVerified={() => setStep("home")}
-        onSkipped={() => setStep("home")}
+        onVerified={() => setStep("kyc")}
+        onSkipped={() => setStep("kyc")}
         onBack={() => setStep("home")}
       />
     );
+  } else if (step === "kyc") {
+    screen = <KycFormScreen onDone={() => setStep("home")} />;
   } else if (step === "home") {
     screen = (
       <DashboardScreen
@@ -230,9 +264,29 @@ function AppFlow() {
   } else if (step === "score") {
     screen = <ScoreScreen onOpenQuery={() => setStep("query")} />;
   } else if (step === "credit") {
-    screen = <CreditScreen onOpenVerify={() => setStep("verify")} />;
+    screen = (
+      <CreditScreen
+        onOpenVerify={() => setStep("verify")}
+        onOpenKyc={() => setStep("kyc")}
+        onOpenStatements={() => openStub("statements", "credit")}
+      />
+    );
   } else if (step === "card-info") {
-    screen = <CardScreen onBack={() => setStep("home")} />;
+    screen = (
+      <CardScreen
+        onBack={() => setStep("home")}
+        onOpenCreate={() => setStep("card-create")}
+        onOpenKyc={() => setStep("kyc")}
+      />
+    );
+  } else if (step === "card-create") {
+    screen = (
+      <CardCreateScreen
+        onBack={() => setStep("card-info")}
+        onDone={() => setStep("card-info")}
+        onOpenKyc={() => setStep("kyc")}
+      />
+    );
   } else if (step === "query") {
     screen = (
       <QueryScreen
@@ -281,10 +335,7 @@ function AppFlow() {
     screen = (
       <HelpCategoryScreen
         category={activeCategory}
-        onOpenArticle={(article) => {
-          setActiveArticle(article);
-          setStep("help-article");
-        }}
+        onOpenArticle={openHelpArticle}
         onBack={() => setStep("help")}
       />
     );
@@ -294,6 +345,11 @@ function AppFlow() {
         category={activeCategory}
         article={activeArticle}
         onBack={() => setStep(activeCategory ? "help-category" : "help")}
+        onOpenArticle={(other) => {
+          setActiveArticle(other);
+          setStep("help-article");
+        }}
+        onResolve={openHelpResolve}
       />
     );
   } else if (step === "more") {
