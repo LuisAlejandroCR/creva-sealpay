@@ -9,6 +9,12 @@
 > o `gateway/` se refieren a lo que hoy es `frontend/` / `backend/` (el log histórico no se
 > reescribió). `creva_finance/frontend/app/…` (proyecto hermano) no cambia.
 
+## 2026-09-06 — README raíz como guía del repo
+
+**Qué se hizo:** `README.md` conserva el foco de entrada raíz: contexto, orden de lectura, carpetas y pendientes.
+**Qué NO se verificó:** no se corrieron builds ni tests; fue resolución de conflicto en Markdown.
+**Pendiente:** el detalle operativo sigue en `docs/plan.md`.
+
 ## 2026-09-06 — Rename de carpetas: `app/` → `frontend/`, `gateway/` → `backend/` (Solver, worktree `integration-rename`)
 
 **Qué se hizo:** `git mv app frontend` + `git mv gateway backend` sobre `origin/main` (rename fresco,

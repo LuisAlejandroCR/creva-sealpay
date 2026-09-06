@@ -1,70 +1,57 @@
-<!-- README.md: what this submission is and how to run it — the public face of the repo, not the private prep notes. -->
+<!-- README.md: root guide for this ETHOnline 2026 submission repo.
+     It explains the folder focus, reading order, and current code surfaces.
+     Product and status detail live in docs/plan.md and docs/memoria.md. -->
 
-# creva-sealpay
+# ETHOnline 2026 — Creva SealPay
 
-> **Verify a business is real in seconds — not weeks of calls and references.**
+This is the public submission repo for Creva SealPay, an ETHOnline 2026 Continuity / Ship a Feature
+project built around Creva.
 
-**ETHGlobal Online 2026 submission**, built on [Creva](https://creva.mx)'s existing product
-through its Continuity track ([The Ship a Feature starting point](https://ethglobal.com/events/ethonline/info/start)).
+The focus stays the same: document the hackathon work clearly, keep Creva's private business logic
+out of the public repo, and expose only the submission surface that consumes Creva through its API.
 
-## The problem
+## What's Here
 
-A small Mexican business trying to prove it's legitimate — to a lender, a partner, an agent
-acting on someone's behalf — has no cheap way to do it. Creva already turns a business's
-real-world signals (government registry checks, complaint history, formality of records) into a
-single explainable trust report, signed so a third party can verify it without ever needing a
-Creva account. What was missing: a way for *anyone* — a person or an autonomous agent — to pull
-that signal on demand, pay for exactly what they use, and trust the answer came from Creva and
-wasn't tampered with.
+| Path | Purpose |
+|---|---|
+| `frontend/` | Expo app for Selfie Check, paid queries, and signed report verification |
+| `backend/` | Express x402 gateway for Creva report and verification routes |
+| `docs/plan.md` | Current checklist and acceptance criteria |
+| `docs/memoria.md` | Short session record: done, not verified, pending |
+| `brainstorming.md` | Track rationale and sponsor analysis |
+| `LEARNINGS.md` | Project learnings while the work is alive |
+| `AGENTS.md` | Collaboration and documentation rules |
 
-## What we built
+## Start Here
 
-A person proves they're human once (World's Selfie Check, no Orb hardware needed), and from then
-on, every signal query and every sealed-report verification is metered and paid individually via
-[x402](https://www.x402.org/) — instead of drawing on Creva's shared, rate-limited API quota. The
-payment settles on Hedera.
+1. Read `AGENTS.md`.
+2. Read `docs/plan.md` for what is open or closed today.
+3. Read `brainstorming.md` §8-9 for the why behind the plan.
+4. Check the real repo state before changing anything.
 
-```
-app (Expo/React Native)  --x402-->  gateway (Express)  -->  Creva API
-```
-
-1. **Onboarding — Selfie Check.** Liveness check via World, no hardware Orb required. If World
-   isn't configured, onboarding degrades gracefully instead of blocking the user.
-2. **Paid query.** Requesting a Creva signal report gets gated by the gateway: a `402 Payment
-   Required` with the price, unlocked once a valid Hedera payment is presented.
-3. **Sealed verification.** Anyone holding a previously issued report — no account required — can
-   re-verify it's authentic and untampered, also paid per call.
-
-**Prize tracks targeted:** Hedera (AI & Agentic Payments — a live x402 service with a real
-settled payment), World (Selfie Check, blocked on Sandbox approval), ENS (`negocio.creva.eth`,
-delivered on Sepolia), Arc by Circle (report hash anchored on-chain, delivered), Bazantic
-(delivered — a real Creva report generated through its Recipe), and Uniswap Foundation (stack
-contribution, open). Continuity track for the ETHGlobal submission itself.
-
-## Try it
-
-- **Demo video:** ⏳ recorded before the 2026-09-16 submission cutoff — link goes here.
-- **Run it yourself:** see [Running it locally](#running-it-locally) below.
-
-## Running it locally
+## Run
 
 ```bash
-cd gateway && npm install && cp .env.example .env && npm run dev   # fill Hedera vars in .env first
-cd app && npm install && cp .env.example .env && npm start         # then scan the QR with Expo Go
+cd frontend
+npm install
+npm run typecheck
+npm test
+npm start
 ```
 
-Gateway defaults to `http://localhost:8787`, checks payments against a Hedera testnet facilitator
-(`FACILITATOR_URL`). App env needs `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` and reaches the gateway via
-the base URL in `frontend/lib/api.ts`. Details: [`frontend/`](frontend/), [`backend/`](backend/).
+```bash
+cd backend
+npm install
+npm run typecheck
+npm run lint
+npm test
+npm run dev
+```
 
-## Status
+Environment templates live in `frontend/.env.example` and `backend/.env.example`.
 
-Both pieces run locally and speak the live BlockyDevs testnet payment format. Real, on-chain
-evidence exists for three tracks (2026-09-05): a Hedera testnet payment settled end-to-end
-(tx [`0.0.7162784-1788585962-768194628`](https://hashscan.io/testnet/transaction/0.0.7162784-1788585962-768194628),
-`result: SUCCESS`, exercised twice — once from the gateway's own facilitator client, once signed
-directly by the mobile app); a sealed report's canonical hash anchored on Arc testnet
-(tx `0x285ea670c9fe31f06d90daeed15b3ec76b0253ca22783b6cfcff1756e15e6014`); and a real Creva report
-generated through Bazantic's Recipe. World's Selfie Check is wired to real server-side
-verification but still blocked on World ID Sandbox approval — see commit history for current
-status rather than this file.
+## Still Pending
+
+- Physical Expo Go run with real Clerk and World credentials.
+- World ID Sandbox approval for the live Selfie Check path.
+- Demo video and final submission assets.
