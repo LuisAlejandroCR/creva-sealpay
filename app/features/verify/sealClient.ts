@@ -7,6 +7,7 @@
 // Hedera wallet signer yet to pay it (see docs/plan.md).
 import type { CertificateVerification, SealedReport } from "../../lib/api";
 import type { PaymentRequirements } from "../query/gatewayClient";
+import { parseOnchain } from "./onchain";
 
 export type { SealedReport } from "../../lib/api";
 
@@ -54,6 +55,10 @@ export async function verifySealedReport(sealed: SealedReport, paymentHeader?: s
     });
   }
 
-  const verification = (await res.json()) as CertificateVerification;
+  // The gateway's /creva-score/verify spreads an `onchain` block onto the core verdict
+  // (gateway/src/creva-proxy.ts:84-85). Keep it, but normalise it so a malformed block can't
+  // reach the screen — parseOnchain returns null for anything that isn't a valid attestation.
+  const body = (await res.json()) as CertificateVerification & { onchain?: unknown };
+  const verification: CertificateVerification = { ...body, onchain: parseOnchain(body.onchain) };
   return { status: 200, verification };
 }

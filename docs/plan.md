@@ -41,9 +41,8 @@ checklist.
   (4) demo real: 2 attests con 2 cuentas + `/verify` antes/después (evidencia a pegar aquí).
   **NO verificado:** deploy real a testnet, indexación real del subgraph, y el ciclo end-to-end
   contra el core real — todo bloqueado por no tener `.env`/claves/deploy key en el worktree del
-  agente. Wiring de `VerifyScreen.tsx`/`sealClient.ts`/`lib/api.ts` para pasar `onchain` al
-  `VerifyReportCard` queda pendiente (fuera del POSEES de este worktree; `VerifyReportCard` ya
-  acepta el prop `onchain?` y lo renderiza).
+  agente. El wiring de la app (`lib/api.ts` + `sealClient.ts` + `VerifyScreen.tsx`) **ya está
+  hecho** — ver Cerrados `2026-09-06` (rama `feature-verify-onchain-wiring`).
 
 - [ ] **2026-09-06 — Paridad móvil: segunda vista visual PENDIENTE (owner: sesión 2, "UI audit
   smoke test").** Las 13 pantallas nativas nuevas de `feature-mobile-native-parity` (datos
@@ -217,6 +216,30 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
 
 ## Cerrados
+
+- [x] `2026-09-06` — **Wiring de la app para el `onchain` trust signal de `/verify`
+  (`feature-verify-onchain-wiring`, off `worktree-agent-add968ba3a6440026` @ f9457c8).** El agente
+  de attestation dejó el contrato + subgraph + enriquecimiento del gateway (`creva-proxy.ts` agrega
+  `onchain` a la respuesta de `/creva-score/verify`) y el render en `VerifyReportCard` (ya acepta
+  `onchain?`), pero sin cablear la app. Hecho aquí, **solo app**:
+  - `app/lib/api.ts`: nuevos tipos `OnchainTrustSignal` + `OnchainAttestation`;
+    `CertificateVerification` gana `onchain?: OnchainAttestation | null` + `onchainError?`.
+  - `app/features/verify/onchain.ts` (nuevo, módulo puro): `parseOnchain(raw)` normaliza el bloque
+    — `trustSignal` fuera de los 3 valores, contadores no numéricos, o input no-objeto → `null`, así
+    un bloque malformado nunca llega a `VerifyReportCard` (que haría `TRUST_COPY[bad].label` → crash).
+  - `app/features/verify/sealClient.ts`: la rama 200 pasa el body por `parseOnchain(body.onchain)`.
+  - `app/features/verify/VerifyScreen.tsx`: `onchain={result.verification.onchain}` a `VerifyReportCard`.
+  - Tests: `test/unit/verify/onchain-wiring.spec.ts`, `test/fuzz/verify/onchain.fuzz.spec.ts`,
+    `test/invariant/verify/onchain-never-fabricates-trust.invariant.spec.ts` (invariante espejo del
+    `onchain-never-overrides-core-verdict` del gateway: la app nunca sube la confianza desde un
+    bloque ausente/malformado).
+  - **No se tocó** contrato, subgraph ni gateway. `tsc` limpio; `jest` full-run 255/255 en la
+    corrida limpia (los 2 flakes `auth-gate`/`help-search` aparecen bajo carga, pasan aislados; las
+    4 suites de `verify` verdes: 22/22). Base de la rama antes del cambio: ~54 suites.
+  - **No verificado:** el `/verify` real enriquecido contra un subgraph indexado (mismo bloqueo de
+    deploy que el bloque abierto de attestation); render nativo (sesión 2). La rama de attestation
+    está basada en `9dfdd57`, `main` en `7638dbb` — el Solver reconcilia la divergencia al mergear
+    ambas juntas.
 
 - [x] `2026-09-06` — **Integración de la familia de paridad móvil a `main` (Solver, worktree
   `integration-mobile-parity`): 5 ramas mergeadas `--no-ff`, VERIFY completo verde. Verificado por

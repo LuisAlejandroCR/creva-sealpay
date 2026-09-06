@@ -713,6 +713,16 @@ export interface SealedReport {
 export type ContentVerdict = 'intact' | 'altered'
 export type SignatureVerdict = 'valid' | 'invalid' | 'missing' | 'unsigned' | 'no_key'
 
+// Only the subgraph-indexed attestation data can move trustSignal (gateway/src/types.ts:44-52).
+export type OnchainTrustSignal = 'unattested' | 'attested' | 'corroborated'
+
+export interface OnchainAttestation {
+  attestationCount: number
+  distinctAttesters: number
+  lastAttestedAt: string | null
+  trustSignal: OnchainTrustSignal
+}
+
 export interface CertificateVerification {
   content: ContentVerdict
   expected_digest: string
@@ -720,6 +730,11 @@ export interface CertificateVerification {
   folio: string
   signature: SignatureVerdict
   signature_detail: string
+  /** Added by the x402 gateway's /creva-score/verify, which enriches the core content/signature
+   *  verdict with attestation data from the subgraph (gateway/src/creva-proxy.ts:65-91). Absent
+   *  from a direct core call; null when the subgraph is unconfigured or unreachable. */
+  onchain?: OnchainAttestation | null
+  onchainError?: string
 }
 
 export interface VerifyBusinessInput {

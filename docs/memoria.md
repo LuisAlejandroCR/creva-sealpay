@@ -2319,3 +2319,35 @@ Icon.tsx fill=none NO esta en esta rama (no toca iconos) — sigue en las otras 
 **Dónde queda el pendiente:** bloque abierto "Paridad móvil: segunda vista visual PENDIENTE" en
 `docs/plan.md` §Abiertos (owner sesión 2); bloque abierto "Paridad móvil, revisión Codex" para
 decidir qué se hace con `codex/mobile-parity-*`.
+
+## 2026-09-06 — Wiring app del `onchain` trust signal de `/verify` (Solver, cloud)
+
+**Qué se hizo (rama `feature-verify-onchain-wiring`, off `worktree-agent-add968ba3a6440026` @
+f9457c8; despachada por el Main orchestrator tras confirmar que la rama de attestation ya existía):**
+- El agente de attestation dejó contrato + subgraph + `creva-proxy.ts` (agrega `onchain` a
+  `/creva-score/verify`) + el render en `VerifyReportCard` (prop `onchain?` ya aceptado), pero sin
+  cablear la app. Cableado aquí, **solo app**:
+  - `lib/api.ts`: tipos `OnchainTrustSignal`/`OnchainAttestation`; `CertificateVerification` +
+    `onchain?` + `onchainError?`.
+  - `features/verify/onchain.ts` (nuevo, puro): `parseOnchain` — normaliza el bloque, cualquier
+    cosa malformada → `null` (evita `TRUST_COPY[bad].label` → crash en `VerifyReportCard`).
+  - `features/verify/sealClient.ts`: rama 200 pasa el body por `parseOnchain`.
+  - `features/verify/VerifyScreen.tsx`: pasa `onchain` a `VerifyReportCard`.
+- Tests unit+fuzz+invariant en `test/{unit,fuzz,invariant}/verify/onchain*`.
+
+**Desviación de la instrucción original:** el Main pidió "pasar el campo tal cual, no soltarlo". Se
+agregó `parseOnchain` (una normalización) porque el requisito de tests "un bloque malformado nunca
+crashea la pantalla" no se cumple con un pass-through crudo — `VerifyReportCard` indexa
+`TRUST_COPY[onchain.trustSignal]` sin guarda. La normalización no fabrica confianza (invariante lo
+prueba): input dudoso → `null` → sin sección "Respaldo on-chain".
+
+**Qué NO se verificó, y por qué:**
+- El `/verify` real enriquecido contra un subgraph indexado — mismo bloqueo de deploy que el bloque
+  abierto de attestation (sin `.env`/claves).
+- Render nativo — sesión 2.
+- `tsc --noEmit` limpio. `jest` full-run: 255/255 en la corrida limpia (los 2 flakes
+  `auth-gate`/`help-search` aparecen bajo carga, pasan aislados; suites `verify`: 4/4, 22 tests).
+
+**Dónde queda el pendiente:** commit en el worktree, sin push (instrucción del Main). La rama de
+attestation está basada en `9dfdd57`, `main` en `7638dbb` — el Solver reconcilia la divergencia al
+mergear esta rama + la de attestation juntas cuando el humano dé la señal.
