@@ -14,6 +14,8 @@ export interface MoreSheetProps {
   onOpenStub: (key: StubTopicKey) => void;
   onOpenProfile: () => void;
   onOpenHelp: () => void;
+  /** The web BottomSheet (components/ui/BottomSheet.tsx) closes back to the panel it opened over. */
+  onClose: () => void;
 }
 
 interface MoreRow {
@@ -51,7 +53,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-export function MoreSheet({ onOpenStub, onOpenProfile, onOpenHelp }: MoreSheetProps) {
+export function MoreSheet({ onOpenStub, onOpenProfile, onOpenHelp, onClose }: MoreSheetProps) {
   const money = STUB_TOPICS.filter((t) => ["movements", "calculator", "statements", "collateral"].includes(t.key));
   const gov = STUB_TOPICS.filter((t) => ["business-verification", "regulatory", "report"].includes(t.key));
   const account = STUB_TOPICS.filter((t) => ["notifications", "privacy"].includes(t.key));
@@ -116,6 +118,10 @@ export function MoreSheet({ onOpenStub, onOpenProfile, onOpenHelp }: MoreSheetPr
               />
             ))}
         </Group>
+
+        <Pressable onPress={onClose} testID="more-close" className="mt-2 self-center px-4 py-3">
+          <Text className="text-sm font-semibold text-text-secondary">Cerrar</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );

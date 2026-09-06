@@ -74,17 +74,20 @@ export function DashboardScreen({
   const scoreValue = scoreData?.score ?? null;
   const [spendingCapacity] = useState<string | null>(null);
 
+  // Only the score is wired to a real API here; credit/statements are not, so their inputs stay
+  // null (unknown) rather than faking a "done" state — buildReminders then yields no pending items
+  // and the bell shows no count, matching the honest state of this screen.
   const reminders = useMemo(
     () =>
       buildReminders({
-        scoreStatus: "ok",
+        scoreStatus: scoreData?.status ?? null,
         scoreValue,
-        creditEligible: true,
+        creditEligible: null,
         creditMissing: [],
-        statementCount: 2,
-        statementEntryCount: 48,
+        statementCount: null,
+        statementEntryCount: null,
       }),
-    [scoreValue],
+    [scoreData?.status, scoreValue],
   );
   const pending = pendingCount(reminders);
   const topReminder = reminders.find((item) => item.pending) ?? null;
@@ -103,7 +106,7 @@ export function DashboardScreen({
       <ScrollView className="flex-1" contentContainerClassName="px-6 pb-10 pt-6">
         <View className="mb-5 flex-row items-center justify-between">
           <View className="min-w-0 flex-1">
-            <Text className="text-2xl font-semibold text-text">Hola{userName ? `, ${userName}` : ""}</Text>
+            <Text className="text-2xl font-semibold text-text">Hola,{userName ? ` ${userName}` : ""}</Text>
             <Text className="mt-1 text-[13px] leading-[1.5] text-text-muted">Tu panorama financiero</Text>
           </View>
           <NotificationBell pending={pending} onPress={onOpenNotifications} />

@@ -358,6 +358,7 @@ function AppFlow() {
         onOpenStub={(key) => openStub(key, "more")}
         onOpenProfile={() => setStep("profile")}
         onOpenHelp={() => setStep("help")}
+        onClose={() => setStep("home")}
       />
     );
   } else if (step === "stub" && activeStub === "movements") {
@@ -389,7 +390,7 @@ function AppFlow() {
       />
     );
   } else {
-    screen = <MoreSheet onOpenStub={(key) => openStub(key, "more")} onOpenProfile={() => setStep("profile")} onOpenHelp={() => setStep("help")} />;
+    screen = <MoreSheet onOpenStub={(key) => openStub(key, "more")} onOpenProfile={() => setStep("profile")} onOpenHelp={() => setStep("help")} onClose={() => setStep("home")} />;
   }
 
   return (
