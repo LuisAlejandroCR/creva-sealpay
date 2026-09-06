@@ -34,10 +34,10 @@ checklist.
     Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
     coordinar (regla de §Colaboración punto 7).
   - Sin pantalla mobile todavía: `calculator`, `collateral`, `business-verification`,
-    `report`, `privacy` — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a
+    `privacy` — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a
     pantallas reales 1:1 es el grueso de este bloque. `profile/details`, `profile/fiscal`,
-    `profile/security`, `movements`, `statements`, `notifications` y `regulatory` ya no están en
-    esta lista: ver los incrementos de abajo.
+    `profile/security`, `movements`, `statements`, `notifications`, `regulatory` y `report` ya no
+    están en esta lista: ver los incrementos de abajo.
   - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
     evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
 
@@ -149,6 +149,31 @@ checklist.
   `expo-document-picker` funcione igual en iOS vs. Android (el picker del sistema difiere entre
   plataformas — no hay dispositivo/simulador disponible desde esta sesión para confirmarlo).
   **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Noveno incremento de la migración: `ReportScreen.tsx` nueva, reemplaza el
+  `StubScreen` genérico de "Tu reporte" (`report`).** Puerto real de
+  `creva_finance/frontend/app/report/page.tsx`: el reporte se arma con `crevaScore.report()` de
+  `app/lib/api.ts` (ya existía, no se tocó) — **es un POST que gasta cuota de proveedor, así que
+  igual que el frontend está detrás de un botón explícito "Generar mi reporte", nunca se dispara al
+  montar.** Vista previa con el aviso de que consulta el perfil fiscal, vista de resultado con
+  sujeto + fecha, la frase "N de estas M señales son sobre tu negocio", las categorías
+  (`REPORT_CATEGORIES`/`CATEGORY_TITLES`/`CATEGORY_HINTS`/`TONE_LABELS` de `app/lib/report-display.ts`,
+  ya portado, sin tocar), notas, "Qué se consultó", "Lo que este reporte NO dice"
+  (`disclosure.does_not_estimate`) y la card de sello (folio, línea de firma, `does_not_prove`).
+  `App.tsx`: rama nueva `activeStub === "report"` monta `ReportScreen` antes del `StubScreen`
+  genérico. Sin dependencias nuevas. Test nuevo `app/test/unit/more/report.spec.ts`. `tsc --noEmit`
+  limpio; `npx jest` verde (49/49 suites, 214/214 tests — antes 48/208).
+  **Desviaciones deliberadas del "as is":** (1) no se portó `ReportPaper` (la hoja imprimible) ni
+  `window.print()` — son web-only, no hay equivalente nativo sin dependencia nueva; (2) la entrega
+  del archivo sellado va por `Share.share()` con el JSON como `message` en vez de la descarga por
+  `Blob`/`<a download>` del navegador — sin dependencia nueva (no `expo-file-system`); (3)
+  `TONE_COLORS` de `report-display.ts` son strings `var(--cr-*)` inservibles en RN, se mapeó tono →
+  clase Tailwind localmente en la pantalla; (4) los avisos usan tokens `info-*`/`warning-*`/
+  `danger-*` en vez de `.alert-*` del frontend.
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni el
+  POST real contra `/creva-score/report` (sin credenciales del backend de Creva — no se confirmó la
+  forma de la respuesta, ni que `Share.share` con un JSON grande sea utilizable en la práctica en
+  iOS/Android). **No autocertificada como cerrada — falta segunda vista.**
 
 - [ ] **2026-09-05 — Octavo incremento de la migración: `RegulatoryScreen.tsx` nueva, reemplaza el
   `StubScreen` genérico de "Reglas que te afectan" (`regulatory`).** Puerto real de

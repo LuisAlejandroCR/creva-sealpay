@@ -1893,3 +1893,42 @@ Reglas que te afectan, Tu reporte, Aviso de privacidad, KYC, auth.
 **Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Octavo incremento de la
 migración..."). Backlog restante: Crédito, Tarjeta, Calculadora, Tu garantía, Sello de tu negocio,
 Tu reporte, Aviso de privacidad, KYC, auth.
+
+## 2026-09-05 — Migración PWA→nativa, noveno incremento: `ReportScreen.tsx` (Solver, cloud)
+
+**Qué se hizo:**
+- Construida `ReportScreen.tsx` (`app/features/more/`), puerto de
+  `creva_finance/frontend/app/report/page.tsx`: el reporte se arma con `crevaScore.report()`
+  (`app/lib/api.ts`, ya existía, sin tocar). Es un **POST que gasta cuota de proveedor**, así que
+  igual que el frontend queda detrás de un botón "Generar mi reporte" y nunca se dispara al montar
+  (el spec verifica que no hay `useEffect`).
+- Vista de resultado: sujeto + fecha, frase "N de estas M señales son sobre tu negocio", categorías
+  vía `REPORT_CATEGORIES`/`CATEGORY_TITLES`/`CATEGORY_HINTS`/`TONE_LABELS` de
+  `app/lib/report-display.ts` (ya portado, sin tocar), notas, "Qué se consultó", "Lo que este
+  reporte NO dice" y card de sello (folio, firma, `does_not_prove`).
+- `App.tsx`: rama nueva `activeStub === "report"` monta la pantalla real antes del `StubScreen`
+  genérico.
+- Test nuevo `app/test/unit/more/report.spec.ts`. Sin dependencias nuevas.
+
+**Desviaciones deliberadas del "as is":**
+- No se portó `ReportPaper` (hoja imprimible) ni `window.print()` — web-only, sin equivalente
+  nativo sin dependencia nueva.
+- Entrega del archivo sellado por `Share.share()` con el JSON como `message`, en vez de la descarga
+  `Blob`/`<a download>` del navegador — sin dependencia nueva.
+- `TONE_COLORS` de `report-display.ts` son `var(--cr-*)` inservibles en RN → mapeo tono → clase
+  Tailwind local en la pantalla. Avisos con tokens `info-*`/`warning-*`/`danger-*` en vez de
+  `.alert-*`.
+
+**Qué NO se verificó, y por qué:**
+- Resultado visual/nativo — mismo bloqueo `react-native-web`/NativeWind de los incrementos
+  anteriores.
+- El POST real contra `/creva-score/report` — sin credenciales del backend de Creva; no se
+  confirmó la forma de la respuesta ni que `Share.share` con un JSON grande sea práctico en
+  iOS/Android.
+- `tsc --noEmit` limpio. `npx jest` full-run verde: 49/49 suites, 214/214 tests (baseline previo:
+  48 suites / 208 tests).
+- No se cerró como definitiva — falta segunda vista.
+
+**Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Noveno incremento de la
+migración..."). Backlog restante: Crédito, Tarjeta, Calculadora, Tu garantía, Sello de tu negocio,
+Aviso de privacidad, KYC, auth.
