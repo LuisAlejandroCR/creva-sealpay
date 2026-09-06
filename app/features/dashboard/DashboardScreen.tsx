@@ -18,6 +18,7 @@ import {
   EmptyState,
   Metric,
   NotificationBell,
+  PrimaryButton,
   TransactionRow,
 } from "./components/DashboardPrimitives";
 
@@ -100,17 +101,17 @@ export function DashboardScreen({
   return (
     <SafeAreaView className="flex-1 bg-bg" edges={["top", "bottom"]}>
       <ScrollView className="flex-1" contentContainerClassName="px-6 pb-10 pt-6">
-        <View className="mb-6 flex-row items-start justify-between">
-          <View>
-            <Text className="text-3xl font-bold text-text">Hola{userName ? `, ${userName}` : ""}</Text>
-            <Text className="mt-1 text-base text-text/70">Tu panorama financiero</Text>
+        <View className="mb-5 flex-row items-center justify-between">
+          <View className="min-w-0 flex-1">
+            <Text className="text-2xl font-semibold text-text">Hola{userName ? `, ${userName}` : ""}</Text>
+            <Text className="mt-1 text-[13px] leading-[1.5] text-text-muted">Tu panorama financiero</Text>
           </View>
           <NotificationBell pending={pending} onPress={onOpenNotifications} />
         </View>
 
-        <Section title="Tu score">
-          <Card>
-            <View className="gap-5">
+        <Section title="Tu score" action={onOpenScore ? { label: "Ver por qué", onPress: onOpenScore } : undefined}>
+          <Card size="lg">
+            <View className="gap-[18px]">
               {scoreLoading ? (
                 <View className="items-center py-6" testID="dashboard-score-loading">
                   <ActivityIndicator />
@@ -122,11 +123,10 @@ export function DashboardScreen({
               ) : (
                 <ScoreGauge value={scoreValue} max={100} band={scoreValue >= 70 ? "success" : "warning"} />
               )}
-              <View className="gap-3 border-t border-text/10 pt-4">
+              <View className="gap-3 border-t border-border pt-[18px]">
                 <Text className="text-sm leading-5 text-text/70">{mainAction.body}</Text>
-                <ActionCard
-                  title={mainAction.cta}
-                  body=""
+                <PrimaryButton
+                  label={mainAction.cta}
                   onPress={onOpenScore}
                   testID="dashboard-score-action"
                 />
@@ -140,7 +140,7 @@ export function DashboardScreen({
             <ActionCard
               title="Encuentra tu mejor opción"
               body="Compara créditos con tu actividad real."
-              cta="Ver opciones"
+              icon="financing"
               onPress={onOpenCredit}
               testID="dashboard-financing-action"
             />
@@ -148,7 +148,7 @@ export function DashboardScreen({
         )}
 
         <Section>
-          <Card>
+          <Card size="md">
             <Metric
               label="Saldo disponible"
               unit="MXN"
@@ -169,6 +169,7 @@ export function DashboardScreen({
               body="Respaldada por tu garantía."
               tone="dashed"
               dashed
+              icon="card"
               onPress={onOpenCard}
               testID="dashboard-activate-card"
             />

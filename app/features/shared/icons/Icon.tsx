@@ -33,25 +33,32 @@ export type IconName =
   | "collateral"
   | "privacy"
   | "help"
-  | "logout";
+  | "logout"
+  | "chevron-right"
+  | "financing";
 
 export interface IconProps {
   name: IconName;
   size?: number;
-  /** A theme token from tailwind.config.js's `colors` map, e.g. "text", "text-secondary", "crimson". */
-  color?: ThemeColorToken;
+  /** A theme token from tailwind.config.js's `colors` map, e.g. "text", "text-secondary",
+   *  "crimson" — or the literal "white" for a glyph on a brand (crimson) surface. */
+  color?: ThemeColorToken | "white";
   /** Fills the glyph instead of only stroking it — used for the active tab state. */
   filled?: boolean;
 }
 
-function resolveColor(token: ThemeColorToken | undefined, fallback: ThemeColorToken): string {
+function resolveColor(token: ThemeColorToken | "white" | undefined, fallback: ThemeColorToken): string {
+  if (token === "white") return "#FFFFFF";
   return themeColors[token ?? fallback] ?? themeColors[fallback];
 }
 
 export function Icon({ name, size = 22, color, filled = false }: IconProps) {
   const stroke = resolveColor(color, "text-secondary");
   const fillColor = filled ? stroke : "none";
-  const common = { viewBox: "0 0 24 24" as const };
+  // fill="none" mirrors the web sources' root <svg fill="none"> (e.g. BottomNav.tsx:25,40,51):
+  // react-native-svg otherwise defaults every <Path>/<Rect> to fill="black". Shapes meant to be
+  // filled still override with their own fill={stroke}/fill={fillColor}.
+  const common = { viewBox: "0 0 24 24", fill: "none" } as const;
 
   switch (name) {
     case "home":
@@ -328,6 +335,22 @@ export function Icon({ name, size = 22, color, filled = false }: IconProps) {
             strokeLinejoin="round"
           />
           <Path d="m9 12 2 2 4-4" stroke={stroke} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      );
+    case "chevron-right":
+      // creva_finance/frontend/components/ui/ActionCard.tsx chevron (d="M9 6l6 6-6 6", width 2).
+      return (
+        <Svg width={size} height={size} {...common}>
+          <Path d="M9 6l6 6-6 6" stroke={stroke} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      );
+    case "financing":
+      // creva_finance/frontend/app/dashboard/page.tsx:236-240 (financing ActionCard icon).
+      return (
+        <Svg width={size} height={size} {...common}>
+          <Rect x={3} y={6} width={18} height={13} rx={2.5} stroke={stroke} strokeWidth={1.8} />
+          <Path d="M3 10.5h18" stroke={stroke} strokeWidth={1.8} />
+          <Path d="M6.5 15h4" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" />
         </Svg>
       );
     default:
