@@ -781,18 +781,22 @@ export interface VerifyBusinessInput {
 }
 
 export const crevaScore = {
-  disclosure: () => request<ScoreDisclosure>('/creva-score/disclosure'),
+  // The government-data signal group is guarded on the private service (X-User-Id + service
+  // token), so it goes through the backend, which validates the Clerk token and adds identity.
+  disclosure: () => b<ScoreDisclosure>('/creva-score/disclosure'),
 
-  radar: () => request<SourceResult<RegulatoryRadar>>('/creva-score/radar'),
+  radar: () => b<SourceResult<RegulatoryRadar>>('/creva-score/radar'),
 
   // POST, not GET: these spend the shared provider quota, so they are never
   // replayed from the client cache on a page revisit.
   verify: (input: VerifyBusinessInput = {}) =>
-    request<BusinessVerificationResult>('/creva-score/verification', {
+    b<BusinessVerificationResult>('/creva-score/verification', {
       method: 'POST',
       body: JSON.stringify(input),
     }),
 
+  // report() and verifyReport() stay on BASE: the sealed-report builder is Creva business logic
+  // on the old core, and POST /creva-score/verify is the x402 gateway's public route.
   report: (input: VerifyBusinessInput = {}) =>
     request<SealedReport>('/creva-score/report', {
       method: 'POST',

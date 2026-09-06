@@ -9,6 +9,48 @@
 > o `gateway/` se refieren a lo que hoy es `frontend/` / `backend/` (el log histórico no se
 > reescribió). `creva_finance/frontend/app/…` (proyecto hermano) no cambia.
 
+## 2026-09-06 — Slice 2: grupo de señales de gobierno de `crevaScore` por `backend/` Clerk-gateado (worktree `feature-backend-slice2`, agente local)
+
+**Qué se hizo:** continuación del slice 1. `frontend/lib/api.ts` — `crevaScore.disclosure`, `.radar`,
+`.verify` (verificación de negocio) pasan de `BASE` (core directo) a `BACKEND`
+(`EXPO_PUBLIC_BACKEND_URL`) vía el wrapper `b`. En `backend/src/routes/personal.ts` tres rutas
+**exactas** nuevas (`GET /creva-score/disclosure`, `GET /creva-score/radar`,
+`POST /creva-score/verification`), Clerk-gateadas → `business-logic-client` (módulo `creva-score`
+del servicio privado, guardado con `X-User-Id` + token de servicio por la sesión 5). Helper
+`forwardExact()` nuevo — las rutas `router.get/post` no recortan `req.path` como `router.use`, así
+que no se puede reusar `forwardToBusinessLogic` (duplicaría el prefijo).
+
+**Qué NO se movió (deliberado):**
+- `crevaScore.report` / `crevaScore.verifyReport` — siguen en `BASE`. El builder del reporte sellado
+  es LÓGICA-DE-NEGOCIO en el core viejo; `POST /creva-score/verify` es la ruta **pública** del
+  gateway x402. El flujo x402 real (pago) usa `EXPO_PUBLIC_GATEWAY_URL` vía
+  `features/query/gatewayClient.ts` y `features/verify/sealClient.ts`, no `lib/api.ts` — intacto.
+- Grupo `auth.*` (`me`, `sendPhoneCode`, `verifyPhoneCode`, `forgotPassword`, `register`, `login`,
+  `getOAuthUrl`) — sigue en `BASE`. Es auth de Supabase pre-Clerk; moverlo tiene riesgo alto (rompe
+  pantallas: `CreditScreen` phone-verify, `SecurityScreen` reset) por beneficio marginal. Candidato
+  a un slice propio que decida primero si esas operaciones siguen vivas con Clerk.
+
+**Registro exacto de rutas (no prefijo):** `router.get("/creva-score/disclosure")` etc. — para que
+`POST /creva-score/report` y `POST /creva-score/verify` (x402 en `index.ts`, `personalRouter` montado
+antes) sigan cayendo a su propio handler. Verificado: `abuse-never-reaches-backend.invariant.spec.ts`
+(importa el `app` real de `src/index.ts` y pega a `/creva-score/report|verify`) sigue verde;
+test nuevo confirma que el personal router responde 404 (fall-through) a esas dos rutas.
+
+**VERIFY (worktree fresco):**
+- `backend/`: `npm install`; `npx tsc --noEmit` → 0; `npx eslint src test` → 0; `npx vitest run
+  --exclude "test/integration/**"` → **35 archivos / 124 tests** (3 corridas limpias; +2 tests vs slice 1).
+- `frontend/`: `npx tsc --noEmit` → 0; `npx jest unit fuzz invariant --runInBand` → 386 pasan, 1 skip,
+  1 fail = `test/unit/auth/auth-gate.spec.ts` — **flake de full-run ya documentado** (pasa 1/1
+  aislado; este slice no toca auth-gate ni sus deps, solo `lib/api.ts` grupo `crevaScore`).
+- Grep de negocio sobre `backend/` → vacío.
+
+**Qué NO se verificó:** servicio `creva-business-logic` real (mock), sesión Clerk real, que el servicio
+privado exponga `/creva-score/{disclosure,radar,verification}` guardadas exactamente así (asumido de
+las notas de la sesión 5 + `creva-score.controller.ts:21` del plan §1.4).
+
+**Rama `feature-backend-slice2` off `origin/main` `292625c`, commit en worktree, NO pusheada**
+(agente local). Modelo B: el Main mergea.
+
 ## 2026-09-06 — Limpieza de estilo en Markdown
 ## 2026-09-06 — Auth Clerk + infra segura del core a `backend/`, proxy de scoring al servicio privado (worktree `feature-backend-core-infra`, agente local)
 

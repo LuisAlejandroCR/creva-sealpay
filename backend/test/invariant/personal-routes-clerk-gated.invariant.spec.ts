@@ -17,6 +17,8 @@ const PERSONAL_PATHS = [
   "/collateral",
   "/declarations",
   "/transactions",
+  "/creva-score/disclosure",
+  "/creva-score/radar",
 ];
 
 function buildApp(opts: { linkedSub?: string; userId?: string } = {}) {
@@ -81,5 +83,24 @@ describe("invariant: personal routes are Clerk-gated", () => {
     expect(headers.Authorization).toBe("Bearer SERVICE-TOKEN");
     // The mobile app's Clerk token is not forwarded to the private service.
     expect(JSON.stringify(headers)).not.toContain("Bearer good");
+  });
+
+  it("GET /creva-score/disclosure forwards to the exact path (not a doubled prefix)", async () => {
+    const { app, downstream } = buildApp({ linkedSub: "sub_1", userId: "uuid-9" });
+    await request(app).get("/creva-score/disclosure").set("Authorization", "Bearer good").expect(200);
+    const [url] = downstream.mock.calls[0] as unknown as [string];
+    expect(url).toBe("https://core.internal/creva-score/disclosure");
+  });
+
+  it("the x402-gated POST /creva-score/report is NOT handled by the personal router (falls through)", async () => {
+    const { app, downstream } = buildApp({ linkedSub: "sub_1" });
+    // No handler mounted after personalRouter => a fall-through is Express's 404, not a 401/200
+    // from the personal router, and the private service is never called.
+    const res = await request(app).post("/creva-score/report").send({});
+    expect(res.status).toBe(404);
+    expect(downstream).not.toHaveBeenCalled();
+    const res2 = await request(app).post("/creva-score/verify").send({});
+    expect(res2.status).toBe(404);
+    expect(downstream).not.toHaveBeenCalled();
   });
 });

@@ -9,7 +9,7 @@
 > antes de tocar nada, y cerrar siempre documentando qué se hizo, qué no se verificó y por qué —
 > es el contexto que usan los demás agentes.
 
-**Última actualización:** 2026-09-06 (auth Clerk + infra segura del core en `backend/`, proxy de scoring al servicio privado — `feature-backend-core-infra`, VERIFY verde, en worktree sin pushear)
+**Última actualización:** 2026-09-06 (Slice 2: grupo `crevaScore` de señales de gobierno movido a `backend/` Clerk-gateado — `feature-backend-slice2`, VERIFY verde, en worktree sin pushear)
 
 > **Nota histórica (rename 2026-09-06):** las carpetas top-level `app/` y `gateway/` pasaron a
 > llamarse `frontend/` y `backend/`. Las rutas de este archivo se actualizaron al nombre nuevo;
@@ -261,6 +261,20 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
 
 ## Cerrados
+
+- [x] `2026-09-06` — **Slice 2 de la migración: el grupo `crevaScore` de señales de gobierno pasa
+  por `backend/` Clerk-gateado (`feature-backend-slice2`, off `origin/main` `292625c`, agente local,
+  NO pusheada — Modelo B).** `frontend/lib/api.ts`: `crevaScore.disclosure/radar/verify` van a
+  `EXPO_PUBLIC_BACKEND_URL`. `backend/src/routes/personal.ts`: 3 rutas **exactas** nuevas
+  (`GET /creva-score/disclosure`, `GET /creva-score/radar`, `POST /creva-score/verification`) →
+  `business-logic-client` con `X-User-Id`. `crevaScore.report/verifyReport` y todo `auth.*` se
+  quedan en `BASE` a propósito (builder del sello = lógica de negocio del core viejo; `verify` =
+  ruta pública del gateway x402; `auth.*` = Supabase pre-Clerk, slice aparte). El flujo x402 real
+  (`gatewayClient.ts` / `sealClient.ts` vía `EXPO_PUBLIC_GATEWAY_URL`) intacto — verificado que
+  `POST /creva-score/report|verify` siguen cayendo a su handler x402 (registro por ruta exacta, no
+  prefijo). Detalle + qué NO se verificó: `docs/memoria.md` 2026-09-06. **VERIFY:** `backend/` tsc 0
+  · eslint 0 · vitest **124/124** (3 corridas) · `frontend/` tsc 0 · jest 386/388 (1 skip, 1 flake
+  documentado `auth-gate` — pasa aislado) · grep de negocio sobre `backend/` vacío.
 
 - [x] `2026-09-06` — **Slice 1 de la migración del core: auth Clerk + infra segura en `backend/`,
   scoring por proxy al servicio privado (`feature-backend-core-infra`, off `origin/main` `1ec1dbd`,
