@@ -1,9 +1,16 @@
-// arc-anchor.ts: anchors a sealed Creva report's canonical hash on Arc testnet as a zero-value,
-// self-addressed transaction carrying the hash as calldata. This is the on-chain trace of the
-// business backing: if this piece is deleted, the backing has no on-chain record (plan.md's Arc
-// block, sponsor_track_rules.md descalificador #2). Reads the signer key from the environment at
-// call time only — never logs or returns it, only hands the raw string to ethers' wallet parser.
+// arc-anchor.ts: anchors a sealed Creva report's canonical hash on-chain by calling
+// AttestationRegistry.attest(folioHash), which emits an indexable Attested event. That event is what
+// the subgraph indexes and what ultimately moves the /verify trust signal — a self-addressed
+// value-0 tx (the previous shape) carried the hash but emitted no log, so nothing could index it.
+// Reads the signer key from the environment at call time only — never logs or returns it, only
+// hands the raw string to ethers' wallet parser. The hash-shape invariant still runs before any
+// wallet/provider/contract object is constructed.
 import { ethers } from "ethers";
+
+const REGISTRY_ABI = [
+  "function attest(bytes32 folioHash)",
+  "event Attested(bytes32 indexed folioHash, address indexed attester, uint256 timestamp)",
+];
 
 export interface ArcSignerCredentials {
   address: string;
@@ -14,6 +21,10 @@ export interface ArcAnchorResult {
   txHash: string;
   explorerUrl: string;
   network: string;
+  registryAddress: string;
+  folioHash: string;
+  attester: string;
+  blockNumber: number;
 }
 
 const CANONICAL_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/;
@@ -46,9 +57,13 @@ export async function anchorReportHash(
   credentials: ArcSignerCredentials,
   rpcUrl: string,
   network: string,
+  registryAddress: string | undefined,
 ): Promise<ArcAnchorResult> {
   if (!isValidCanonicalHash(canonicalHash)) {
     throw new Error("arc_anchor_invalid_canonical_hash");
+  }
+  if (!registryAddress || !ethers.isAddress(registryAddress)) {
+    throw new Error("arc_anchor_registry_not_configured");
   }
 
   const provider = new ethers.JsonRpcProvider(rpcUrl);
@@ -57,11 +72,8 @@ export async function anchorReportHash(
     throw new Error("arc_signer_private_key_mismatch");
   }
 
-  const tx = await wallet.sendTransaction({
-    to: wallet.address,
-    value: 0n,
-    data: canonicalHash,
-  });
+  const registry = new ethers.Contract(registryAddress, REGISTRY_ABI, wallet);
+  const tx = await registry.attest(canonicalHash);
   const receipt = await tx.wait();
   if (!receipt) {
     throw new Error("arc_anchor_no_receipt");
@@ -71,5 +83,9 @@ export async function anchorReportHash(
     txHash: receipt.hash,
     explorerUrl: buildExplorerUrl(rpcUrl, receipt.hash),
     network,
+    registryAddress,
+    folioHash: canonicalHash.toLowerCase(),
+    attester: wallet.address,
+    blockNumber: receipt.blockNumber,
   };
 }

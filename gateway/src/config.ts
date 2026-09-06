@@ -21,4 +21,6 @@ export const config = {
   arcNetwork: process.env.ARC_NETWORK ?? "arc:testnet",
   arcSignerAddress: process.env.ARC_SIGNER_ADDRESS,
   arcSignerPrivateKey: process.env.ARC_SIGNER_PRIVATE_KEY,
+  registryAddress: process.env.REGISTRY_ADDRESS,
+  subgraphUrl: process.env.SUBGRAPH_URL,
 };

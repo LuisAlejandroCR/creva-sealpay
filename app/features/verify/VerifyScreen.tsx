@@ -156,7 +156,11 @@ export function VerifyScreen({ sealedReport, onBack }: { sealedReport: SealedRep
         )}
 
         {phase === "verified" && result?.status === 200 && sealedReport && (
-          <VerifyReportCard verification={result.verification} sealed={sealedReport} />
+          <VerifyReportCard
+            verification={result.verification}
+            sealed={sealedReport}
+            onchain={result.verification.onchain}
+          />
         )}
       </ScrollView>
     </SafeAreaView>

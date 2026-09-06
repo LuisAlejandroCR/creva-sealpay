@@ -9,7 +9,7 @@
 > antes de tocar nada, y cerrar siempre documentando qué se hizo, qué no se verificó y por qué —
 > es el contexto que usan los demás agentes.
 
-**Última actualización:** 2026-09-06 (integración de la familia de paridad móvil a `main` — 5 ramas, VERIFY verde)
+**Última actualización:** 2026-09-06 (mecanismo load-bearing de The Graph: contrato AttestationRegistry + subgraph + trustSignal on-chain en `/verify` — código y VERIFY local verdes, deploy a testnet pendiente del humano)
 
 Ver [`brainstorming.md`](../brainstorming.md) §8 y §9 para el análisis completo. Detalle de
 qué-se-hizo/qué-no-se-verificó por sesión: [`docs/memoria.md`](memoria.md). Esta tabla es solo el
@@ -216,6 +216,32 @@ checklist.
   - **Fix aparte (no era del inventario):** `MoreSheet.tsx` — `w-[calc(50%-4px)]` en la celda no lo
     evalúa NativeWind, dejaba la celda sin ancho y ocultaba la etiqueta (reportado con captura por
     el humano 2026-09-06). Cambiado a `w-[48%]`; regresión en `test/unit/more/structure.spec.ts`.
+- [ ] **2026-09-06 — The Graph, forma load-bearing (slice D de §10.4): código completo, deploy a
+  testnet + deploy del subgraph pendientes del humano (worktree `agent-add968ba3a6440026`).**
+  Mecanismo: `contracts/AttestationRegistry.sol` (`attest(bytes32 folioHash)` → evento
+  `Attested` indexable, sin owner/fondos/upgrade) + `subgraph/` (indexa `Attested` en
+  `FolioAttestation { attestationCount, distinctAttesters, first/lastAttestedAt }`) +
+  `gateway/src/creva-proxy.ts` agrega a `/creva-score/verify` un bloque `onchain` con
+  `trustSignal` = `corroborated` (`distinctAttesters >= 2`) / `attested` (`>= 1`) / `unattested`
+  (`0`). `gateway/src/arc-anchor.ts` ahora llama `registry.attest(canonicalHash)` en vez de la tx
+  valor-0 sin log; invariante de validación de hash intacta. El veredicto de contenido/firma del
+  core sale TAL CUAL al lado; subgraph caído → `onchain: null` + flag, core intacto, proceso vivo.
+  Detalle y comandos: [`docs/integrations/onchain-attestation.md`](integrations/onchain-attestation.md).
+  **VERIFY local verde:** `contracts` `forge test` 7/7 (unit+fuzz+invariant); `gateway` `tsc`/
+  `eslint` limpios, `vitest` 20 archivos/56 tests; `subgraph` `graph codegen && graph build` ok;
+  `app` `tsc` limpio, `jest` verify 15/15 (los 2 flakes de `auth-gate`/`help/search` bajo full-run
+  ya documentados, no relacionados). Mecanismo demostrado en anvil local: 2 cuentas distintas
+  atestiguan un folioHash → `attestationCount` 2, 2 logs `Attested`; e invariante del gateway
+  prueba 0→`unattested`, 2→`corroborated`.
+  **Pendiente del humano (no lo hace un agente local):** (1) `forge script script/Deploy.s.sol`
+  a Arc testnet y a Sepolia — anotar direcciones + txs aquí; (2) poblar `REGISTRY_ADDRESS` y
+  `SUBGRAPH_URL` en `gateway/.env`, y `address`/`startBlock` en `subgraph/networks.json`;
+  (3) `graph deploy creva-attestations --network sepolia` con la deploy key del Studio;
+  (4) demo real: 2 attests con 2 cuentas + `/verify` antes/después (evidencia a pegar aquí).
+  **NO verificado:** deploy real a testnet, indexación real del subgraph, y el ciclo end-to-end
+  contra el core real — todo bloqueado por no tener `.env`/claves/deploy key en el worktree del
+  agente. El wiring de la app (`lib/api.ts` + `sealClient.ts` + `VerifyScreen.tsx`) **ya está
+  hecho** — ver Cerrados `2026-09-06` (rama `feature-verify-onchain-wiring`).
 
 - [ ] **2026-09-06 — Paridad móvil: segunda vista visual PENDIENTE (owner: sesión 2, "UI audit
   smoke test").** Las 13 pantallas nativas nuevas de `feature-mobile-native-parity` (datos
@@ -597,6 +623,29 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   sigue siendo de la sesión 2). **Nota de colisión:** un agente de fondo (`sponsor-privy-wallet`)
   toca el área del `pay-button` de esta misma pantalla — este cambio se mantuvo en la sección de
   inputs para que el Solver reconcilie ambos limpio.
+- [x] `2026-09-06` — **Wiring de la app para el `onchain` trust signal de `/verify`
+  (`feature-verify-onchain-wiring`, off `worktree-agent-add968ba3a6440026` @ f9457c8).** El agente
+  de attestation dejó el contrato + subgraph + enriquecimiento del gateway (`creva-proxy.ts` agrega
+  `onchain` a la respuesta de `/creva-score/verify`) y el render en `VerifyReportCard` (ya acepta
+  `onchain?`), pero sin cablear la app. Hecho aquí, **solo app**:
+  - `app/lib/api.ts`: nuevos tipos `OnchainTrustSignal` + `OnchainAttestation`;
+    `CertificateVerification` gana `onchain?: OnchainAttestation | null` + `onchainError?`.
+  - `app/features/verify/onchain.ts` (nuevo, módulo puro): `parseOnchain(raw)` normaliza el bloque
+    — `trustSignal` fuera de los 3 valores, contadores no numéricos, o input no-objeto → `null`, así
+    un bloque malformado nunca llega a `VerifyReportCard` (que haría `TRUST_COPY[bad].label` → crash).
+  - `app/features/verify/sealClient.ts`: la rama 200 pasa el body por `parseOnchain(body.onchain)`.
+  - `app/features/verify/VerifyScreen.tsx`: `onchain={result.verification.onchain}` a `VerifyReportCard`.
+  - Tests: `test/unit/verify/onchain-wiring.spec.ts`, `test/fuzz/verify/onchain.fuzz.spec.ts`,
+    `test/invariant/verify/onchain-never-fabricates-trust.invariant.spec.ts` (invariante espejo del
+    `onchain-never-overrides-core-verdict` del gateway: la app nunca sube la confianza desde un
+    bloque ausente/malformado).
+  - **No se tocó** contrato, subgraph ni gateway. `tsc` limpio; `jest` full-run 255/255 en la
+    corrida limpia (los 2 flakes `auth-gate`/`help-search` aparecen bajo carga, pasan aislados; las
+    4 suites de `verify` verdes: 22/22). Base de la rama antes del cambio: ~54 suites.
+  - **No verificado:** el `/verify` real enriquecido contra un subgraph indexado (mismo bloqueo de
+    deploy que el bloque abierto de attestation); render nativo (sesión 2). La rama de attestation
+    está basada en `9dfdd57`, `main` en `7638dbb` — el Solver reconcilia la divergencia al mergear
+    ambas juntas.
 
 - [x] `2026-09-06` — **Integración de la familia de paridad móvil a `main` (Solver, worktree
   `integration-mobile-parity`): 5 ramas mergeadas `--no-ff`, VERIFY completo verde. Verificado por

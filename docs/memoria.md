@@ -4,6 +4,68 @@
 
 # Memoria — ETHOnline 2026
 
+## 2026-09-06 — The Graph load-bearing: AttestationRegistry + subgraph + trustSignal on-chain (worktree `agent-add968ba3a6440026`)
+
+**Qué se hizo.** Se construyó el mecanismo donde un dato on-chain mueve una salida real de
+`/creva-score/verify` (brainstorming.md §10.5, slice D de §10.4):
+
+- `contracts/` (Foundry, sin deps pesadas): `AttestationRegistry.sol` con
+  `attest(bytes32 folioHash)` → `event Attested(bytes32 indexed folioHash, address indexed
+  attester, uint256 timestamp)`. `attestationCount` es un espejo de conveniencia; el subgraph
+  deriva los attesters distintos de los logs. `script/Deploy.s.sol` lee `ARC_SIGNER_PRIVATE_KEY`
+  (misma clave que el ancla, sin secreto nuevo). `test/AttestationRegistry.t.sol`: 5 unit/fuzz +
+  2 invariant (`invariant_untouchedFolioStaysZero`, `invariant_countMatchesHandlerCalls`).
+- `subgraph/`: `schema.graphql` (`FolioAttestation`, `Attestation`), `subgraph.yaml` (network
+  `sepolia`, address placeholder desde `networks.json`), `src/mapping.ts` (fold de `Attested`;
+  `distinctAttesters` solo crece con una dirección nueva), `README.md` con el comando exacto de
+  `graph deploy` para el humano.
+- `gateway/src/arc-anchor.ts`: `anchorReportHash` ahora recibe `registryAddress` y llama
+  `new ethers.Contract(...).attest(canonicalHash)` en vez de la tx valor-0 auto-dirigida. La
+  invariante dura (`/^0x[0-9a-fA-F]{64}$/` antes de construir provider/wallet/contrato) intacta;
+  el check de registry va DESPUÉS del de hash para no romperla. `ArcAnchorResult` gana
+  `registryAddress`, `folioHash`, `attester`, `blockNumber`.
+- `gateway/src/creva-proxy.ts`: `proxyToCreva(..., enrichOnchainVerify=true)` para `/verify`.
+  Tras la respuesta 2xx JSON del core, deriva `folioHash` de `expected_digest` (0x-prefijado,
+  minúsculas), consulta el subgraph (`folioAttestation(id)`, `AbortSignal.timeout(4000)`) y
+  agrega `onchain: { attestationCount, distinctAttesters, lastAttestedAt, trustSignal }`.
+  `trustSignal` vía `trustSignalFor()` en `types.ts` (`>=2` corroborated, `>=1` attested, else
+  unattested). Cualquier fallo (sin `SUBGRAPH_URL`, hash no derivable, HTTP != 200, timeout,
+  JSON basura) → `onchain: null` + `onchainError`, core intacto, sin throw (try/catch, lección
+  de `facilitator.ts`).
+- `gateway/src/config.ts`: `registryAddress`, `subgraphUrl` (solo lectura de env).
+  `gateway/.env.example`: `REGISTRY_ADDRESS`, `SUBGRAPH_URL` con placeholder.
+- `gateway/src/index.ts`: `/verify` pasa `true`; `/anchor` pasa `config.registryAddress`.
+- Tests gateway nuevos: `test/unit/attestation-enrichment.spec.ts`,
+  `test/fuzz/attestation-enrichment.fuzz.spec.ts`,
+  `test/invariant/onchain-never-overrides-core-verdict.invariant.spec.ts` (propiedades a/b/c).
+  Ajustados `test/unit/x402-gate.spec.ts` (verify ahora trae bloque `onchain`),
+  `test/unit/arc-anchor.spec.ts` + `test/invariant/arc-anchor-hash-required.invariant.spec.ts` +
+  `test/integration/live-arc-anchor.spec.ts` (5º arg `registryAddress`).
+- `app/features/verify/components/VerifyReportCard.tsx`: prop opcional `onchain?: OnchainTrust |
+  null`, tipo + `TRUST_COPY` (una línea de copy por estado, tono neutral/warning/success)
+  declarados local (lib/api.ts es de otro dueño); sección "Respaldo on-chain" solo si `onchain`
+  viene. Test `app/test/unit/verify/onchain-trust-signal.spec.ts`.
+
+**Decisión escogida.** Atestiguar por el digest del reporte, no por `keccak256(folio)` — ancla y
+verificación comparten un `bytes32` sin acoplar el gateway a internals del core. El subgraph
+indexa la instancia de Sepolia porque Subgraph Studio no soporta Arc testnet; el registry de Arc
+queda para la narrativa de la pista Arc.
+
+**Qué NO se verificó y por qué.** (1) Deploy real a Arc testnet / Sepolia — no hay `.env` ni
+claves ni deploy key en el worktree del agente; el humano corre `forge script` y `graph deploy`
+(comandos exactos en `docs/integrations/onchain-attestation.md` y `subgraph/README.md`).
+(2) Indexación real del subgraph y ciclo end-to-end `/verify` antes/después contra el core real —
+mismo bloqueo. (3) La demostración del mecanismo se hizo en anvil local (2 cuentas → count 2, 2
+logs `Attested`) + la invariante del gateway (0→unattested, 2→corroborated); falta la corrida en
+testnet con el subgraph indexando. (4) Wiring de `VerifyScreen`/`sealClient`/`lib/api.ts` para
+propagar `onchain` al `VerifyReportCard` — esos archivos están fuera del POSEES de este worktree.
+(5) Los 2 flakes de `app` (`auth-gate`, `help/search`) bajo full-run: ya documentados, no
+relacionados.
+
+**Dónde queda el pendiente.** Bloque abierto en `docs/plan.md` (`2026-09-06 — The Graph, forma
+load-bearing`).
+
+
 ## 2026-09-05 — Bazantic: prerrequisito confirmado, spec de Recipes (worktree `feature-bazantic-recipes`)
 
 **Qué se hizo:**
@@ -2606,3 +2668,34 @@ ni el deploy en `AUTH_PROVIDER=both` (la confirmación en vivo la difirió el hu
 
 **Dónde queda el pendiente:** commit en el worktree, sin push. Va al batch del Solver
 (no-sponsor). Confirmación en vivo de la config de auth = bloque abierto en `docs/plan.md`.
+## 2026-09-06 — Wiring app del `onchain` trust signal de `/verify` (Solver, cloud)
+
+**Qué se hizo (rama `feature-verify-onchain-wiring`, off `worktree-agent-add968ba3a6440026` @
+f9457c8; despachada por el Main orchestrator tras confirmar que la rama de attestation ya existía):**
+- El agente de attestation dejó contrato + subgraph + `creva-proxy.ts` (agrega `onchain` a
+  `/creva-score/verify`) + el render en `VerifyReportCard` (prop `onchain?` ya aceptado), pero sin
+  cablear la app. Cableado aquí, **solo app**:
+  - `lib/api.ts`: tipos `OnchainTrustSignal`/`OnchainAttestation`; `CertificateVerification` +
+    `onchain?` + `onchainError?`.
+  - `features/verify/onchain.ts` (nuevo, puro): `parseOnchain` — normaliza el bloque, cualquier
+    cosa malformada → `null` (evita `TRUST_COPY[bad].label` → crash en `VerifyReportCard`).
+  - `features/verify/sealClient.ts`: rama 200 pasa el body por `parseOnchain`.
+  - `features/verify/VerifyScreen.tsx`: pasa `onchain` a `VerifyReportCard`.
+- Tests unit+fuzz+invariant en `test/{unit,fuzz,invariant}/verify/onchain*`.
+
+**Desviación de la instrucción original:** el Main pidió "pasar el campo tal cual, no soltarlo". Se
+agregó `parseOnchain` (una normalización) porque el requisito de tests "un bloque malformado nunca
+crashea la pantalla" no se cumple con un pass-through crudo — `VerifyReportCard` indexa
+`TRUST_COPY[onchain.trustSignal]` sin guarda. La normalización no fabrica confianza (invariante lo
+prueba): input dudoso → `null` → sin sección "Respaldo on-chain".
+
+**Qué NO se verificó, y por qué:**
+- El `/verify` real enriquecido contra un subgraph indexado — mismo bloqueo de deploy que el bloque
+  abierto de attestation (sin `.env`/claves).
+- Render nativo — sesión 2.
+- `tsc --noEmit` limpio. `jest` full-run: 255/255 en la corrida limpia (los 2 flakes
+  `auth-gate`/`help-search` aparecen bajo carga, pasan aislados; suites `verify`: 4/4, 22 tests).
+
+**Dónde queda el pendiente:** commit en el worktree, sin push (instrucción del Main). La rama de
+attestation está basada en `9dfdd57`, `main` en `7638dbb` — el Solver reconcilia la divergencia al
+mergear esta rama + la de attestation juntas cuando el humano dé la señal.

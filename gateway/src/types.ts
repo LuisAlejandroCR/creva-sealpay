@@ -40,6 +40,23 @@ export interface HederaExactPaymentPayload {
 
 export type PaymentPayload = HederaExactPaymentPayload | Record<string, unknown> | string;
 
+// On-chain trust layer added alongside (never replacing) the core's content/signature verdict.
+// trustSignal is the one output only the subgraph-indexed attestation data can move.
+export type OnchainTrustSignal = "unattested" | "attested" | "corroborated";
+
+export interface OnchainAttestation {
+  attestationCount: number;
+  distinctAttesters: number;
+  lastAttestedAt: string | null;
+  trustSignal: OnchainTrustSignal;
+}
+
+export function trustSignalFor(distinctAttesters: number): OnchainTrustSignal {
+  if (distinctAttesters >= 2) return "corroborated";
+  if (distinctAttesters >= 1) return "attested";
+  return "unattested";
+}
+
 export interface FacilitatorVerifyResult {
   isValid: boolean;
   invalidReason?: string;

@@ -42,7 +42,7 @@ describe("x402-gated creva-score routes", () => {
       });
     });
 
-    it(`proxies to Creva unmodified once payment settles: ${route}`, async () => {
+    it(`proxies to Creva once payment settles (verify also gets an onchain block): ${route}`, async () => {
       vi.mocked(facilitator.verifyPayment).mockResolvedValue({ isValid: true });
       vi.mocked(facilitator.settlePayment).mockResolvedValue({
         success: true,
@@ -64,7 +64,15 @@ describe("x402-gated creva-score routes", () => {
         .send({ businessId: "abc123" });
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual(crevaBody);
+      if (route === "/creva-score/verify") {
+        // Core verdict passes through untouched; the onchain block is added alongside it and is
+        // null here because SUBGRAPH_URL is not configured in the test env.
+        expect(res.body).toMatchObject(crevaBody);
+        expect(res.body.onchain).toBeNull();
+        expect(res.body.onchainError).toBe("subgraph_not_configured");
+      } else {
+        expect(res.body).toEqual(crevaBody);
+      }
       expect(res.headers["x-payment-response"]).toBeDefined();
     });
 

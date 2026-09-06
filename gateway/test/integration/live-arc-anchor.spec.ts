@@ -47,6 +47,7 @@ describe.skipIf(!hasArcCreds)("live Arc testnet anchor (real network, real gas)"
         credentials,
         process.env.ARC_RPC_URL,
         process.env.ARC_NETWORK ?? "arc:testnet",
+        process.env.REGISTRY_ADDRESS,
       );
 
       console.log("live Arc anchor result:", result);

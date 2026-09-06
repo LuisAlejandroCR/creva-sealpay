@@ -38,6 +38,7 @@ describe("invariant: anchorReportHash never reaches the wallet/provider on a mal
               { address: "0x0", privateKey: "0x0" },
               "https://rpc.testnet.arc.io",
               "arc:testnet",
+              "0x0000000000000000000000000000000000000001",
             ),
           ).rejects.toThrow("arc_anchor_invalid_canonical_hash");
           expect(providerSpy).not.toHaveBeenCalled();
