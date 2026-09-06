@@ -4,7 +4,7 @@
 // retries the gateway with it; without EXPO_PUBLIC_HEDERA_DEMO_* configured it surfaces that
 // real gap instead of a fabricated paid report.
 import * as Haptics from "expo-haptics";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -12,11 +12,12 @@ import { Card, Progress, Section } from "./components/VisualPrimitives";
 import { ReportPreviewCard } from "./components/ReportPreviewCard";
 import { PaymentRequired, QueryResult, requestSignal } from "./gatewayClient";
 import { buildSignedPaymentHeader, readDemoCredentialsFromEnv } from "./hederaPayment";
+import { STATE_OPTIONS, buildSignalInput, isValidBusinessName } from "./business-input";
+import { SelectField, TextField } from "../profile/components/FormField";
+import { profiles } from "../../lib/api";
 import { BackButton } from "../shared/BackButton";
 
 type Phase = "idle" | "loading" | "payment_required" | "paying" | "paid" | "error";
-
-const BUSINESS_NAME = "Panaderia La Espiga";
 
 export function QueryScreen({ onVerify, onBack }: { onVerify: (result: QueryResult) => void; onBack?: () => void }) {
   const [phase, setPhase] = useState<Phase>("idle");
@@ -24,11 +25,35 @@ export function QueryScreen({ onVerify, onBack }: { onVerify: (result: QueryResu
   const [result, setResult] = useState<QueryResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // The query is "verify THIS business" — the name and state come from the user, prefilled from
+  // the fiscal profile the same way business-verification/page.tsx does (page.tsx:63-72).
+  const [businessName, setBusinessName] = useState("");
+  const [stateCode, setStateCode] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    profiles
+      .getFiscal()
+      .then((fiscal) => {
+        if (cancelled || !fiscal) return;
+        setBusinessName((current) => current || fiscal.businessName || "");
+        setStateCode((current) => current || (fiscal.stateCode === null ? "" : String(fiscal.stateCode)));
+      })
+      .catch(() => {
+        /* manual entry is the fallback */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const signalInput = () => buildSignalInput(businessName, stateCode);
+
   async function triggerQuery() {
     setPhase("loading");
     setErrorMessage(null);
     try {
-      const res = await requestSignal({ businessName: BUSINESS_NAME });
+      const res = await requestSignal(signalInput());
       if (res.status === 402) {
         setPendingPayment(res);
         setPhase("payment_required");
@@ -55,7 +80,7 @@ export function QueryScreen({ onVerify, onBack }: { onVerify: (result: QueryResu
         return;
       }
       const paymentHeader = await buildSignedPaymentHeader(pendingPayment.accepts[0], credentials);
-      const res = await requestSignal({ businessName: BUSINESS_NAME }, paymentHeader);
+      const res = await requestSignal(signalInput(), paymentHeader);
       if (res.status === 402) {
         setPendingPayment(res);
         setErrorMessage(res.error ?? "El gateway rechazó el pago.");
@@ -100,11 +125,31 @@ export function QueryScreen({ onVerify, onBack }: { onVerify: (result: QueryResu
         <Section title="Consulta">
           <Card dashed>
             <View className="gap-4">
-              <Text className="text-base font-bold text-text">Panadería La Espiga</Text>
-              <Text className="text-sm leading-5 text-text/70">
-                La primera petición devuelve el requisito de pago antes de liberar el reporte.
+              <TextField
+                label="Nombre de tu negocio"
+                value={businessName}
+                onChangeText={setBusinessName}
+                placeholder="Como aparece en tu registro"
+                testID="business-name-input"
+              />
+              <SelectField
+                label="Estado"
+                value={stateCode}
+                options={STATE_OPTIONS}
+                onChange={setStateCode}
+                placeholder="Selecciona tu estado"
+                testID="business-state-select"
+              />
+              <Text className="text-xs leading-4 text-text/50">
+                Sin estado, un nombre común devuelve miles de coincidencias y no se emite ningún
+                sello. La primera petición devuelve el requisito de pago antes de liberar el reporte.
               </Text>
-              <Pressable className="rounded-xl bg-crimson px-5 py-3" onPress={triggerQuery} testID="trigger-query">
+              <Pressable
+                className={`rounded-xl bg-crimson px-5 py-3 ${isValidBusinessName(businessName) ? "" : "opacity-50"}`}
+                disabled={!isValidBusinessName(businessName)}
+                onPress={triggerQuery}
+                testID="trigger-query"
+              >
                 <Text className="text-center font-semibold text-white">Consultar señales del negocio</Text>
               </Pressable>
             </View>

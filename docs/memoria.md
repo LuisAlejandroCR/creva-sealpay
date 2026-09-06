@@ -2441,3 +2441,32 @@ cuenta como su aprobación.
 de Ayuda + el fix de MoreSheet están hechas y pusheadas en `feature-last-screens-parity`. Falta:
 (1) confirmación del humano para el business form; (2) segunda vista visual de todo (sesión 2);
 (3) que el Main orchestrator integre la rama.
+
+## 2026-09-06 — `QueryScreen` business-data form (Solver, cloud) — rama `feature-query-business-form`
+
+**Qué se hizo (aprobado por el humano, despachado por el Main orchestrator como rama aparte tras
+integrar `feature-last-screens-parity`; off `main` 7638dbb):**
+- `QueryScreen.tsx` tenía `const BUSINESS_NAME = "Panaderia La Espiga"` hardcodeado y lo mandaba a
+  `requestSignal` en `triggerQuery` y en el reintento de `pay`. Reemplazado por un campo de nombre
+  + selector de estado en la fase `idle`, prefill desde `profiles.getFiscal()` (mismo patrón que
+  `business-verification/page.tsx:63-72`).
+- `business-input.ts` nuevo (módulo puro): `isValidBusinessName` (trim > 1), `toStateCode`
+  (`"" | bogus → undefined`, si no un código INEGI real), `buildSignalInput`, `STATE_OPTIONS`.
+- `requestSignal(buildSignalInput(businessName, stateCode), ...)` en ambas llamadas. Botón de
+  consulta deshabilitado sin nombre válido.
+- **No se tocó:** el ciclo x402, el handler del `pay-button`, ni el sellado. La colisión anunciada
+  con `sponsor-privy-wallet` (que toca el área del pay-button) no aplica — cambios en secciones
+  distintas.
+- Tests unit + fuzz + invariant (`test/{unit,fuzz,invariant}/query/business-input*`).
+- `docs/plan.md`: bloque del gap movido de Abiertos → Cerrados en el mismo commit.
+
+**Qué NO se verificó, y por qué:**
+- El gateway real con un `businessName`/`stateCode` variable — sin entorno gateway/facilitador en
+  esta sesión.
+- Render nativo — segunda vista visual sigue siendo de la sesión 2.
+- `tsc --noEmit` limpio. `jest` full-run: 62/64 suites, 288/290 tests — los 2 fallos son
+  `auth/auth-gate` y `help/search` por timeout bajo carga (flake documentado, pasan aislados junto
+  con las 3 specs nuevas: 5/5 suites, 19/19). Baseline en `main` 7638dbb: 61 suites / 276 tests.
+
+**Dónde queda el pendiente:** commit en el worktree, sin push (instrucción del Main). Reporte del
+commit block al Main; puede ir directo al Solver.
