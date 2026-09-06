@@ -29,6 +29,17 @@ checklist.
   usa `<View>` en vez de `<ScrollView>`. `HelpScreen`/`HelpCategoryScreen` con huecos análogos
   (tiles "Lo que más se pregunta", descripciones por tema). `app/lib/help-content.ts` ya está
   portado — es port de contenido, mismo método que las 13.
+  - **`HelpArticleScreen` — hecho.** Reconstruida al nivel de
+    `help/[category]/[article]/page.tsx`: `<ScrollView>` (antes `<View>`, cortaba artículos
+    largos), `answer` como párrafo lead, sección "Cómo se hace" con pasos numerados en círculo,
+    card "Ten en cuenta" (`tone="highlight"` = `surface-2`), botón CTA `resolvedBy`, lista "Otras
+    de este tema" (`relatedArticles`), y el footer de contacto de privacidad. `App.tsx`:
+    `openHelpResolve(href)` mapea los 14 `resolvedBy.href` posibles a steps/stubs del router
+    nativo; `onOpenArticle` para las relacionadas. Test nuevo
+    `app/test/unit/help/article-parity.spec.ts` (verifica las 6 secciones + que ningún href
+    quede sin ruta). `tsc` limpio; `jest` 58 suites / 256 tests.
+  - `HelpCategoryScreen` — pendiente.
+  - `HelpScreen` (índice) — pendiente (revisar tiles "Lo que más se pregunta" 4-en-fila vs 2-col).
 
 - [ ] **2026-09-06 — `QueryScreen` no tiene form de datos del negocio: el flujo "Comprobar
   un reporte" manda un `BUSINESS_NAME` hardcodeado a `/creva-score/report`.**

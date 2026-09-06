@@ -209,6 +209,33 @@ function AppFlow() {
     setStep("help-article");
   }
 
+  // A help article's `resolvedBy.href` is a web route — map it to this app's step machine so the
+  // "Cada respuesta termina en la pantalla que la resuelve" promise holds on native too.
+  const HELP_RESOLVE_STUBS: Partial<Record<string, StubTopicKey>> = {
+    "/collateral": "collateral",
+    "/statements": "statements",
+    "/movements": "movements",
+    "/report": "report",
+    "/business-verification": "business-verification",
+    "/regulatory": "regulatory",
+    "/privacy": "privacy",
+  };
+  const HELP_RESOLVE_STEPS: Partial<Record<string, Step>> = {
+    "/login": "sign-in",
+    "/credit": "credit",
+    "/score": "score",
+    "/cards": "card-info",
+    "/profile/security": "profile-security",
+    "/profile/details": "profile-details",
+    "/profile/delete-account": "profile-delete-account",
+  };
+  function openHelpResolve(href: string) {
+    const stub = HELP_RESOLVE_STUBS[href];
+    if (stub) return openStub(stub, "help-article");
+    const next = HELP_RESOLVE_STEPS[href];
+    if (next) setStep(next);
+  }
+
   let screen: React.ReactNode;
   if (step === "sign-in") {
     screen = <SignInScreen onSignedIn={() => setStep("onboarding")} />;
@@ -298,6 +325,11 @@ function AppFlow() {
         category={activeCategory}
         article={activeArticle}
         onBack={() => setStep(activeCategory ? "help-category" : "help")}
+        onOpenArticle={(other) => {
+          setActiveArticle(other);
+          setStep("help-article");
+        }}
+        onResolve={openHelpResolve}
       />
     );
   } else if (step === "more") {

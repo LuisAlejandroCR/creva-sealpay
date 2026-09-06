@@ -2324,3 +2324,29 @@ simulador). El bloqueo `react-native-web` que citaron los 13 incrementos era sol
 
 **Dónde queda el pendiente:** bloque abierto "Migración: últimas 4 pantallas" en `docs/plan.md`.
 Siguientes: `credit`, `card`.
+
+## 2026-09-06 — Migración: Ayuda reasignada, `HelpArticleScreen` reconstruida (Solver, cloud)
+
+**Qué se hizo:**
+- El humano reasignó `app/features/help/**` a esta sesión (2026-09-06). Main orchestrator confirmó
+  que el worktree `codex/mobile-parity-help` está abandonado (44 commits detrás de main, working
+  tree limpio, nunca pusheado) — sin colisión. Bloque de coordinación en `docs/plan.md`.
+- `HelpArticleScreen.tsx` reconstruida de 50 líneas (una card con todo apilado) al nivel de
+  `creva_finance/frontend/app/help/[category]/[article]/page.tsx`: `<ScrollView>`, `answer` como
+  lead, "Cómo se hace" con pasos numerados en círculo, card "Ten en cuenta" (`tone="highlight"`),
+  botón CTA `resolvedBy`, "Otras de este tema" (`relatedArticles`), footer de privacidad.
+- `App.tsx`: `openHelpResolve(href)` — mapa de los 14 `resolvedBy.href` que puede producir
+  `help-content.ts` (7 a stubs vía `openStub`, 7 a steps directos). `onOpenArticle` para las
+  relacionadas. `HelpArticleScreen` ahora recibe `onResolve` + `onOpenArticle`.
+- Test nuevo `app/test/unit/help/article-parity.spec.ts`.
+
+**Qué NO se verificó, y por qué:**
+- Render nativo/visual — el humano tiene el simulador y puede verlo; la certificación pantalla por
+  pantalla sigue siendo tarea de la sesión 2. El `/login` como destino de `resolvedBy` en móvil
+  lleva a `SignInScreen` (el usuario ya está dentro) — se mapeó igual que el frontend, no se probó
+  el caso de borde.
+- `tsc --noEmit` limpio. `jest` full-run: 58 suites / 256 tests. Baseline tras `kyc`: 57 / 253.
+
+**Dónde queda el pendiente:** bloque abierto "COORDINACIÓN: `app/features/help/**`" en
+`docs/plan.md`. Siguientes: `HelpCategoryScreen`, `HelpScreen`, luego `credit`, `card`, business
+form.
