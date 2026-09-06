@@ -9,7 +9,7 @@
 > antes de tocar nada, y cerrar siempre documentando qué se hizo, qué no se verificó y por qué —
 > es el contexto que usan los demás agentes.
 
-**Última actualización:** 2026-09-05
+**Última actualización:** 2026-09-05 (barra de navegación inferior — paridad de iconos, sexto intento)
 
 Ver [`brainstorming.md`](../brainstorming.md) §8 y §9 para el análisis completo. Detalle de
 qué-se-hizo/qué-no-se-verificó por sesión: [`docs/memoria.md`](memoria.md). Esta tabla es solo el
@@ -39,6 +39,36 @@ checklist.
   verificación y anclaje; `/score` todavía no está expuesto. Para datos personales
   debe conservarse la identidad Clerk del solicitante: la identidad de servicio
   devolvería el score de otra cuenta. No se ha verificado una sesión real.
+
+  **Actualización `2026-09-05` (sexto intento — barra de navegación inferior, worktree
+  `feature-nav-parity-render`, render-vs-render real: `creva_finance/frontend` en `localhost:3001`
+  y `app/` vía Expo web `react-native-web` en `localhost:8090`, ambos a 375×812).** Causa raíz
+  del "parecido pero no igual" en los iconos, confirmada visualmente: `Icon.tsx` no ponía
+  `fill="none"` en la raíz `<Svg>`, y `react-native-svg` (nativo **y** web) rellena de negro
+  por defecto todo `<Path>`/`<Rect>` sin `fill` — el arco del icono **Score** salía como medio
+  disco negro y el de **Tarjeta** como un bloque relleno, mientras que la web hereda `fill="none"`
+  del `<svg fill="none">` de `BottomNav.tsx:25,40,51`. Arreglos aplicados, cada uno con su
+  atributo exacto (`app/features/shared/icons/Icon.tsx` y `app/App.tsx` `TabBar`):
+  1. `Icon.tsx` `common` → `{ viewBox, fill: "none" }` — cubre los 26 glyphs de una vez; los que
+     sí se rellenan mantienen su `fill={stroke}`/`fill={fillColor}` propio.
+  2. `TabBar` icono `size={20}` → `22` (la web usa `width="22"` en `BottomNav.tsx`).
+  3. "PRONTO": era un badge flotante absoluto (`bg-inactive`, `-top-1 right-2`, pill); la web
+     (`globals.css` `.cr-nav-pending`) es texto plano bajo la etiqueta — ahora `<Text>` normal
+     `text-[8px] font-bold tracking-[0.04em] text-text-subtle`.
+  4. Pestaña deshabilitada: se quitó `opacity-40` (la web no atenúa el `/cards`).
+  5. Etiqueta `text-xs` (12px) → `text-[10px]`; `gap-1` → `gap-[3px]`; `py-3` → `py-[9px]`
+     (valores de `.cr-nav-item`).
+  Diferencia menor restante, **no** arreglada: `.cr-nav` de la web lleva
+  `box-shadow: 0 -1px 20px rgba(0,0,0,0.06)` — la barra RN no; efecto casi invisible, sin
+  equivalente RN fiable. **Verify:** `tsc --noEmit` limpio; `jest unit fuzz invariant` → 41
+  suites/176 tests verdes (una corrida bajo carga mostró el flake ya documentado de
+  `auth-gate.spec.ts` — timeout de act(), reproducido y confirmado no relacionado; verde en
+  reruns aislados). **Falta:** certificación visual del par de screenshots (antes/después) por
+  humano o Auditor antes de mover esta pantalla a Cerrados — no se autocertifica. Expo Go en
+  dispositivo físico real tampoco verificado (sin hardware; el render fue Expo web
+  `react-native-web`, que reproduce el default `fill` de `react-native-svg` pero no es idéntico
+  a Hermes/nativo). Resto del bloque (otras pantallas, gateway `/score`, sesión real) sigue
+  abierto.
 
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.

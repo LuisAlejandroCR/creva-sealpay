@@ -115,20 +115,18 @@ function TabBar({ step, onNavigate }: { step: Step; onNavigate: (step: Step) => 
               accessibilityState={{ disabled: tab.disabled, selected: active }}
               accessibilityLabel={tab.disabled ? `${tab.label} — aún no disponible` : tab.label}
               testID={`tab-${tab.key}`}
-              className={`flex-1 items-center gap-1 border-t-[3px] py-3 ${
+              className={`flex-1 items-center gap-[3px] border-t-[3px] py-[9px] ${
                 active ? "border-crimson" : "border-transparent"
-              } ${tab.disabled ? "opacity-40" : ""}`}
+              }`}
             >
-              <Icon name={tab.icon} size={20} color={active ? "crimson" : "text-secondary"} filled={active} />
+              <Icon name={tab.icon} size={22} color={active ? "crimson" : "text-secondary"} filled={active} />
               <Text
-                className={`text-xs ${active ? "font-extrabold text-crimson" : "font-semibold text-text-secondary"}`}
+                className={`text-[10px] ${active ? "font-extrabold text-crimson" : "font-semibold text-text-secondary"}`}
               >
                 {tab.label}
               </Text>
               {tab.disabled ? (
-                <View className="absolute -top-1 right-2 rounded-full bg-inactive px-1.5 py-0.5">
-                  <Text className="text-[9px] font-bold text-text-secondary">PRONTO</Text>
-                </View>
+                <Text className="text-[8px] font-bold tracking-[0.04em] text-text-subtle">PRONTO</Text>
               ) : null}
             </Pressable>
           );
