@@ -20,7 +20,7 @@ npm run build            # graph build --network sepolia (reads networks.json)
 
 `codegen` + `build` are what the gateway CI runs — they need no Studio key.
 
-## Deploy to Subgraph Studio (human runs this, needs the deploy key)
+## Deploy to Subgraph Studio (needs the deploy key)
 
 1. Create a subgraph named `creva-attestations` at https://thegraph.com/studio/ and copy its deploy key.
 2. Fill `networks.json` with the real registry address and the block it was deployed at.
