@@ -23,24 +23,29 @@ interface MoreRow {
   testID: string;
 }
 
+// NavCell parity: creva_finance/frontend/components/BottomNav.tsx:131-158 — icon left, label
+// right, gap 10, min-height 56, padding 10/12, radius 14, 1px --cr-border, 13px/600 --cr-text.
+// Glyph svg is 20px with stroke --cr-text-secondary (BottomNav.tsx:153), not the dark text token.
 function Row({ label, icon, onPress, testID }: MoreRow) {
   return (
     <Pressable
       onPress={onPress}
       testID={testID}
-      className="w-[47%] items-center gap-2 rounded-xl border border-text/10 bg-surface-1 p-4"
+      className="w-[calc(50%-4px)] min-h-[56px] flex-row items-center gap-[10px] rounded-[14px] border border-border bg-surface-1 px-3 py-[10px]"
     >
-      <Icon name={icon} size={22} color="text" />
-      <Text className="text-center text-sm font-semibold text-text">{label}</Text>
+      <Icon name={icon} size={20} color="text-secondary" />
+      <Text className="flex-1 text-[13px] font-semibold leading-[1.3] text-text">{label}</Text>
     </Pressable>
   );
 }
 
+// Group-title parity: creva_finance/frontend/app/globals.css .cr-nav-group-title (line 264) —
+// 10px, weight 700, letter-spacing 0.08em, uppercase, --cr-text-subtle; 8px below.
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <View className="mb-7">
-      <Text className="mb-3 text-base font-semibold text-text">{title}</Text>
-      <View className="flex-row flex-wrap gap-3">{children}</View>
+    <View className="mb-4">
+      <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-text-subtle">{title}</Text>
+      <View className="flex-row flex-wrap gap-2">{children}</View>
     </View>
   );
 }
@@ -53,9 +58,12 @@ export function MoreSheet({ onOpenStub, onOpenProfile, onOpenHelp }: MoreSheetPr
   return (
     <SafeAreaView className="flex-1 bg-bg" edges={["top", "bottom"]} testID="more-sheet">
       <ScrollView className="flex-1" contentContainerClassName="px-6 pb-10 pt-6">
-        <View className="mb-6">
-          <Text className="text-3xl font-bold text-text">Todo lo demás</Text>
+        <View className="mb-4 items-center">
+          {/* Drag-handle + 16px/600 title echo the web BottomSheet chrome
+              (creva_finance/frontend/components/ui/BottomSheet.tsx:74-78). */}
+          <View className="mb-[14px] h-1 w-10 rounded-[2px] bg-border" />
         </View>
+        <Text className="mb-[14px] text-base font-semibold text-text">Todo lo demás</Text>
 
         <Group title="Tu dinero">
           {money.map((item) => (
