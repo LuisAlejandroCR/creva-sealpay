@@ -87,7 +87,7 @@ app.post(
   gatedRouteLimiter,
   createX402Gate(verifyRequirements),
   (req, res) => {
-    void proxyToCreva(req, res, "/creva-score/verify");
+    void proxyToCreva(req, res, "/creva-score/verify", true);
   },
 );
 
@@ -104,7 +104,7 @@ app.post("/creva-score/anchor", gatedRouteLimiter, (req, res) => {
     return;
   }
 
-  anchorReportHash(canonicalHash, credentials, config.arcRpcUrl, config.arcNetwork)
+  anchorReportHash(canonicalHash, credentials, config.arcRpcUrl, config.arcNetwork, config.registryAddress)
     .then((result) => {
       res.status(200).json({ anchored: true, ...result });
     })

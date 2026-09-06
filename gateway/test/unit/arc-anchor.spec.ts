@@ -44,7 +44,13 @@ describe("readArcSignerCredentialsFromEnv", () => {
 describe("anchorReportHash", () => {
   it("rejects a malformed hash before constructing a provider or wallet", async () => {
     await expect(
-      anchorReportHash("not-a-hash", { address: "0x0", privateKey: "0x0" }, "https://rpc.testnet.arc.io", "arc:testnet"),
+      anchorReportHash(
+        "not-a-hash",
+        { address: "0x0", privateKey: "0x0" },
+        "https://rpc.testnet.arc.io",
+        "arc:testnet",
+        "0x0000000000000000000000000000000000000001",
+      ),
     ).rejects.toThrow("arc_anchor_invalid_canonical_hash");
   });
 });

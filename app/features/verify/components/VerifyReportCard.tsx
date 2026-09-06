@@ -9,6 +9,37 @@ import { Text, View } from "react-native";
 import { Badge, Card, Section } from "../../query/components/VisualPrimitives";
 import type { CertificateVerification, SealedReport } from "../../../lib/api";
 
+// On-chain trust layer the gateway adds to POST /creva-score/verify (gateway/src/creva-proxy.ts).
+// It sits alongside the content/signature verdicts, never replacing them; `null` when the subgraph
+// could not be reached. Type is declared here because lib/api.ts is owned elsewhere.
+export type OnchainTrust = {
+  attestationCount: number;
+  distinctAttesters: number;
+  lastAttestedAt: string | null;
+  trustSignal: "unattested" | "attested" | "corroborated";
+};
+
+export const TRUST_COPY: Record<
+  OnchainTrust["trustSignal"],
+  { label: string; tone: "neutral" | "warning" | "success"; line: string }
+> = {
+  unattested: {
+    label: "Sin respaldo on-chain",
+    tone: "neutral",
+    line: "Ningún tercero ha atestiguado este folio en la cadena todavía.",
+  },
+  attested: {
+    label: "Atestiguado on-chain",
+    tone: "warning",
+    line: "Un tercero registró una atestación de este folio en la cadena.",
+  },
+  corroborated: {
+    label: "Corroborado on-chain",
+    tone: "success",
+    line: "Dos o más terceros distintos atestiguaron este folio en la cadena.",
+  },
+};
+
 const CONTENT_LABEL: Record<CertificateVerification["content"], string> = {
   intact: "Contenido íntegro",
   altered: "Contenido alterado",
@@ -33,9 +64,11 @@ const SIGNATURE_TONE: Record<CertificateVerification["signature"], "success" | "
 export function VerifyReportCard({
   verification,
   sealed,
+  onchain,
 }: {
   verification: CertificateVerification;
   sealed: SealedReport;
+  onchain?: OnchainTrust | null;
 }) {
   const contentOk = verification.content === "intact";
   const limits = [...sealed.certificate.does_not_prove, ...sealed.report.disclosure.does_not_estimate];
@@ -86,6 +119,24 @@ export function VerifyReportCard({
           </View>
         </Card>
       </Section>
+
+      {onchain ? (
+        <Section
+          title="Respaldo on-chain"
+          lead="Cuántos terceros distintos han atestiguado este folio en la cadena."
+        >
+          <Card testID="onchain-trust">
+            <View className="flex-row items-start justify-between gap-3">
+              <Text className="flex-1 font-bold text-text">{TRUST_COPY[onchain.trustSignal].label}</Text>
+              <Badge tone={TRUST_COPY[onchain.trustSignal].tone}>{onchain.distinctAttesters} de 2</Badge>
+            </View>
+            <Text className="mt-1 text-sm leading-5 text-text/70">{TRUST_COPY[onchain.trustSignal].line}</Text>
+            <Text className="mt-1 text-xs text-text/50">
+              {onchain.attestationCount} atestación(es) · {onchain.distinctAttesters} tercero(s) distinto(s)
+            </Text>
+          </Card>
+        </Section>
+      ) : null}
 
       <Section title="Qué este sello NO certifica">
         <Card>

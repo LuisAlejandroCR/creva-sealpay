@@ -9,13 +9,41 @@
 > antes de tocar nada, y cerrar siempre documentando qué se hizo, qué no se verificó y por qué —
 > es el contexto que usan los demás agentes.
 
-**Última actualización:** 2026-09-06 (integración de la familia de paridad móvil a `main` — 5 ramas, VERIFY verde)
+**Última actualización:** 2026-09-06 (mecanismo load-bearing de The Graph: contrato AttestationRegistry + subgraph + trustSignal on-chain en `/verify` — código y VERIFY local verdes, deploy a testnet pendiente del humano)
 
 Ver [`brainstorming.md`](../brainstorming.md) §8 y §9 para el análisis completo. Detalle de
 qué-se-hizo/qué-no-se-verificó por sesión: [`docs/memoria.md`](memoria.md). Esta tabla es solo el
 checklist.
 
 ## Abiertos
+
+- [ ] **2026-09-06 — The Graph, forma load-bearing (slice D de §10.4): código completo, deploy a
+  testnet + deploy del subgraph pendientes del humano (worktree `agent-add968ba3a6440026`).**
+  Mecanismo: `contracts/AttestationRegistry.sol` (`attest(bytes32 folioHash)` → evento
+  `Attested` indexable, sin owner/fondos/upgrade) + `subgraph/` (indexa `Attested` en
+  `FolioAttestation { attestationCount, distinctAttesters, first/lastAttestedAt }`) +
+  `gateway/src/creva-proxy.ts` agrega a `/creva-score/verify` un bloque `onchain` con
+  `trustSignal` = `corroborated` (`distinctAttesters >= 2`) / `attested` (`>= 1`) / `unattested`
+  (`0`). `gateway/src/arc-anchor.ts` ahora llama `registry.attest(canonicalHash)` en vez de la tx
+  valor-0 sin log; invariante de validación de hash intacta. El veredicto de contenido/firma del
+  core sale TAL CUAL al lado; subgraph caído → `onchain: null` + flag, core intacto, proceso vivo.
+  Detalle y comandos: [`docs/integrations/onchain-attestation.md`](integrations/onchain-attestation.md).
+  **VERIFY local verde:** `contracts` `forge test` 7/7 (unit+fuzz+invariant); `gateway` `tsc`/
+  `eslint` limpios, `vitest` 20 archivos/56 tests; `subgraph` `graph codegen && graph build` ok;
+  `app` `tsc` limpio, `jest` verify 15/15 (los 2 flakes de `auth-gate`/`help/search` bajo full-run
+  ya documentados, no relacionados). Mecanismo demostrado en anvil local: 2 cuentas distintas
+  atestiguan un folioHash → `attestationCount` 2, 2 logs `Attested`; e invariante del gateway
+  prueba 0→`unattested`, 2→`corroborated`.
+  **Pendiente del humano (no lo hace un agente local):** (1) `forge script script/Deploy.s.sol`
+  a Arc testnet y a Sepolia — anotar direcciones + txs aquí; (2) poblar `REGISTRY_ADDRESS` y
+  `SUBGRAPH_URL` en `gateway/.env`, y `address`/`startBlock` en `subgraph/networks.json`;
+  (3) `graph deploy creva-attestations --network sepolia` con la deploy key del Studio;
+  (4) demo real: 2 attests con 2 cuentas + `/verify` antes/después (evidencia a pegar aquí).
+  **NO verificado:** deploy real a testnet, indexación real del subgraph, y el ciclo end-to-end
+  contra el core real — todo bloqueado por no tener `.env`/claves/deploy key en el worktree del
+  agente. Wiring de `VerifyScreen.tsx`/`sealClient.ts`/`lib/api.ts` para pasar `onchain` al
+  `VerifyReportCard` queda pendiente (fuera del POSEES de este worktree; `VerifyReportCard` ya
+  acepta el prop `onchain?` y lo renderiza).
 
 - [ ] **2026-09-06 — Paridad móvil: segunda vista visual PENDIENTE (owner: sesión 2, "UI audit
   smoke test").** Las 13 pantallas nativas nuevas de `feature-mobile-native-parity` (datos
