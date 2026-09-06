@@ -1858,3 +1858,38 @@ Reglas que te afectan, Tu reporte, Avisos, Aviso de privacidad, KYC, auth.
 **Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Séptimo incremento de la
 migración..."). Backlog restante: Crédito, Tarjeta, Calculadora, Tu garantía, Sello de tu negocio,
 Reglas que te afectan, Tu reporte, Aviso de privacidad, KYC, auth.
+
+## 2026-09-05 — Migración PWA→nativa, octavo incremento: `RegulatoryScreen.tsx` (Solver, cloud)
+
+**Qué se hizo:**
+- Construida `RegulatoryScreen.tsx` (`app/features/more/`), puerto de
+  `creva_finance/frontend/app/regulatory/page.tsx`: el radar regulatorio se lee de
+  `crevaScore.radar()` (`app/lib/api.ts`, ya existía, sin tocar), `SourceResult<RegulatoryRadar>`,
+  con la misma guarda `radar?.available ? radar.data : null` del frontend.
+- Alertas partidas en publicaciones (`kind === "publication"`) y reglas vigentes
+  (`kind === "standing_rule"`), cada una con fuente (`SOURCE_LABELS` idéntico), agencia, fecha
+  (`formatLongDay`, ya portado) y `EvidenceLink`. Estado de carga, fallback "Revisión no disponible"
+  cuando `data === null`, pie con fuentes consultadas / fechas no leídas, y la frase de privacidad
+  "Esta revisión no consulta ningún dato tuyo" tal cual.
+- `App.tsx`: rama nueva `activeStub === "regulatory"` monta la pantalla real antes del `StubScreen`
+  genérico (mismo patrón que Movimientos/Estados de cuenta/Avisos).
+- Test nuevo `app/test/unit/more/regulatory.spec.ts` (aserciones por fuente, incluye el wiring en
+  `App.tsx`). Sin dependencias nuevas.
+
+**Desviación deliberada del "as is":**
+- El banner de privacidad y el fallback usan tokens `info-*`/`warning-*` de `tailwind.config.js` en
+  lugar de las clases `.alert-info`/`.alert-warning` del frontend, que no existen en la app.
+
+**Qué NO se verificó, y por qué:**
+- Resultado visual/nativo — mismo bloqueo `react-native-web`/NativeWind de los incrementos
+  anteriores.
+- El radar contra `/creva-score/radar` real — sin credenciales del backend de Creva desde esta
+  sesión; no se confirmó la forma exacta de la respuesta ni que `alert.kind` venga poblado.
+- `tsc --noEmit` limpio. `npx jest` full-run verde: 48/48 suites, 208/208 tests (baseline previo:
+  47 suites / 202 tests). En esta corrida también pasaron aisladas las dos specs de timeout
+  intermitente (`auth/auth-gate`, `help/search`).
+- No se cerró como definitiva — falta segunda vista.
+
+**Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Octavo incremento de la
+migración..."). Backlog restante: Crédito, Tarjeta, Calculadora, Tu garantía, Sello de tu negocio,
+Tu reporte, Aviso de privacidad, KYC, auth.

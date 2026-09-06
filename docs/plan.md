@@ -33,11 +33,11 @@ checklist.
     `HelpScreen.tsx`/`HelpCategoryScreen.tsx`/`HelpArticleScreen.tsx` — cubiertos por los worktrees
     Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
     coordinar (regla de §Colaboración punto 7).
-  - Sin pantalla mobile todavía: `calculator`, `collateral`, `business-verification`, `regulatory`,
+  - Sin pantalla mobile todavía: `calculator`, `collateral`, `business-verification`,
     `report`, `privacy` — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a
     pantallas reales 1:1 es el grueso de este bloque. `profile/details`, `profile/fiscal`,
-    `profile/security`, `movements`, `statements` y `notifications` ya no están en esta lista: ver
-    los incrementos de abajo.
+    `profile/security`, `movements`, `statements`, `notifications` y `regulatory` ya no están en
+    esta lista: ver los incrementos de abajo.
   - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
     evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
 
@@ -149,6 +149,29 @@ checklist.
   `expo-document-picker` funcione igual en iOS vs. Android (el picker del sistema difiere entre
   plataformas — no hay dispositivo/simulador disponible desde esta sesión para confirmarlo).
   **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Octavo incremento de la migración: `RegulatoryScreen.tsx` nueva, reemplaza el
+  `StubScreen` genérico de "Reglas que te afectan" (`regulatory`).** Puerto real de
+  `creva_finance/frontend/app/regulatory/page.tsx`: el radar regulatorio se lee de
+  `crevaScore.radar()` de `app/lib/api.ts` (ya existía, no se tocó) — `SourceResult<RegulatoryRadar>`,
+  con `radar?.available ? radar.data : null` igual que el frontend. Las alertas se parten en
+  "Novedades publicadas" (`kind === "publication"`) y "Reglas que ya estaban vigentes"
+  (`kind === "standing_rule"`), cada una con su fuente oficial (mapa `SOURCE_LABELS` idéntico),
+  agencia, fecha (`formatLongDay`, ya portado) y `EvidenceLink` al documento. Estado de carga
+  (`ActivityIndicator`), fallback "Revisión no disponible" cuando `data === null`, y pie con fuentes
+  consultadas / fechas no leídas. Se conserva la frase de privacidad "Esta revisión no consulta
+  ningún dato tuyo". `App.tsx`: rama nueva `activeStub === "regulatory"` monta `RegulatoryScreen`
+  antes del `StubScreen` genérico (mismo patrón que Movimientos/Estados de cuenta/Avisos). Sin
+  dependencias nuevas. Test nuevo `app/test/unit/more/regulatory.spec.ts` (aserciones por fuente,
+  patrón de `more/notifications.spec.ts`). `tsc --noEmit` limpio; `npx jest` verde (48/48 suites,
+  208/208 tests — antes 47/202).
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind ya
+  documentado en los incrementos anteriores), ni el radar contra el backend real de Creva /
+  `/creva-score/radar` (sin credenciales de ese backend desde esta sesión — no se confirmó la forma
+  exacta de la respuesta ni que `alert.kind` venga poblado). El banner de privacidad y el fallback
+  usan tokens `info-*`/`warning-*` de `tailwind.config.js` en vez de las clases `.alert-info`/
+  `.alert-warning` del frontend (no existen en la app). **No autocertificada como cerrada — falta
+  segunda vista.**
 
 - [ ] **2026-09-05 — Séptimo incremento de la migración: `NotificationsScreen.tsx` nueva, reemplaza
   el `StubScreen` genérico de "Avisos" (`notifications`).** Puerto real de

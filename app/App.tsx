@@ -27,6 +27,7 @@ import { SecurityScreen } from "./features/profile/SecurityScreen";
 import { MovementsScreen } from "./features/more/MovementsScreen";
 import { StatementsScreen } from "./features/more/StatementsScreen";
 import { NotificationsScreen } from "./features/more/NotificationsScreen";
+import { RegulatoryScreen } from "./features/more/RegulatoryScreen";
 import { HelpScreen } from "./features/help/HelpScreen";
 import { HelpCategoryScreen } from "./features/help/HelpCategoryScreen";
 import { HelpArticleScreen } from "./features/help/HelpArticleScreen";
@@ -306,6 +307,8 @@ function AppFlow() {
     screen = <StatementsScreen onBack={() => setStep(previousStep)} />;
   } else if (step === "stub" && activeStub === "notifications") {
     screen = <NotificationsScreen onBack={() => setStep(previousStep)} />;
+  } else if (step === "stub" && activeStub === "regulatory") {
+    screen = <RegulatoryScreen onBack={() => setStep(previousStep)} />;
   } else if (step === "stub" && activeStub) {
     const topic = findStubTopic(activeStub);
     screen = (
