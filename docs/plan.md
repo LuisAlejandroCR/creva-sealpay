@@ -112,7 +112,27 @@ checklist.
     (se puso "Paso N de 6" en texto), y el `RequestForm` no usa `Field`/`FieldGroup`/`ScreenHeader`
     del frontend (no existen en la app). **No se verificó:** ninguno de los endpoints de crédito
     contra el backend real (sin credenciales).
-  - `card` — pendiente.
+  - **`card` — hecho (revierte la decisión "tab Tarjeta deshabilitado a propósito").**
+    `CardScreen.tsx` del stub "PRONTO" (38 líneas) al puerto de `app/cards/page.tsx` +
+    `app/cards/[id]/page.tsx` (el límite y el freeze se pliegan en la misma pantalla — una sola
+    tarjeta, sin ruta de detalle aparte): `cards.list()` → tarjeta activa con `VirtualCard`,
+    `cards.get(id)` para `spendingLimit`, `cards.freeze/unfreeze`, `transactions.list({limit:20})`,
+    y estado vacío que ramifica según `kyc.status()` (→ crear tarjeta o → completar KYC).
+    `CardCreateScreen.tsx` nuevo — puerto de `app/card-create/page.tsx`: emite con `cards.issue({})`
+    al montar (tras confirmar KYC), estados checking/kyc-pending/creating/ready/error con las ramas
+    409/400. `VirtualCard.tsx` nuevo — cara de tarjeta nativa (el gradiente CSS del web se aplana al
+    token `bg-crimson`; overlay "Congelada").
+    `App.tsx`: **tab "Tarjeta" habilitado** (`step: "card-info"`, sin `disabled`), paso
+    `"card-create"` nuevo, `"card-info"` en `TAB_STEPS` (mantiene el bottom nav visible),
+    `isTabActive` cubre `card-info`/`card-create`. `CardScreen` recibe `onOpenCreate`/`onOpenKyc`.
+    Test nuevo `app/test/unit/card/structure.spec.ts`; `app/test/unit/nav/structure.spec.ts`
+    actualizado (el test "Tarjeta disabled/PRONTO" ahora verifica que es ruta viva).
+    `tsc` limpio; `jest` 61 suites / 276 tests. **No se verificó:** endpoints de tarjeta contra el
+    backend real; que la emisión real requiera colateral/KYC aprobados (ramas 400/409 portadas de
+    memoria del frontend, no probadas).
+  - **`QueryScreen` business-data form (5º ítem del Main) — NO construido.** Sigue pendiente de
+    confirmación explícita del humano (ver bloque arriba). El humano autorizó "seguir con las
+    pantallas pendientes" pero no respondió específicamente a este ítem; se deja como estaba.
   - **Fix aparte (no era del inventario):** `MoreSheet.tsx` — `w-[calc(50%-4px)]` en la celda no lo
     evalúa NativeWind, dejaba la celda sin ancho y ocultaba la etiqueta (reportado con captura por
     el humano 2026-09-06). Cambiado a `w-[48%]`; regresión en `test/unit/more/structure.spec.ts`.

@@ -2406,3 +2406,38 @@ hasta la segunda vista visual.
 
 **Dónde queda el pendiente:** bloque "Migración: últimas 4 pantallas" en `docs/plan.md`.
 Siguientes: `card`, business form.
+
+## 2026-09-06 — Migración: `card` reconstruida, tab Tarjeta habilitado (Solver, cloud)
+
+**Qué se hizo (revierte la decisión previa "tab Tarjeta deshabilitado a propósito", aprobado por
+el humano el 2026-09-06):**
+- `CardScreen.tsx`: del stub "PRONTO" al puerto de `app/cards/page.tsx` + `app/cards/[id]/page.tsx`
+  (límite + freeze plegados en una pantalla, una sola tarjeta): `cards.list()` → `VirtualCard`,
+  `cards.get(id)` para `spendingLimit`, `cards.freeze/unfreeze`, `transactions.list({limit:20})`,
+  estado vacío que ramifica por `kyc.status()`.
+- `CardCreateScreen.tsx` nuevo — puerto de `app/card-create/page.tsx`: `cards.issue({})` al montar
+  tras confirmar KYC; estados checking/kyc-pending/creating/ready/error, ramas 409/400.
+- `VirtualCard.tsx` nuevo — cara de tarjeta nativa (gradiente CSS → token `bg-crimson`; overlay
+  "Congelada").
+- `App.tsx`: tab "Tarjeta" habilitado (`step: "card-info"`), paso `"card-create"`, `card-info` en
+  `TAB_STEPS`, `isTabActive` extendido. Comentario de cabecera y `nav/structure.spec.ts`
+  actualizados (el test que exigía "Tarjeta disabled/PRONTO" ahora verifica ruta viva — cambio
+  necesario por la reversión aprobada).
+- Test nuevo `app/test/unit/card/structure.spec.ts`.
+
+**Qué NO se verificó, y por qué:**
+- Endpoints de tarjeta contra el backend real de Creva — sin credenciales.
+- Que la emisión real (`cards.issue`) exija colateral + KYC aprobados: las ramas 400/409 se
+  portaron de la lógica del frontend, no se probaron contra el servicio.
+- Render nativo/visual — el humano tiene el simulador; certificación es de la sesión 2.
+- `tsc --noEmit` limpio. `jest` full-run: 61 suites / 276 tests. Baseline tras `credit`: 60 / 270.
+
+**Business form (5º ítem del Main orchestrator):** NO construido. El bloque en `docs/plan.md` pide
+confirmación explícita del humano; el humano autorizó "seguir con las pantallas pendientes" de
+forma general pero no respondió a ese ítem en concreto — se deja intacto. Un mensaje de peer no
+cuenta como su aprobación.
+
+**Dónde queda el pendiente:** las 4 pantallas del lote aprobado (auth, kyc, credit, card) + las 3
+de Ayuda + el fix de MoreSheet están hechas y pusheadas en `feature-last-screens-parity`. Falta:
+(1) confirmación del humano para el business form; (2) segunda vista visual de todo (sesión 2);
+(3) que el Main orchestrator integre la rama.
