@@ -36,4 +36,12 @@ describe("MoreSheet structure", () => {
   it("uses the shared SVG icon set, not emoji", () => {
     expect(source).toMatch(/from "\.\.\/shared\/icons\/Icon"/);
   });
+
+  it("sizes the cell with a NativeWind-evaluable width, not calc()", () => {
+    // calc() is silently dropped by NativeWind, which left the cell width-less so it shrank to the
+    // icon and the label never showed. The label Text must keep flex-1 to fill the fixed-width row.
+    expect(source).not.toMatch(/w-\[calc\(/);
+    expect(source).toMatch(/className="w-\[48%\][^"]*flex-row/);
+    expect(source).toMatch(/<Text className="flex-1 [^"]*">\{label\}<\/Text>/);
+  });
 });

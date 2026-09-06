@@ -24,17 +24,18 @@ interface MoreRow {
 }
 
 // NavCell parity: creva_finance/frontend/components/BottomNav.tsx:131-158 — icon left, label
-// right, gap 10, min-height 56, padding 10/12, radius 14, 1px --cr-border, 13px/600 --cr-text.
-// Glyph svg is 20px with stroke --cr-text-secondary (BottomNav.tsx:153), not the dark text token.
+// right, two columns, min-height 56, padding 10/12, radius 14, 1px --cr-border, 13px/600 --cr-text.
+// `w-[48%]` (not calc()) — NativeWind can't evaluate calc(), which left the cell width-less so it
+// shrank to the icon and hid the label. Glyph svg is 20px with stroke --cr-text-secondary.
 function Row({ label, icon, onPress, testID }: MoreRow) {
   return (
     <Pressable
       onPress={onPress}
       testID={testID}
-      className="w-[calc(50%-4px)] min-h-[56px] flex-row items-center gap-[10px] rounded-[14px] border border-border bg-surface-1 px-3 py-[10px]"
+      className="w-[48%] min-h-[56px] flex-row items-center gap-2.5 rounded-[14px] border border-border bg-surface-1 px-3 py-2.5"
     >
       <Icon name={icon} size={20} color="text-secondary" />
-      <Text className="flex-1 text-[13px] font-semibold leading-[1.3] text-text">{label}</Text>
+      <Text className="flex-1 text-[13px] font-semibold leading-4 text-text">{label}</Text>
     </Pressable>
   );
 }
