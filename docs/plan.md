@@ -11,6 +11,7 @@
 
 **Última actualización:** 2026-09-05 (barra de navegación inferior — paridad de iconos, sexto intento)
 **Última actualización:** 2026-09-05 (sheet "Más" — paridad de iconos y layout de tarjeta, sexto intento)
+**Última actualización:** 2026-09-05 (pantalla Inicio/dashboard — paridad de primitivos, sexto intento)
 
 Ver [`brainstorming.md`](../brainstorming.md) §8 y §9 para el análisis completo. Detalle de
 qué-se-hizo/qué-no-se-verificó por sesión: [`docs/memoria.md`](memoria.md). Esta tabla es solo el
@@ -458,6 +459,53 @@ checklist.
   flake de carga de `auth-gate.spec.ts`, verde en reruns aislados). **Falta:** certificación
   visual del par antes/después por humano o Auditor; Expo Go en dispositivo físico real (render
   fue Expo web). Resto del bloque sigue abierto.
+  **Actualización `2026-09-05` (sexto intento — pantalla Inicio / `DashboardScreen.tsx`,
+  worktree `feature-dashboard-parity`, render-vs-render: web `localhost:3001/dashboard` y app
+  Expo web `localhost:8093`, 375×812).** El bloque "Inicio" estaba nominalmente asignado a
+  `codex/mobile-parity-dashboard` (rama en commit viejo `83092cd`, sin avance en `main`); se
+  reasignó a esta pasada para hacer el render-vs-render real que faltaba. Se reaplicó de nuevo el
+  fix transversal `fill="none"` de `Icon.tsx` (esta rama nace de `main`). Divergencias corregidas
+  contra los primitivos web (`components/ui/*`):
+  1. Header (`PageHeader.tsx`): título `text-3xl font-bold` → `text-2xl font-semibold` (h1 web
+     24px/600); subtítulo `text-base text-text/70` → `text-[13px] text-text-muted`; contenedor
+     `mb-6` → `mb-5`.
+  2. `Section` (`VisualPrimitives.tsx`): agregado `action?: {label, onPress}` — la web
+     (`SectionHeader.tsx`) pone un link "ver todo" a la derecha del `<h2>` estilo `.btn-quiet`
+     (13px/600 `--cr-crimson`); header ahora es fila `justify-between`, `mb-[14px]`. Dashboard
+     pasa `action={{label:"Ver por qué"}}` a "Tu score".
+  3. CTA de la tarjeta de score: era `ActionCard` negro; la web es `.btn-primary` (botón full-
+     width, `min-h 52`, radius 14, blanco 16/600). Nuevo `PrimaryButton` en
+     `DashboardPrimitives.tsx`. **Relleno sólido `--cr-crimson`** — la web usa `--cr-gradient`
+     (135° `#D62E52`→`#9E1329`); no hay primitiva de gradiente RN cableada (sin
+     `expo-linear-gradient`), `#C41E3A` queda entre los dos stops.
+  4. `ActionCard` (`DashboardPrimitives.tsx`) reescrito contra `components/ui/ActionCard.tsx`:
+     caja de icono 46×46 (`bg-white/20` en brand, `bg-danger-bg` en el resto), layout horizontal
+     `gap-14`, chevron final (`Icon` nuevo `chevron-right`, path de `ActionCard.tsx`) en vez del
+     texto "cta →"; brand → `rounded-[22px] bg-crimson p-5` (era `bg-text rounded-2xl p-4`),
+     título brand blanco `tracking-[-0.01em]`, body brand blanco pleno (era `white/70`). Tarjeta
+     de financiamiento del dashboard: nuevo icono `financing` (`page.tsx:236-240`), sin `cta`.
+  5. `Metric` (`DashboardPrimitives.tsx`) contra `components/ui/Metric.tsx`: label
+     `text-sm text-text/60` → `text-xs uppercase tracking-[0.08em] text-text-subtle`; unidad
+     pasa **antes** del valor y alineada arriba; valor `text-3xl` → `text-[26px]`; caption
+     `text-xs` → `text-[13px] text-text-muted`.
+  6. `EmptyState` (`DashboardPrimitives.tsx`): la web `compact` es texto centrado **sin borde ni
+     superficie** — se quitó la tarjeta dashed; título 18px/600, body 14px `--cr-text-muted`,
+     `max-w-[300px]`.
+  7. `Card` (`VisualPrimitives.tsx`): agregado `size` (`sm`=16/16, `md`=20/20, `lg`=24/24) — la
+     tarjeta de score web es `radius 24/padding 24`, la de saldo `20/20`.
+  8. `NotificationBell`: `rounded-2xl` → `rounded-[14px]`, icono `text` → `text-muted`
+     (`--cr-text-muted`, `page.tsx:38`).
+  **Sin arreglar (documentado):** (a) `ScoreGauge` de la app es un anillo completo + barra lineal
+  + chip; la web es un arco semicircular con el número dentro y etiquetas min/max — no visible sin
+  sesión (ambos muestran placeholder/error) y es territorio de la pantalla Score; queda como
+  follow-up. (b) Estado de carga de la tarjeta de score: web muestra un skeleton de 168px, la app
+  un spinner + error. (c) Gradiente de marca (punto 3). (d) `TransactionRow` `isBusiness` sin
+  portar (no visible, empty state). (e) Banner inferior de `KycGate` — componente de gate
+  aparte, no el dashboard. **Verify:** `tsc --noEmit` limpio; `jest unit fuzz invariant` → 41/176
+  verdes (mismo flake de carga de `auth-gate.spec.ts`, verde en reruns). **Falta:** certificación
+  visual del par por humano/Auditor; Expo Go en dispositivo físico real. El fix de `Icon.tsx`
+  `fill="none"` vive ahora en tres ramas sin mergear (`feature-nav-parity-render`,
+  `feature-more-sheet-parity`, `feature-dashboard-parity`) — cambio idéntico.
 
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.

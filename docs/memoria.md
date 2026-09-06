@@ -2182,3 +2182,27 @@ se instalaron solo para renderizar, package.json/lock revertidos, no van en el c
 
 **Dónde queda el pendiente:** bloque "Paridad movil, tercera revision" en docs/plan.md sigue
 abierto. El fix de Icon.tsx vive ahora en dos ramas sin mergear con el mismo cambio identico.
+---
+
+## 2026-09-05 — Paridad pantalla Inicio/dashboard (sexto intento, worktree feature-dashboard-parity)
+
+**Qué se hizo:** render-vs-render de DashboardScreen (web localhost:3001/dashboard, app Expo web
+localhost:8093, 375x812). El bloque estaba nominalmente asignado a codex/mobile-parity-dashboard
+(rama en 83092cd, sin avance en main); se reasignó a esta pasada para el render-vs-render real.
+Reaplicado el fix transversal fill=none de Icon.tsx. Divergencias corregidas contra components/ui/*:
+header h1 30->24px semibold; Section gana action link derecha (SectionHeader.tsx, .btn-quiet 13/600
+crimson); CTA de score de ActionCard negro a PrimaryButton nuevo (.btn-primary, relleno solido
+bg-crimson porque no hay expo-linear-gradient); ActionCard reescrito con caja de icono 46x46,
+layout horizontal, chevron final (Icon nuevo chevron-right), brand rounded-22 bg-crimson p-5;
+Metric label a uppercase 12px tracking-0.08em text-subtle, unidad antes del valor, valor 30->26px;
+EmptyState compact sin borde ni superficie; Card gana size sm/md/lg; NotificationBell rounded-14 +
+icono text-muted. Icon nuevo: chevron-right (ActionCard.tsx path), financing (page.tsx:236-240).
+
+**Qué NO se verificó / no se tocó:** ScoreGauge (anillo app vs arco semicircular web) — no visible
+sin sesion, territorio de pantalla Score, follow-up. Estado skeleton de carga de score. Gradiente
+de marca (solido en su lugar). TransactionRow isBusiness. Banner de KycGate. Certificacion visual
+del par (humano/Auditor). Expo Go en dispositivo fisico. react-native-web y compania instalados
+solo para renderizar; package.json/lock revertidos, no van en el commit.
+
+**Dónde queda el pendiente:** bloque "Paridad movil, tercera revision" en docs/plan.md sigue
+abierto. El fix de Icon.tsx fill=none vive ahora en tres ramas sin mergear con el mismo cambio.
