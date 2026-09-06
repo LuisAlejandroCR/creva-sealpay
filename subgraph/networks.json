@@ -1,8 +1,8 @@
 {
   "sepolia": {
     "AttestationRegistry": {
-      "address": "0x0000000000000000000000000000000000000000",
-      "startBlock": 0
+      "address": "0xd1463a75aad032659323262ade7906b41c18cc1b",
+      "startBlock": 11650277
     }
   }
 }
