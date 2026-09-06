@@ -21,10 +21,13 @@ describe("DashboardScreen", () => {
   });
 
   it("does not fabricate credit/statement state to feed the notification badge", () => {
+    // Superseded by feature-app-core-api-wiring: the credit/statement inputs are no longer
+    // hardcoded null — they come from real API calls, initialised null until those resolve.
     expect(dashboard).not.toMatch(/creditEligible: true/);
     expect(dashboard).not.toMatch(/statementCount: 2/);
-    expect(dashboard).toMatch(/creditEligible: null/);
-    expect(dashboard).toMatch(/statementCount: null/);
+    expect(dashboard).toMatch(/credit\.eligibility\(\)/);
+    expect(dashboard).toMatch(/statements\.list\(\)/);
+    expect(dashboard).toMatch(/useState<number \| null>\(null\)/);
   });
 
   it("buildReminders with only score known yields zero pending (bell shows no count)", () => {
