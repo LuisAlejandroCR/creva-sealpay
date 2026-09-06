@@ -11,7 +11,9 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card, Section } from "../query/components/VisualPrimitives";
-import { buildSignedPaymentHeader, readDemoCredentialsFromEnv } from "../query/hederaPayment";
+import { usePaymentWallet } from "../wallet/PrivyWalletProvider";
+import { WalletModeSelector } from "../wallet/WalletModeSelector";
+import { WalletNotConfiguredError } from "../wallet/walletCore";
 import { VerifyReportCard } from "./components/VerifyReportCard";
 import { SealedReport, VerifyPaymentRequired, VerifyResult, verifySealedReport } from "./sealClient";
 import { BackButton } from "../shared/BackButton";
@@ -19,6 +21,7 @@ import { BackButton } from "../shared/BackButton";
 type Phase = "loading" | "payment_required" | "paying" | "verified" | "error" | "empty";
 
 export function VerifyScreen({ sealedReport, onBack }: { sealedReport: SealedReport | null; onBack?: () => void }) {
+  const { wallet, mode, availableModes, setMode, recordPayment } = usePaymentWallet();
   const [phase, setPhase] = useState<Phase>(sealedReport ? "loading" : "empty");
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [pendingPayment, setPendingPayment] = useState<VerifyPaymentRequired | null>(null);
@@ -69,14 +72,23 @@ export function VerifyScreen({ sealedReport, onBack }: { sealedReport: SealedRep
     setPhase("paying");
     setErrorMessage(null);
     try {
-      const credentials = readDemoCredentialsFromEnv();
-      if (!credentials) {
-        setErrorMessage("No hay una billetera Hedera de demo configurada (EXPO_PUBLIC_HEDERA_DEMO_*).");
+      let paymentHeader: string;
+      try {
+        paymentHeader = await wallet.signPayment(pendingPayment.accepts[0]);
+      } catch (signErr) {
+        if (signErr instanceof WalletNotConfiguredError) {
+          setErrorMessage("No hay una billetera Hedera de demo configurada (EXPO_PUBLIC_HEDERA_DEMO_*).");
+          setPhase("payment_required");
+          return;
+        }
+        setErrorMessage(signErr instanceof Error ? signErr.message : "No se pudo firmar el pago.");
         setPhase("payment_required");
         return;
       }
-      const paymentHeader = await buildSignedPaymentHeader(pendingPayment.accepts[0], credentials);
       const res = await verifySealedReport(sealedReport, paymentHeader);
+      if (wallet.mode === "privy") {
+        recordPayment(BigInt(pendingPayment.accepts[0].maxAmountRequired));
+      }
       handleResult(res);
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "No se pudo liquidar el pago.");
@@ -131,6 +143,9 @@ export function VerifyScreen({ sealedReport, onBack }: { sealedReport: SealedRep
                   {pendingPayment.accepts[0]?.maxAmountRequired} {pendingPayment.accepts[0]?.asset} en{" "}
                   {pendingPayment.accepts[0]?.network}
                 </Text>
+              </View>
+              <View className="mt-3">
+                <WalletModeSelector mode={mode} availableModes={availableModes} onSelect={setMode} />
               </View>
               {errorMessage ? (
                 <Text className="mt-3 text-sm leading-5 text-crimson" testID="verify-payment-error">

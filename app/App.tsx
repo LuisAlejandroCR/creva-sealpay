@@ -14,6 +14,7 @@ import { useAuth } from "@clerk/clerk-expo";
 
 import "./global.css";
 import { ClerkAppProvider } from "./features/auth/ClerkAppProvider";
+import { PrivyWalletProvider } from "./features/wallet/PrivyWalletProvider";
 import { SignInScreen } from "./features/auth/SignInScreen";
 import { SelfieCheckScreen } from "./features/onboarding/SelfieCheckScreen";
 import { KycFormScreen } from "./features/onboarding/KycFormScreen";
@@ -411,10 +412,12 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ClerkAppProvider>
-        <View className="flex-1 bg-bg">
-          <AppFlow />
-          <StatusBar style="auto" />
-        </View>
+        <PrivyWalletProvider>
+          <View className="flex-1 bg-bg">
+            <AppFlow />
+            <StatusBar style="auto" />
+          </View>
+        </PrivyWalletProvider>
       </ClerkAppProvider>
     </SafeAreaProvider>
   );

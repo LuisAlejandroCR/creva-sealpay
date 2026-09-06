@@ -64,6 +64,6 @@ describe("QueryScreen wiring", () => {
 
   it("does not touch the x402 pay button or the sealing flow", () => {
     expect(screen).toMatch(/testID="pay-button"/);
-    expect(screen).toMatch(/buildSignedPaymentHeader\(pendingPayment\.accepts\[0\], credentials\)/);
+    expect(screen).toMatch(/wallet\.signPayment\(pendingPayment\.accepts\[0\]\)/);
   });
 });
