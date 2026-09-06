@@ -17,6 +17,71 @@ checklist.
 
 ## Abiertos
 
+- [ ] **2026-09-06 — Auditoría app↔core (`feature-app-core-api-wiring`). Un solo gap real de
+  endpoint + 5 métodos muertos en `app/lib/api.ts`.** Toda `app/lib/api.ts` va **directo al core**
+  (`BASE = EXPO_PUBLIC_API_URL ?? http://localhost:3000`, `api.ts:7`) con el bearer de la sesión
+  Clerk (`request()` en `api.ts:80-95` via `session-source`). **Ningún método de `api.ts` pasa por
+  el gateway x402** — el gateway solo lo usan `QueryScreen`→`gatewayClient.ts` y
+  `VerifyScreen`→`sealClient.ts` para el flujo de reporte pagado; nada personal necesita el
+  gateway. Todos los controllers del core usan `JwtAuthGuard` (verificado contra
+  `creva_finance/backend/src/modules/*/*.controller.ts`).
+  **Tabla (método → endpoint → ¿existe en core? → estado app):**
+  - `score.get` → `GET /score` → sí (`score.controller.ts:13`) → **real** (DashboardScreen; `score/`
+    es de otra sesión, solo se lee, no se tocó).
+  - `kyc.apply`/`kyc.status` → `POST /kyc/apply`,`GET /kyc/status` → sí (`kyc.controller.ts:22,28`)
+    → **real** (KycFormScreen, CardScreen, CardCreateScreen).
+  - `collateral.get` → `GET /collateral` → sí (`collateral.controller.ts:17`) → **real**
+    (CollateralScreen; + DashboardScreen ahora).
+  - `credit.eligibility/recommend/select/updateSelection` → `/recommendations/credit*` → sí
+    (`recommendations.controller.ts:25,30,39,55`) → **real** (CreditScreen, NotificationsScreen,
+    DashboardScreen).
+  - `credit.selections` → `GET /recommendations/credit/selections` → sí (`:50`) → **no llamado**.
+  - `recommendations.get` → `GET /recommendations` → sí (`:20`) → **no llamado**.
+  - `declarations.latest/create` → `/declarations` → sí (`declarations.controller.ts:14,19`) →
+    **real** (CreditRequestForm).
+  - `statements.list/summary/entries/reclassify/remove/upload` → `/statements*` → sí
+    (`statements.controller.ts:29-62`) → **real** (StatementsScreen, MovementsScreen,
+    NotificationsScreen, DashboardScreen).
+  - `transactions.list` → `GET /transactions` → sí (`transactions.controller.ts:21`) → **real**
+    (MovementsScreen; + DashboardScreen ahora).
+  - `calculator.get` → `GET /calculator` → sí (`calculator.controller.ts:14`) → **real**
+    (CalculatorScreen).
+  - `profiles.get/update/getFiscal/updateFiscal` → `/profiles[/fiscal]` → sí
+    (`profiles.controller.ts:15-30`) → **real** (PersonalData, FiscalInfo, CreditRequestForm).
+  - `crevaScore.radar` → `GET /creva-score/radar` → sí (`creva-score.controller.ts:26`) → **real**
+    (RegulatoryScreen).
+  - `crevaScore.verify` → `POST /creva-score/verification` → sí (`:32`) → **real**
+    (BusinessVerificationScreen).
+  - `crevaScore.report` → `POST /creva-score/report` → sí (`:40`) → **real, directo al core**
+    (ReportScreen). Nota: distinto del flujo x402 de `QueryScreen`.
+  - `crevaScore.disclosure` → `GET /creva-score/disclosure` → sí (`:21`) → **no llamado**.
+  - `crevaScore.verifyReport` → `POST /creva-score/verify` → sí
+    (`report-verification.controller.ts:16`) → **no llamado** (VerifyScreen usa `sealClient.ts` vía
+    gateway x402).
+  - `auth.me/forgotPassword/sendPhoneCode/verifyPhoneCode` → `/auth/*` → sí (`auth.controller.ts`)
+    → **real** (CreditScreen, SecurityScreen).
+  - `auth.register/login/getOAuthUrl/deleteMe` → `/auth/*` → sí → **no llamado** (mobile usa Clerk
+    end-to-end para auth).
+  - **`cards.list` → `GET /cards` → NO EXISTE en el core** (`cards.controller.ts` solo tiene
+    `POST /cards/issue`, `GET /cards/:id`, `PATCH /cards/:id/(un)freeze`). Lo llaman `CardScreen`
+    y ahora también el web-dashboard; hoy cae al `.catch` → estado "Sin tarjetas aún". Efecto
+    secundario: sin `list` no hay `id`, así que `cards.get/:id`, `freeze` y `unfreeze` son
+    inalcanzables para una tarjeta ya emitida.
+  **Pendiente:** (1) el core necesita `GET /cards` (lista de tarjetas del usuario) para que
+  `CardScreen` muestre una tarjeta emitida — sin eso el flujo de tarjeta solo puede *emitir*, no
+  *ver*; (2) limpiar o cablear los 5 métodos muertos de `api.ts` (`recommendations.get`,
+  `credit.selections`, `crevaScore.disclosure`, `crevaScore.verifyReport`,
+  `auth.register/login/getOAuthUrl`); (3) confirmar que `JwtAuthGuard` del core acepta el token de
+  sesión de Clerk que manda `session-source` — no verificable en esta sesión (sin backend
+  corriendo ni sesión Clerk real).
+  **WIRE hecho en esta rama:** `DashboardScreen` deja de usar mocks — `collateral.get()` →
+  capacidad de gasto real; `credit.eligibility()` + `statements.list()`/`summary()` → inputs
+  reales de `buildReminders` (la campana ya no inventa un conteo); `transactions.list({limit:3})`
+  → actividad reciente real (se borró `MOCK_TRANSACTIONS`). `cardReady` queda en `false` honesto
+  hasta que exista `GET /cards`. **Colisión con `feature-visual-fixes-1`:** esa rama también toca
+  `DashboardScreen` (el fix `Hola,` + inputs de `buildReminders` a `null`) — este wire lo
+  reemplaza con la versión real; el Solver se queda con esta al reconciliar.
+
 - [ ] **2026-09-06 — COORDINACIÓN: `app/features/help/**` reasignado a la sesión "1 UI/UX"
   (`feature-last-screens-parity`).** El humano lo reasignó el 2026-09-06 tras comparar las
   pantallas de Ayuda nativas contra la web y verlas a medio construir. Sale del área

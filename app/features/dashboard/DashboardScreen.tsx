@@ -1,16 +1,25 @@
 // DashboardScreen.tsx: mobile port of creva_finance's dashboard/page.tsx — the panorama hub
-// screen (score first, one next action, balance, cards, recent activity). Score comes from the
-// real GET /score (app/lib/api.ts's score.get()) with loading/error states; username comes from
-// the real Clerk session (useUser().firstName) — neither is hardcoded. Transactions/balance/card
-// are still mock (no statements/collateral/card endpoint wiring in this pass, see docs/plan.md).
+// (score, one next action, balance, cards, recent activity). Score, spending capacity, the
+// reminder inputs and recent activity are all read from the real core API with the Clerk session;
+// only the active-card preview stays "activate" because the core has no GET /cards yet (plan.md).
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUser } from "@clerk/clerk-expo";
 
 import { formatMoney } from "../../lib/format-money";
+import { formatDayWithYear } from "../../lib/format-date";
 import { buildReminders, pendingCount } from "../../lib/reminders";
-import { score as scoreApi, type ScoreData } from "../../lib/api";
+import {
+  collateral,
+  credit,
+  score as scoreApi,
+  statements,
+  transactions,
+  type CreditEligibilityGap,
+  type ScoreData,
+  type Transaction,
+} from "../../lib/api";
 import { Card, Section } from "../query/components/VisualPrimitives";
 import { ScoreGauge } from "../query/components/ScoreGauge";
 import {
@@ -28,12 +37,6 @@ export interface DashboardScreenProps {
   onOpenCard?: () => void;
   onOpenNotifications?: () => void;
 }
-
-const MOCK_TRANSACTIONS = [
-  { id: "1", merchant: "Distribuidora Hidalgo", meta: "Hoy", amount: "1,240.00", isCharge: true },
-  { id: "2", merchant: "Depósito SPEI", meta: "Ayer", amount: "5,000.00", isCharge: false },
-  { id: "3", merchant: "Papelería del Centro", meta: "Hace 3 días", amount: "312.50", isCharge: true },
-];
 
 export function DashboardScreen({
   onOpenScore,
@@ -68,26 +71,52 @@ export function DashboardScreen({
     };
   }, []);
 
-  // Mock state standing in for the API calls the Next.js reference makes for card/collateral/
-  // credit/statements. Wiring those beyond score is out of this pass — see docs/plan.md.
-  const [cardReady] = useState(false);
   const scoreValue = scoreData?.score ?? null;
-  const [spendingCapacity] = useState<string | null>(null);
 
-  // Only the score is wired to a real API here; credit/statements are not, so their inputs stay
-  // null (unknown) rather than faking a "done" state — buildReminders then yields no pending items
-  // and the bell shows no count, matching the honest state of this screen.
+  const [spendingCapacity, setSpendingCapacity] = useState<string | null>(null);
+  const [creditEligible, setCreditEligible] = useState<boolean | null>(null);
+  const [creditMissing, setCreditMissing] = useState<CreditEligibilityGap[]>([]);
+  const [statementCount, setStatementCount] = useState<number | null>(null);
+  const [statementEntryCount, setStatementEntryCount] = useState<number | null>(null);
+  const [recentTx, setRecentTx] = useState<Transaction[]>([]);
+
+  // Stays false until the core exposes GET /cards (it only has issue / :id / freeze), so an
+  // issued card cannot be listed here yet — see the docs/plan.md open block.
+  const [cardReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([
+      credit.eligibility(),
+      statements.list(),
+      statements.summary(),
+      collateral.get(),
+      transactions.list({ limit: 3 }),
+    ]).then(([elig, list, summary, coll, tx]) => {
+      if (cancelled) return;
+      setCreditEligible(elig.status === "fulfilled" ? elig.value.eligible : null);
+      setCreditMissing(elig.status === "fulfilled" ? elig.value.missing : []);
+      setStatementCount(list.status === "fulfilled" ? list.value.length : null);
+      setStatementEntryCount(summary.status === "fulfilled" ? summary.value.entryCount : null);
+      if (coll.status === "fulfilled") setSpendingCapacity(coll.value.spendingCapacity);
+      if (tx.status === "fulfilled") setRecentTx(tx.value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const reminders = useMemo(
     () =>
       buildReminders({
         scoreStatus: scoreData?.status ?? null,
         scoreValue,
-        creditEligible: null,
-        creditMissing: [],
-        statementCount: null,
-        statementEntryCount: null,
+        creditEligible,
+        creditMissing,
+        statementCount,
+        statementEntryCount,
       }),
-    [scoreData?.status, scoreValue],
+    [scoreData?.status, scoreValue, creditEligible, creditMissing, statementCount, statementEntryCount],
   );
   const pending = pendingCount(reminders);
   const topReminder = reminders.find((item) => item.pending) ?? null;
@@ -99,7 +128,7 @@ export function DashboardScreen({
       : { body: "Mira qué mueve tu score y qué lo mejoraría.", cta: "Ver por qué" };
 
   const showFinancing = topReminder?.href !== "/credit" || !cardReady;
-  const balanceDisplay = cardReady ? formatMoney(spendingCapacity) || "—" : "—";
+  const balanceDisplay = spendingCapacity ? formatMoney(spendingCapacity) || "—" : "—";
 
   return (
     <SafeAreaView className="flex-1 bg-bg" edges={["top", "bottom"]}>
@@ -180,20 +209,20 @@ export function DashboardScreen({
         </Section>
 
         <Section title="Actividad reciente">
-          {!cardReady ? (
+          {recentTx.length === 0 ? (
             <EmptyState
               title="Aún no hay movimientos"
               body="Cuando uses tu tarjeta Creva, tus movimientos aparecen aquí automáticamente."
             />
           ) : (
             <View>
-              {MOCK_TRANSACTIONS.map((tx) => (
+              {recentTx.map((tx) => (
                 <TransactionRow
                   key={tx.id}
-                  merchant={tx.merchant}
-                  meta={tx.meta}
-                  amount={tx.amount}
-                  isCharge={tx.isCharge}
+                  merchant={tx.merchantName}
+                  meta={formatDayWithYear(tx.occurredAt)}
+                  amount={formatMoney(tx.amount) || "—"}
+                  isCharge={tx.transactionType === "charge"}
                 />
               ))}
             </View>

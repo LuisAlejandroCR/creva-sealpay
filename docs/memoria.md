@@ -2538,3 +2538,40 @@ sigue abierto (ScoreScreen, side-by-side nativo).
 
 **Dónde queda el pendiente:** commit en el worktree, sin push (instrucción del Main). Blocker de
 ScoreScreen movido a Cerrados en `docs/plan.md` en el mismo lote.
+
+## 2026-09-06 — Auditoría + wiring app↔core (`feature-app-core-api-wiring`, Solver, cloud)
+
+**Qué se hizo (off `main` 29b635f):**
+- **Auditoría completa** de `app/lib/api.ts` contra `creva_finance/backend/src/modules/*` — tabla
+  método→endpoint→auth→¿existe?→estado, en `docs/plan.md` §Abiertos. Resultado:
+  - Toda `api.ts` va **directo al core** con bearer de Clerk (`session-source`); **ningún método
+    pasa por el gateway x402** (el gateway es solo el flujo de reporte pagado de QueryScreen/
+    VerifyScreen, clientes aparte). Nada personal necesita el gateway.
+  - Casi todo ya estaba cableado a endpoints reales (las 13+ pantallas de la migración llaman
+    endpoints que existen). **Un solo gap real: `cards.list` → `GET /cards` NO existe en el core**
+    (`cards.controller.ts` solo tiene issue/:id/freeze/unfreeze). Sin `list` no hay `id`, así que
+    la tarjeta emitida no se puede ver ni congelar.
+  - 5 métodos muertos en `api.ts` (no llamados): `recommendations.get`, `credit.selections`,
+    `crevaScore.disclosure`, `crevaScore.verifyReport`, `auth.register/login/getOAuthUrl`.
+- **WIRE:** `DashboardScreen` deja de correr con mocks — `collateral.get()` → capacidad de gasto,
+  `credit.eligibility()` + `statements.list()`/`summary()` → inputs reales de `buildReminders`
+  (la campana ya no inventa un conteo), `transactions.list({limit:3})` → actividad reciente real
+  (`MOCK_TRANSACTIONS` borrado). `cardReady` queda `false` honesto hasta que exista `GET /cards`.
+  `Hola` → `Hola,` de paso.
+- Test nuevo `test/unit/dashboard/core-wiring.spec.ts` (unit + invariante: load todo-fallido →
+  campana vacía).
+
+**Qué NO se hizo / NO se verificó:**
+- No se tocó `score/` (otra sesión), ni `gateway/**`, ni los congelados (x402/hedera/facilitator/
+  sellado/creva-auth). Regla #5 respetada — cero lógica de core reimplementada, solo llamadas.
+- No se limpió el código muerto de `api.ts` ni se restructuró `CardScreen` (depende de la decisión
+  de producto "Muy pronto" + del gap `GET /cards`) — quedan como bloque abierto.
+- Que `JwtAuthGuard` del core acepte el token de sesión de Clerk — no verificable sin backend
+  corriendo + sesión Clerk real. Marcado en el bloque abierto.
+- `tsc --noEmit` limpio. `jest` full-run: 63/65 suites, 293/295 tests — los 2 fallos son los flakes
+  `auth-gate`/`help-search` bajo carga (pasan aislados con el spec nuevo: 5/5, 16/16). Base: ~62 suites.
+- **Colisión:** `feature-visual-fixes-1` también toca `DashboardScreen` (`Hola,` + `buildReminders`
+  a `null`). Este wire lo reemplaza con la versión real — el Solver se queda con esta.
+
+**Dónde queda el pendiente:** commit en el worktree, sin push. Bloque abierto en `docs/plan.md`
+con el gap `GET /cards`, el código muerto y la duda de `JwtAuthGuard`↔Clerk.
