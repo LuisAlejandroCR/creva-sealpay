@@ -33,10 +33,13 @@ checklist.
     `HelpScreen.tsx`/`HelpCategoryScreen.tsx`/`HelpArticleScreen.tsx` — cubiertos por los worktrees
     Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
     coordinar (regla de §Colaboración punto 7).
-  - Sin pantalla mobile todavía: `privacy` — hoy es un `StubScreen.tsx` genérico en mobile.
+  - **Todos los stubs de "Más" ya tienen pantalla real** (incrementos 1-13 de abajo):
     `profile/details`, `profile/fiscal`, `profile/security`, `movements`, `statements`,
-    `notifications`, `regulatory`, `report`, `collateral`, `business-verification` y `calculator`
-    ya no están en esta lista: ver los incrementos de abajo.
+    `notifications`, `regulatory`, `report`, `collateral`, `business-verification`, `calculator` y
+    `privacy`. `StubScreen.tsx` ya no se monta para ninguna clave del backlog original — queda como
+    fallback genérico sin usar. Pendiente de este bloque: la segunda vista visual de las 13
+    pantallas (bloqueo `react-native-web`/NativeWind) y decidir el alcance de `credit`/`card`/`kyc`/
+    `auth` con el humano.
   - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
     evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
 
@@ -148,6 +151,27 @@ checklist.
   `expo-document-picker` funcione igual en iOS vs. Android (el picker del sistema difiere entre
   plataformas — no hay dispositivo/simulador disponible desde esta sesión para confirmarlo).
   **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Decimotercer incremento de la migración: `PrivacyScreen.tsx` nueva, reemplaza
+  el `StubScreen` genérico de "Aviso de privacidad" (`privacy`). Último stub del backlog original.**
+  Puerto real de `creva_finance/frontend/app/privacy/page.tsx`: el aviso de privacidad que exige la
+  LFPDPPP. **Sin API detrás — es texto legal**, caso explícitamente permitido por el criterio de
+  aceptación (documentar por qué no hay API real). El copy va 1:1: las 9 secciones
+  (responsable, datos recopilados, finalidades, transferencia a terceros —Dynerox/Reap/Supabase—,
+  derechos ARCO, seguridad, cookies, cambios, contacto) con las frases enfatizadas conservadas como
+  runs en negrita (`Esa información de identidad nunca se almacena`, `privacidad@finarahub.mx`).
+  `App.tsx`: rama nueva `activeStub === "privacy"` monta `PrivacyScreen`; las entradas que ya
+  llamaban `openStub("privacy", …)` (DeleteAccountScreen, MoreSheet) caen en la pantalla real.
+  Sin dependencias nuevas. Test nuevo `app/test/unit/more/privacy.spec.ts` (verifica que no importa
+  `lib/api` ni usa `useState`/`useEffect`). `tsc --noEmit` limpio; `npx jest` verde (53/53 suites,
+  236/236 tests — antes 52/231).
+  **Desviación deliberada del "as is":** el layout `<section>`/`<h2>`/`<p>`/`<ul>` HTML se tradujo a
+  una estructura de datos (`SECTIONS`) renderizada con `Text`/`View`; el `<strong>` inline se
+  conserva como `<Text className="font-bold">` anidado. `ScreenHeader backToPrevious` → `BackButton`
+  al `previousStep` (mismo patrón que el resto de la migración).
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni que
+  el texto legal esté vigente/actualizado — se copió tal cual del frontend, que es la fuente de
+  verdad. **No autocertificada como cerrada — falta segunda vista.**
 
 - [ ] **2026-09-05 — Duodécimo incremento de la migración: `CalculatorScreen.tsx` nueva, reemplaza
   el `StubScreen` genérico de "Calculadora" (`calculator`).** Confirmado que **sí tiene API real

@@ -2036,3 +2036,44 @@ Crédito, Tarjeta, KYC, auth (requieren reconfirmar alcance con el humano).
 **Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Duodécimo incremento de la
 migración..."). **Backlog de stubs restante: solo `privacy` (Aviso de privacidad).** Fuera de
 stubs: Crédito, Tarjeta, KYC, auth — requieren reconfirmar alcance con el humano.
+
+## 2026-09-05 — Migración PWA→nativa, decimotercer incremento: `PrivacyScreen.tsx` (Solver, cloud)
+
+**Qué se hizo:**
+- Construida `PrivacyScreen.tsx` (`app/features/more/`), puerto de
+  `creva_finance/frontend/app/privacy/page.tsx`: el aviso de privacidad LFPDPPP. **Sin API detrás —
+  es texto legal**, el caso que el criterio de aceptación permite siempre que se documente el
+  porqué.
+- Copy 1:1: las 9 secciones con las frases enfatizadas conservadas como runs en negrita
+  (`SECTIONS` como estructura de datos renderizada con `Text`/`View`; `<strong>` → `<Text
+  className="font-bold">` anidado).
+- `App.tsx`: rama nueva `activeStub === "privacy"` monta la pantalla real; las entradas que ya
+  llamaban `openStub("privacy", …)` (DeleteAccountScreen, MoreSheet) caen en ella sin más cableado.
+- Test nuevo `app/test/unit/more/privacy.spec.ts` (verifica ausencia de `lib/api`/`useState`/
+  `useEffect`). Sin dependencias nuevas.
+- **Último stub del backlog original.** Con esto `StubScreen.tsx` ya no se monta para ninguna clave
+  del backlog — queda como fallback genérico sin usar.
+
+**Desviación deliberada del "as is":**
+- Layout HTML (`<section>`/`<h2>`/`<ul>`) → estructura de datos + `Text`/`View`.
+- `ScreenHeader backToPrevious` → `BackButton` al `previousStep`.
+
+**Qué NO se verificó, y por qué:**
+- Resultado visual/nativo — mismo bloqueo `react-native-web`/NativeWind de los 12 incrementos
+  anteriores.
+- Vigencia del texto legal — se copió tal cual del frontend (fuente de verdad), no se revisó contra
+  la ley.
+- `tsc --noEmit` limpio. `npx jest` full-run verde: 53/53 suites, 236/236 tests (baseline previo:
+  52 suites / 231 tests).
+- No se cerró como definitiva — falta segunda vista.
+
+**Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Decimotercer incremento de la
+migración..."). **Backlog de stubs: agotado.** Pendiente del bloque de paridad móvil: la segunda
+vista visual de las 13 pantallas (bloqueo `react-native-web`/NativeWind). Fuera de stubs: Crédito,
+Tarjeta, KYC, auth — requieren reconfirmar alcance con el humano.
+
+Contexto de integración (2026-09-06): la sesión "3 Solver" tiene la familia de ramas de paridad
+móvil (incluida `feature-mobile-native-parity`) en HOLD hasta un go/no-go explícito del humano —
+su regla dura es no pushear a `main` sin bloque "Cerrados" o aprobación escrita en su prompt. Se le
+pasó el paso a paso de integración por SendMessage; ninguna de estas 13 pantallas está
+autocertificada como cerrada.

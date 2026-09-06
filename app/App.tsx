@@ -32,6 +32,7 @@ import { ReportScreen } from "./features/more/ReportScreen";
 import { CollateralScreen } from "./features/more/CollateralScreen";
 import { BusinessVerificationScreen } from "./features/more/BusinessVerificationScreen";
 import { CalculatorScreen } from "./features/more/CalculatorScreen";
+import { PrivacyScreen } from "./features/more/PrivacyScreen";
 import { HelpScreen } from "./features/help/HelpScreen";
 import { HelpCategoryScreen } from "./features/help/HelpCategoryScreen";
 import { HelpArticleScreen } from "./features/help/HelpArticleScreen";
@@ -321,6 +322,8 @@ function AppFlow() {
     screen = <BusinessVerificationScreen onBack={() => setStep(previousStep)} />;
   } else if (step === "stub" && activeStub === "calculator") {
     screen = <CalculatorScreen onBack={() => setStep(previousStep)} />;
+  } else if (step === "stub" && activeStub === "privacy") {
+    screen = <PrivacyScreen onBack={() => setStep(previousStep)} />;
   } else if (step === "stub" && activeStub) {
     const topic = findStubTopic(activeStub);
     screen = (
