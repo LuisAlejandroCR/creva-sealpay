@@ -1,0 +1,25 @@
+specVersion: 1.0.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: AttestationRegistry
+    network: sepolia
+    source:
+      abi: AttestationRegistry
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - FolioAttestation
+        - Attestation
+      abis:
+        - name: AttestationRegistry
+          file: ./abis/AttestationRegistry.json
+      eventHandlers:
+        - event: Attested(indexed bytes32,indexed address,uint256)
+          handler: handleAttested
+      file: ./src/mapping.ts

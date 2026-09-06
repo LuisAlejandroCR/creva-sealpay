@@ -9,7 +9,7 @@
 > antes de tocar nada, y cerrar siempre documentando qué se hizo, qué no se verificó y por qué —
 > es el contexto que usan los demás agentes.
 
-**Fecha del documento:** 2026-08-31 (rev. 2) · **Evento:** 4–16 sep 2026, online, asíncrono
+**Fecha del documento:** 2026-08-31 (rev. 2) · **§10 añadido 2026-09-06** (estado post-migración + matriz de patrocinadores) · **Evento:** 4–16 sep 2026, online, asíncrono
 **Fuente principal:** [ethglobal.com/events/ethonline2026/prizes](https://ethglobal.com/events/ethonline2026/prizes) (leído 2026-08-31)
 
 ---
@@ -337,6 +337,15 @@ El sello (ya vivo)    →  la respuesta sale firmada, y dice qué NO acredita
 > `defineChain` de viem: hace falta chain ID **296**, el JSON-RPC Relay de Hedera, moneda nativa y
 > explorador. Es media hora si sale bien y una tarde si no. Verificarlo el día 1, no el día 8.
 
+> **Rev. 5, 2026-09-05 — el alcance creció de dos pistas a seis; ver `docs/plan.md` para el
+> checklist vivo.** Cuatro pistas entregadas con evidencia real: ENS (`negocio.creva.eth` en
+> Sepolia, $500), Arc de Circle (hash del reporte sellado anclado en Arc testnet, $10k, idea 8 de
+> §4), y Bazantic (llamada real a `creva_report` vía su Recipe, $3k). Uniswap Foundation ($5k,
+> contribución al stack) sigue abierta como siguiente paso. Ledger, Privy y Chainlink siguen cada
+> uno gateados por un prerrequisito sin resolver — no se comprometen hasta que ese prerrequisito se
+> cumpla (`docs/plan.md`, sección de bloques abiertos). El eje World+Hedera de esta recomendación
+> **no cambia**; las pistas nuevas son extensiones sobre el mismo producto, no un pivote.
+
 **Por qué esta y no otra:**
 
 1. **Solo toca lo que existe.** Señales y sello están vivos; ni tarjeta, ni colateral, ni ZK.
@@ -519,6 +528,135 @@ en vez de asumir que todo se queda oculto por default. Pendiente de decisión �
 Nota propia: **el video tiene que ser bueno**, no solo cumplir el tiempo. Cae dentro del rango de
 2–5 min que ya pide cada patrocinador (§1) y alimenta también el Q&A de 3 minutos del 09/14 — un
 mismo guion corto sirve para ambos si se escribe pensando en el más estricto (3 min).
+
+---
+
+## 10. Segundo brainstorming — estado a 2026-09-06 y matriz de integración de patrocinadores
+
+> Esta sección **no reemplaza** §1 ni §4 — las complementa. §1 y §4 son el plan original
+> (rev. 2–5, agosto–septiembre); §10 es la foto del proyecto **después de la migración** a
+> `creva-sealpay` y de las primeras entregas reales. Si §10 y §5 se contradicen sobre "qué
+> falta hoy", manda §10; sobre "por qué el eje es World+Hedera", sigue mandando §5.
+
+### 10.1 · La migración, en una línea
+
+`creva_finance` (privado: Next.js + NestJS, en Cloud Run) **es el core** — auth Clerk, score
+explicable, señales de gobierno, reporte sellado y `/verify` viven ahí y no se tocan.
+`creva-sealpay` (este repo, público) es **una feature nueva sobre ese core** (starting point
+03 · Ship a Feature, §9.1): una app móvil Expo + un `backend/` Express que es la única puerta
+entre el móvil y el core. El móvil **no tiene backend propio**: todo lo que no es UI local
+sale por `backend/`.
+
+### 10.2 · Los 11 patrocinadores — plan original vs. estado actual
+
+| # | Patrocinador | $ | Plan original (§1/§4/§8) | Estado 2026-09-06 | Evidencia en el repo | Qué falta |
+|---|---|---|---|---|---|---|
+| 1 | **Hedera** | $15k ($6k objetivo) | Eje. Servicio x402 vivo + plataforma que lo consume + una petición pagada real | ✅ **Entregado** | `backend/src/{x402-gate,hedera-signer,facilitator}.ts`; rutas `/creva-score/report` y `/creva-score/verify` gateadas; pago real liquidado en testnet (`0.0.7162784-1788644546-956204030`, `SUCCESS` en mirror node) | Nada del criterio. Solo re-verificar el flujo pagado desde Expo Go físico |
+| 2 | **World** | $7k ($3.5k Selfie Check) | Eje. Selfie Check en el alta, degradando a `identity_unavailable` sin key | ⚠️ **Parcial** | `backend/src/world-verify.ts` (llama a la Developer Portal API); `frontend/features/onboarding/SelfieCheckScreen.tsx` | El payload v4 espera un `nonce` que el redirect WebView no produce; **enrollment al Sandbox pendiente de aprobación de Tools for Humanity** (bloqueo externo, no de código) |
+| 3 | **Arc (Circle)** | $10k ($5k) | Apuesta B en §4; promovida en rev. 5 a "el respaldo nace on-chain" | ✅ **Entregado** | `backend/src/arc-anchor.ts`; ruta `/creva-score/anchor`; tx real minada `0x285ea670…e6014`, `chainId 5042002`, bloque 60605019 | Dominio público del explorer de Arc testnet (cosmético). Circle Agent Stack (`CIRCLE_AGENT_STACK_API_KEY`) queda para wallet-as-a-service en iteración posterior |
+| 4 | **Bazantic** | $3k | Gateway x402/MPP + MCP + Recipe para la API de Creva | ✅ **Entregado** | `backend/src/{creva-auth,creva-proxy}.ts` (identidad de servicio con refresh token rotado); llamada real `mcp__creva-score__creva_report` → folio `47AFE663-…`, PDF+HTML entregados | Nada del criterio. La rotación del refresh token es frágil (near-miss documentado con token mal pegado) |
+| 5 | **ENS** | $5k ($500 track) | `negocio.creva.eth` con el folio del reporte en el resolver — prometido en la aplicación, no opcional | ✅ **Entregado** | `scripts/ens/register-subname.mjs`; `negocio.creva.eth` en Sepolia ENSv2, `creva.report.folio` en un `PermissionedResolver` propio; txs reales listadas en `docs/plan.md` | Nada del criterio. Escribir el folio real de un reporte generado (hoy es `SP-2026-000123` de prueba) |
+| 6 | **Uniswap Foundation** | $5k | Contribución al stack + `FEEDBACK.md` | ❌ **NO-GO** (spike 2026-09-06) | — | Ninguna superficie de Creva toca v4 hooks / Universal Router / Permit2 / SDK. Forzarlo = fabricar superficie inexistente (descalificador #2). Descartada |
+| 7 | **The Graph** | $15k ($5k Continuity) | No mapeada a ninguna idea con encaje ≥3 (§4). Forma candidata: subgraph de los eventos que Creva ya emite, consultado en vivo por el score-agent | 🟡 **Bloqueada por diseño** (spike 2026-09-06) | Indexable: eventos ENS del bloque 28dbcde en Sepolia. **No** indexable: el ancla de Arc (`arc-anchor.ts:60-64` es tx valor-0 con calldata, sin log ni contrato) | El score es `descriptive` (`countByTone`, sin número ponderado); ninguna señal nueva "mueve" nada. Load-bearing exige **primero** un mecanismo de producto donde un dato on-chain cambie una salida real — decisión pendiente del humano |
+| 8 | **1inch** | $7k | App sobre Aqua/SwapVM, ejecución onchain en la demo | ❌ **NO-GO** (spike 2026-09-06, pendiente confirmar) | — | Ninguna ruta de dinero convierte moneda (x402 HBAR→HBAR, gas del facilitador, Arc en nativo ya fondeado, ENS en USDC ya en wallet). Solo entraría inventando una conversión. Descartar |
+| 9 | **Privy** | $5k (2×$2.5k) | rev. 4: la wallet de Privy paga el x402 **y** cubre B2B financial flow — una integración, dos pistas | ⏳ **No empezada** | — | Privy no trae Hedera: falta `defineChain(296)` + JSON-RPC Relay real, probado. Depende de que exista una capa wallet donde Privy sea load-bearing (no un login encima de Clerk) |
+| 10 | **Chainlink** | $3k ($2k CRE + $500 Upgrade) | Encaje débil, "solo vigilar" (§1) | ⏳ **Watch-only** | — | $500 exige cambio de estado onchain → Creva no tiene contratos propios (el ancla de Arc no cuenta). CRE Confidential Workflows no publicó requisitos. **Corte 09/14**: si no se cumplen ambos, se descarta sin penalidad |
+| 11 | **Ledger** | $5k ($3.5k fresh + $1.5k Continuity) | Encaje débil con el eje (§8.1); forma honesta: `wallet-cli ring` como backend de las llaves `.env` del core | ⏳ **No empezada** | — | Prerrequisito: instalar el Ledger Key Ring CLI + definir un rol de firma que **no compita** con la wallet del facilitador Hedera. Si no → descartar antes de forzar |
+
+**Resumen:** 4 entregadas (Hedera, Arc, Bazantic, ENS) + 1 parcial bloqueada por externo (World)
+· 2 descartadas por spike (Uniswap, 1inch) · 1 bloqueada por diseño (The Graph) · 3 sin
+empezar con prerrequisito (Privy, Chainlink, Ledger).
+
+### 10.3 · Matriz de riesgo — cuánto puede afectar cada integración al proyecto
+
+Dos preguntas, no una:
+- **Radio de explosión** = si esta integración se mete mal o se rompe en vivo, ¿cuánto daño
+  hace a lo ya entregado y al relato del eje?
+- **Costo de oportunidad** = si no se logra, ¿cuánto premio/relato se pierde?
+
+| Nivel radio | Definición | Patrocinadores en este nivel |
+|---|---|---|
+| 🔴 **Muy alto** | Toca el path de pago x402 o el sellado/`/verify`. Un fallo tumba la demo principal | **Hedera** (ya entregado → riesgo = regresión si alguien toca `x402-gate.ts` / `hedera-signer.ts`); **Privy** *si* se hace como "la wallet que paga el x402" (rev. 4); **Ledger** *si* el Key Ring se mete como wallet de pago (§8.1 lo prohíbe explícito) |
+| 🟠 **Alto** | Toca el `backend/` compartido o el onboarding. Un fallo degrada una pista ya entregada | **Bazantic** (`creva-proxy.ts` está frente a toda llamada proxied); **World** (`world-verify.ts` en el onboarding, aunque degrada a `identity_unavailable`); **Chainlink** *si* se construye un contrato nuevo para el track de $500; **The Graph** *si* la forma load-bearing exige cambiar el builder del score en el core |
+| 🟡 **Medio** | Código nuevo aislado en `backend/` o un script, con su propia ruta. Un fallo es local | **Arc** (`/creva-score/anchor`, signer propio, valida el hash antes de construir wallet); **Privy** *si* se hace como opción de wallet **adicional** sin reemplazar el demo signer; **Ledger** *si* el Key Ring es solo el backend de llaves `.env` (fit Continuity) |
+| 🟢 **Bajo** | Doc, script suelto o config que no corre en el path de demo | **The Graph** *si* es un subgraph read-only decorativo (pero eso viola descalificador #2 → no vale) |
+| ⚪ **Muy bajo** | Solo `FEEDBACK.md` o contribución a un repo externo. Cero superficie en este repo | **Uniswap** (era esto, descartado); **1inch** (descartado); **ENS** (ya entregado — el folio en el resolver es referencia read-only, fuera del path de demo) |
+
+**Regla que sale de la matriz:** **congelar `x402-gate.ts`, `hedera-signer.ts`, `facilitator.ts`
+y el sellado.** Ninguna pista nueva edita esos archivos. Privy y Ledger, si entran, entran
+como capa **aditiva** (una opción de wallet más), nunca reemplazando el demo signer que ya
+liquida en cadena.
+
+### 10.4 · Integración incremental — un slice mergeable por patrocinador
+
+El humano tiene razón: se puede ir de a poco y pushear a `main` cada slice. Cada uno es una
+rama propia, con su `[VERIFY]` (unit+fuzz+invariant), independiente — que uno falle no bloquea
+a los otros. Orden por **riesgo ascendente × prerrequisito listo × valor**:
+
+| Orden | Slice | Radio | Prerrequisito | Depende de |
+|---|---|---|---|---|
+| **A** | **World — cerrar el gap del `nonce` v4** en `world-verify.ts` | 🟠 Alto (degrada suave) | Aprobación del Sandbox de Tools for Humanity (⏳ externo) | Nada del repo — solo la aprobación |
+| **B** | **Ledger — `wallet-cli ring` como backend de las llaves** que hoy son env vars planas | 🟡 Medio | CLI instalable (`developers.ledger.com/ethonline`, publicado 2026-09-03) | Spike de instalación (prompt listo) |
+| **C** | **Privy — opción de wallet aditiva** en el flujo de pago (no reemplaza el demo signer) + `defineChain(296)` | 🟡 Medio | `defineChain(296)` probado contra el Hedera JSON-RPC Relay real | Spike de config (prompt listo) |
+| **D** | **The Graph — forma load-bearing**: subgraph de los eventos ENS + un mecanismo donde "este folio se ancló N veces" entre a `report-verification` y **cambie** una salida real | 🟠 Alto | Decisión del humano: ¿vale construir ese mecanismo primero? | Cambio en el core o agregación en `backend/` |
+| **E** | **Chainlink — solo si** el corte 09/14 encuentra (1) un contrato on-chain real de Creva y (2) requisitos de CRE publicados y compatibles | 🟠 Alto / fit débil | Ambos prerrequisitos | Slice D (si D deja un contrato) |
+| — | ~~Uniswap~~, ~~1inch~~ | ⚪ | — | Descartados por spike |
+
+**Ya en `main`** (no son slices pendientes): Hedera, Arc, Bazantic, ENS.
+
+### 10.5 · Ideas de integración por patrocinador restante — atadas al core
+
+Cada idea se juzga contra: ¿es load-bearing (§4, descalificador #2)? ¿toca el eje congelado?
+
+**Privy ($5k) — "la wallet del dueño del negocio autoriza el gasto de datos".**
+El flujo B2B: el dueño de la PYME conecta su wallet Privy una vez, define una política de
+gasto (ej. "máx 5 USDC/mes en verificaciones"), y a partir de ahí su agente paga cada
+`/creva-score/report` sin volver a pedir firma. Load-bearing porque el flujo financiero
+(política + quórum + firma delegada) es exactamente lo que la pista "B2B financial product"
+pide, y el x402 ya existe para consumirlo. **Forma segura:** Privy como wallet **adicional**
+junto al demo signer — el usuario elige. Nunca se borra el signer que ya liquida en cadena.
+Prereq real: `defineChain({ id: 296, rpcUrls: <Hedera JSON-RPC Relay> })` probado.
+
+**Ledger ($5k) — "las llaves de Creva viven en el Key Ring, no en `.env` plano".**
+Hoy `CREVA_SIGNING_KEY`, `CROMA_API_KEY`, `BANXICO_SIE_TOKEN`, `CREVA_SIGNING_PUBLIC_KEY`
+son variables de entorno planas (§2). La pista Continuity de Ledger pide, textual, *"make
+`wallet-cli ring` the key backend for the `.env` files your repo already has"*. Fit directo,
+**no toca el eje de pagos**. El `backend/` carga esas llaves vía `config.ts` — cambiar esa
+carga para que resuelva contra el Key Ring es un slice aislado. La pista fresh ($3.5k) se
+cubriría si además el Key Ring firma **el lado Arc** del ancla (rol de firma real y distinto
+al del facilitador Hedera — la regla dura de §8.1).
+
+**The Graph ($15k) — "el sello que un banco ya verificó pesa más".**
+El único camino load-bearing: `report-verification.controller.ts` del core registra cuándo un
+tercero (un banco) verifica un folio. Un subgraph que indexe los anclajes de Arc + los
+`TextChanged` de ENS le da al score-agent una señal nueva: *"este folio se ancló y fue
+verificado N veces por terceros distintos"*. **Se vuelve load-bearing solo si el veredicto de
+`/verify` o una banda del score cambian cuando ese número cambia** — si es un panel, es
+decorativo y no vale. Requiere: (1) que Arc emita un evento indexable, no una tx valor-0
+(cambiar `arc-anchor.ts` para llamar a un contrato mínimo con un `event Anchored(bytes32)`);
+(2) que el core o el `backend/` consuman el subgraph y muevan una salida real.
+
+**Chainlink ($3k) — "el radar regulatorio se dispara solo".**
+Si el slice D deja un contrato `Anchor` on-chain, Chainlink Automation puede dispararlo cuando
+el radar regulatorio del core detecta una norma nueva que afecta a un folio anclado —
+produciendo el cambio de estado onchain que la pista de $500 exige (*"simply displaying
+Chainlink data is not sufficient"*). CRE Confidential Workflows ($2k) encajaría con la tesis
+de privacidad de Creva (§3) si sus requisitos, cuando se publiquen, permiten correr el
+scoring sin exponer el insumo. **Ambos son especulativos hasta el 09/14** — es el fit más
+débil del lote, se descarta sin culpa si no cuaja.
+
+**1inch — descartado, pero la condición de rescate:** si en algún punto el facilitador x402
+recibe un activo y necesita otro para gas (hoy no pasa: `hedera-signer.ts:62-66`), esa
+conversión vía Aqua/SwapVM sería la pista. No antes.
+
+### 10.6 · Lo que esta sección NO cambia
+
+- El eje sigue siendo **World + Hedera** (§5). Privy/Ledger/Graph/Chainlink son extensiones
+  sobre el mismo producto, no un pivote.
+- Ninguna pista nueva justifica tocar tarjeta, colateral, KYC-as-onramp o ZK (§2, §4).
+- `x402-gate.ts`, `hedera-signer.ts`, `facilitator.ts` y el sellado quedan **congelados**.
+- Toda pista sin forma load-bearing confirmada **se descarta**, no se fuerza — Uniswap y
+  1inch ya sentaron el precedente esta semana.
 
 ---
 

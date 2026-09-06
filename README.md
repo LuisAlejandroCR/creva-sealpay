@@ -14,8 +14,8 @@ out of the public repo, and expose only the submission surface that consumes Cre
 
 | Path | Purpose |
 |---|---|
-| `app/` | Expo app for Selfie Check, paid queries, and signed report verification |
-| `gateway/` | Express x402 gateway for Creva report and verification routes |
+| `frontend/` | Expo app for Selfie Check, paid queries, and signed report verification |
+| `backend/` | Express x402 gateway for Creva report and verification routes |
 | `docs/plan.md` | Current checklist and acceptance criteria |
 | `docs/memoria.md` | Short session record: done, not verified, pending |
 | `brainstorming.md` | Track rationale and sponsor analysis |
@@ -32,7 +32,7 @@ out of the public repo, and expose only the submission surface that consumes Cre
 ## Run
 
 ```bash
-cd app
+cd frontend
 npm install
 npm run typecheck
 npm test
@@ -40,7 +40,7 @@ npm start
 ```
 
 ```bash
-cd gateway
+cd backend
 npm install
 npm run typecheck
 npm run lint
@@ -48,10 +48,10 @@ npm test
 npm run dev
 ```
 
-Environment templates live in `app/.env.example` and `gateway/.env.example`.
+Environment templates live in `frontend/.env.example` and `backend/.env.example`.
 
 ## Still Pending
 
 - Physical Expo Go run with real Clerk and World credentials.
-- Live Hedera testnet settlement through a real facilitator.
+- World ID Sandbox approval for the live Selfie Check path.
 - Demo video and final submission assets.

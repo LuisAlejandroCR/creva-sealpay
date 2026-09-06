@@ -1,0 +1,23 @@
+"""
+FolioAttestation: one row per sealed-report folio hash, aggregating every Attested event the
+AttestationRegistry emitted for it. distinctAttesters is the field the gateway reads to derive the
+verify trust signal (>=2 => corroborated). id is the 0x-prefixed folioHash.
+"""
+type FolioAttestation @entity(immutable: false) {
+  id: Bytes!
+  folioHash: Bytes!
+  attesters: [Bytes!]!
+  attestationCount: Int!
+  distinctAttesters: Int!
+  firstAttestedAt: BigInt!
+  lastAttestedAt: BigInt!
+}
+
+type Attestation @entity(immutable: true) {
+  id: Bytes!
+  folioHash: Bytes!
+  attester: Bytes!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  txHash: Bytes!
+}
