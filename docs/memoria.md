@@ -2848,3 +2848,49 @@ sensible por diseño (invariante del core `radar-carries-no-personal-data`).
 
 **Dónde queda el pendiente:** bloque cerrado en `docs/plan.md` con la lista para el humano
 (deploy Sepolia + registrar Upkeep + `setForwarder`).
+
+## 2026-09-06 — AUDIT + wiring de la capa app↔core (`app/lib/api.ts`) (worktree `feature-app-core-api-wiring`)
+
+**Enfoque técnico:** auditar cada método de `app/lib/api.ts` contra las rutas reales del core
+(`creva_finance/backend`, sólo lectura, proyecto hermano), documentar auth/existencia/estado, y
+reemplazar mocks sólo donde el endpoint existe.
+
+**Qué se hizo:**
+- Tabla de audit completa en `docs/plan.md` (Abiertos, `2026-09-06 — AUDIT app↔core`): 38 métodos,
+  cada uno con endpoint real, modo de auth, evidencia `archivo:línea` de la ruta del core, y estado
+  en la app (real / mock / no llamado / muerto).
+- Hallazgo principal: **`GET /cards` (`cards.list`, `app/lib/api.ts:202`) no existe en el core** —
+  `CardsController` sólo expone `issue` / `:id` / `:id/freeze` / `:id/unfreeze` y no hay
+  `CardsService.list()`. El frontend de referencia asume la misma ruta y también falla.
+- `CardScreen.tsx`: el fallo de `cards.list()` se leía como "sin tarjetas aún" (fallback
+  inventado). Añadido estado `listFailed` + rama `card-list-unavailable` — "No pudimos consultar
+  tus tarjetas", honesto. Test en `test/unit/card/structure.spec.ts`.
+- Nada más se cambió: `CreditScreen`, `CardScreen`, `StatementsScreen` **ya estaban cableadas a la
+  API real** con loading/error states (la premisa de la tarea — "reemplazar mock" — quedó atrás del
+  código; el mock que queda es `MOCK_TRANSACTIONS` en `DashboardScreen`, fuera de este alcance).
+- PASO 3 documentado en `docs/plan.md`: el `creva-proxy.ts` del gateway autentica como cuenta de
+  servicio Bazantic, no reenvía el token del usuario. Ningún endpoint personal necesita el gateway
+  hoy (todos van directo-al-core con Clerk). Diseño de `proxyToCrevaAsUser` esbozado por si se
+  quisiera x402 sobre un dato personal — NO implementado (congelado).
+
+**Qué NO se verificó, y por qué:**
+- **Nada se ejerció contra un backend real con una sesión Clerk real.** Todo el audit es lectura de
+  código + verificación de shape de tipos. Necesita `EXPO_PUBLIC_API_URL` → core con
+  `AUTH_PROVIDER=clerk` y un token de usuario. Marcado como VERIFY pendiente en el plan.
+- Shapes concretos sin ejercer: `cards.get().spendingLimit` vs `VirtualCardRow`, y en general todo
+  lo marcado "Real" en la tabla.
+- Render nativo — sigue siendo de la sesión 2.
+
+**VERIFY:** `npx tsc --noEmit` limpio (vía junction a `../../../app/node_modules`). `jest unit fuzz
+invariant`: baseline en `main` = 2 fallos por timeout bajo carga (`auth/auth-gate`, mismo flake
+documentado el 2026-09-06); pasan aislados. Test nuevo de card: pasa.
+
+**Dónde queda el pendiente:** commit en el worktree, sin push. Rama `feature-app-core-api-wiring`
+off `origin/main`. Bloques abiertos en `docs/plan.md`: `GET /cards` lo debe añadir el core;
+verificación end-to-end contra backend real; shapes sin ejercer.
+
+**Rebase 2026-09-06 (post `feature-backend-pending-state` eff6cd7):** `CardScreen` ahora tiene
+`backendPending` (401 de cuenta Clerk no vinculada → `BackendPendingState`). `listFailed` se
+conserva: cubre el 404 de `GET /cards` que NO es un 401 unlinked (`isBackendUnlinked(err)` es
+falso). Catch resuelto a `if (isBackendUnlinked(err)) setBackendPending(true); else
+setListFailed(true)`. Rama rebaseada sobre `origin/main` f430d33; entregada a Solver.
