@@ -40,6 +40,41 @@ checklist.
   debe conservarse la identidad Clerk del solicitante: la identidad de servicio
   devolvería el score de otra cuenta. No se ha verificado una sesión real.
 
+- [ ] **2026-09-05 — Corrida de integración (Solver v2): auditadas las 26 ramas remotas, 0
+  mergeadas, 7 en HOLD.** 13 ramas ya están en `main` (ancestro directo, sin patch pendiente):
+  `feature-arc-anchor`, `feature-bazantic-recipes`, `feature-creva-service-identity`,
+  `feature-gateway-x402`, `feature-help-search`, `feature-icon-audit`, `feature-logic-port`,
+  `feature-nav-icon-fix`, `feature-report-wiring`, `feature-selfie-check`, `feature-ui-audit-fix`,
+  `feature-ui-port-core-screens`, `feature-web-parity-port` — seguras de borrar del remoto.
+  6 ramas de mecanismo/tooling ignoradas (`codegraph-init`, `feature-agent-loop`,
+  `scaffold-monorepo`, `docs-plan-cleanup`, `worktree-agent-afdbf7b00fe421686`,
+  `claude/magical-taussig-*`). **HOLD, ninguna con bloque "Cerrados" que la respalde** (regla dura
+  de la corrida: solo se pushea lo ya documentado como cerrado/verificado):
+  - `feature-mobile-native-parity` — 9 commits, +2940 líneas (7 pantallas nuevas + 10 suites de
+    test + deps `react-native-web`/otras + 230 líneas de `docs/plan.md` propio). Merge-tree limpio,
+    pero es trabajo grande sin VERIFY de Solver ni bloque cerrado; cae bajo el bloque abierto de
+    "Paridad móvil, tercera revisión". HOLD-no-plan-block.
+  - `feature-dashboard-parity` (`7927d11`), `feature-more-sheet-parity` (`475a997`),
+    `feature-nav-parity-render` (`fa7e3a7`), `feature-scoregauge-parity` (`4209ea9`) — cada una 1
+    commit de ajuste visual de paridad web/móvil (primitivas de dashboard, tarjetas del sheet
+    "Más", `fill="none"` en la raíz del SVG + espaciado del bottom nav, `ScoreGauge` como
+    arco/anillo). Merge-tree limpio. Todas modifican `docs/plan.md`/`docs/memoria.md` dentro de su
+    propio commit — se auto-documentan, no corresponden a un bloque cerrado preexistente en `main`.
+    Pertenecen al bloque abierto de paridad móvil. HOLD-no-plan-block.
+  - `codex/mobile-parity-delete-account` (`3660ffb`) — agrega `react-native-web` a
+    `app/package.json` + lockfile, docs de auditoría de `DeleteAccountScreen`. Merge-tree limpio.
+    WIP del bloque abierto de paridad Codex. HOLD-no-plan-block.
+  - `claude/bazantic-sponsor-block-6s1iv6` (`fe0fe75`) — solo +32 líneas a `docs/plan.md`
+    documentando un bloqueo de `JwtAuthGuard` de Bazantic. **Conflicto de merge en `docs/plan.md`**
+    y además superseded: Bazantic ya está cerrado en `main` vía `feature-creva-service-identity`
+    (identidad de servicio con refresh token). Mergearla reabriría un bloque resuelto.
+    HOLD-conflict + superseded.
+  Cero push, cero merge, cero reescritura de historia en esta corrida. `git merge-tree` se usó en
+  vez de un worktree de integración descartable (no había nada que mergear). Para avanzar las 5
+  ramas de paridad hace falta: integrarlas juntas en un worktree, `tsc`/lint/`jest`
+  unit+fuzz+invariant verdes, y comparación visual por pantalla — exactamente los pendientes que ya
+  lista el bloque abierto de paridad móvil de arriba.
+
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.
 

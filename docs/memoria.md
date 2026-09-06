@@ -1629,3 +1629,38 @@ ya no es un 500 genérico, es un error de validación específico y accionable. 
 
 **Dónde queda el pendiente:** ninguno propio del criterio de aceptación de la pista Hedera — cumplido
 con evidencia verificable on-chain. Pendiente cosmético: la aserción del test de integración.
+
+## 2026-09-05 — Corrida de integración Solver v2: auditoría de ramas, 0 merges
+
+**Qué se hizo (resultado verificable):**
+- `git fetch --all --prune` + clasificación de las 26 ramas remotas contra `origin/main`
+  (`8074021`) con `git merge-base --is-ancestor`, `git cherry -v`, `git log main..branch`,
+  `git diff --stat main...branch` y `git merge-tree --write-tree`.
+- 13 ramas confirmadas ya en `main` (ancestro directo): `feature-arc-anchor`,
+  `feature-bazantic-recipes`, `feature-creva-service-identity`, `feature-gateway-x402`,
+  `feature-help-search`, `feature-icon-audit`, `feature-logic-port`, `feature-nav-icon-fix`,
+  `feature-report-wiring`, `feature-selfie-check`, `feature-ui-audit-fix`,
+  `feature-ui-port-core-screens`, `feature-web-parity-port`.
+- 7 ramas no mergeadas, todas dejadas en HOLD por no tener un bloque "Cerrados" que las respalde
+  (regla dura de la corrida). 6 mergean limpio a nivel de árbol
+  (`feature-mobile-native-parity`, `feature-dashboard-parity`, `feature-more-sheet-parity`,
+  `feature-nav-parity-render`, `feature-scoregauge-parity`, `codex/mobile-parity-delete-account`);
+  `claude/bazantic-sponsor-block-6s1iv6` da conflicto en `docs/plan.md` y además está superseded
+  (Bazantic ya cerrado en `main`).
+- Bloque de corrección añadido a `docs/plan.md` §Abiertos con el detalle por rama.
+- `.gitignore` verificado: cubre `.env`, `app/.env`, `gateway/.env`, `node_modules/`,
+  `.claude/worktrees/`, `dist/`, `.codegraph/` — sin fuga de secretos posible en un commit de docs.
+
+**Qué NO se verificó, y por qué:**
+- No se corrió [VERIFY] (`tsc`/`eslint`/`jest`/`vitest`) sobre ninguna rama: al no haber ningún
+  veredicto PUSH, no se creó el worktree de integración `integration-solver-v2` ni se ejecutó
+  ninguna suite. Se usó `git merge-tree` (no destructivo) para la señal de merge limpio.
+- Las 5 ramas de paridad visual (`dashboard`, `more-sheet`, `nav-parity-render`, `scoregauge`,
+  `mobile-native-parity`) no se integraron ni se compararon pantalla por pantalla contra
+  `creva_finance/frontend` — es exactamente el pendiente del bloque abierto de paridad móvil.
+- No se tocó ninguna rama de feature, no se pusheó nada, no se reescribió historia
+  (`git reflog show main` intacto, solo el commit de docs de esta corrida si el humano lo aplica).
+
+**Dónde queda el pendiente:** bloque abierto "Corrida de integración (Solver v2)" en
+`docs/plan.md` §Abiertos, y el bloque abierto preexistente "Paridad móvil, tercera revisión".
+Ramas seguras de borrar del remoto (mergeadas + obsoletas): las 13 listadas arriba.
