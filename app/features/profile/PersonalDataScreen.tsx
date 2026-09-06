@@ -1,7 +1,6 @@
 // PersonalDataScreen.tsx: mobile port of creva_finance's app/profile/details/page.tsx — edits
-// firstName/lastName/phone via the real profiles.get()/profiles.update() (app/lib/api.ts). Email
-// stays read-only from the Clerk session (same reasoning as the reference: the backend still
-// answers a pre-Clerk token that could hand back a different account's address).
+// firstName/lastName/phone via profiles.get()/update() (app/lib/api.ts). Email is read-only from
+// the Clerk session, not the pre-Clerk backend (which could answer with another account's email).
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";

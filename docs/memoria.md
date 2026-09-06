@@ -1723,3 +1723,33 @@ personales", ya resuelto), KYC, auth.
 migración..."). Backlog restante: Crédito, Tarjeta, 8 stubs de "Más" (Movimientos, Calculadora,
 Estados de cuenta, Tu garantía, Sello de tu negocio, Reglas que te afectan, Tu reporte, Avisos),
 Seguridad, Aviso de privacidad, KYC, auth.
+
+## 2026-09-05 — Migración PWA→nativa, cuarto incremento: `SecurityScreen.tsx` (Solver, local)
+
+**Qué se hizo:**
+- Construida `SecurityScreen.tsx` (nueva), puerto de `creva_finance/frontend/app/profile/security/
+  page.tsx`: tres cards (cambiar contraseña, tu sesión, tus datos), con acción real de reseteo vía
+  `auth.forgotPassword()` (`app/lib/api.ts`, ya existía).
+- **Desviación deliberada del "as is" literal:** el frontend lee el correo del usuario con
+  `auth.me()` (endpoint pre-Clerk); esta pantalla usa la sesión de Clerk
+  (`useUser().primaryEmailAddress`) en su lugar, mismo criterio ya aplicado en
+  `PersonalDataScreen.tsx` — un token pre-Clerk puede devolver el correo de otra cuenta, y aquí el
+  riesgo es peor (enviar el enlace de reseteo a la cuenta equivocada).
+- `App.tsx`: `step === "profile-security"` pasó de `StubScreen` genérico a `SecurityScreen` real.
+- Test nuevo `app/test/unit/profile/security.spec.ts`. Encabezados de los 3 archivos de pantalla de
+  esta sesión (`PersonalDataScreen.tsx`, `FiscalInfoScreen.tsx`, `SecurityScreen.tsx`) recortados a
+  2-3 líneas tras un recordatorio directo del humano de la regla dura de `AGENTS.md` §Documentación
+  (se habían extendido a 4-7 líneas).
+
+**Qué NO se verificó, y por qué:**
+- Resultado visual/nativo — mismo bloqueo `react-native-web`/NativeWind ya diagnosticado.
+- Que `auth.forgotPassword()` realmente funcione para una cuenta creada vía Clerk — ese endpoint es
+  pre-Clerk; si Clerk maneja su propio flujo de contraseña por separado, el botón podría no tener
+  efecto real para usuarios Clerk-only. Es una pregunta de arquitectura de auth más grande que esta
+  pantalla sola, no se investigó a fondo aquí.
+- No se cerró como definitiva — falta segunda vista antes de mover a Cerrados.
+
+**Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Cuarto incremento de la
+migración..."). Backlog restante: Crédito, Tarjeta, 8 stubs de "Más", Aviso de privacidad, KYC,
+auth. Con esto los 3 menús reales de Perfil (Datos personales, Información fiscal, Seguridad)
+quedan con pantalla propia en vez de `StubScreen`.

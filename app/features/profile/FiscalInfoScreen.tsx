@@ -1,7 +1,6 @@
 // FiscalInfoScreen.tsx: mobile port of creva_finance's app/profile/fiscal/page.tsx — RFC, razón
-// social, régimen fiscal, estado, código postal y dirección, vía profiles.getFiscal()/
-// updateFiscal() (app/lib/api.ts). Same disclosure as the reference: informational only, not tax
-// advice. React Native has no <select>, so SelectField (FormField.tsx) stands in for it.
+// social, régimen, estado, CP y dirección vía profiles.getFiscal()/updateFiscal(). React Native
+// has no native <select>, so SelectField (FormField.tsx) stands in for the reference's <select>.
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";

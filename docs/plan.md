@@ -34,10 +34,11 @@ checklist.
     Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
     coordinar (regla de §Colaboración punto 7).
   - Sin pantalla mobile todavía: `movements`, `calculator`, `statements`, `collateral`,
-    `business-verification`, `regulatory`, `report`, `notifications`, `privacy`, `profile/security`
-    — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a pantallas reales 1:1 es el grueso de
-    este bloque. `profile/details` y `profile/fiscal` ya no están en esta lista: ver los incrementos
-    de abajo (`PersonalDataScreen.tsx`/`FiscalInfoScreen.tsx`, 2026-09-05).
+    `business-verification`, `regulatory`, `report`, `notifications`, `privacy` — hoy son
+    `StubScreen.tsx` genéricos en mobile; migrarlos a pantallas reales 1:1 es el grueso de este
+    bloque. `profile/details`, `profile/fiscal` y `profile/security` ya no están en esta lista: ver
+    los incrementos de abajo (`PersonalDataScreen.tsx`/`FiscalInfoScreen.tsx`/`SecurityScreen.tsx`,
+    2026-09-05).
   - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
     evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
 
@@ -79,6 +80,22 @@ checklist.
   en particular no se probó interactivamente — es una lista expandible simple, no se descarta que
   necesite ajuste de UX una vez visible (scroll dentro de la lista si el catálogo de estados es
   largo, por ejemplo) — anotado para la segunda vista. **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Cuarto incremento de la migración: `SecurityScreen.tsx` nueva, reemplaza el
+  `StubScreen` genérico de "Seguridad" (`profile/security`).** Puerto real de
+  `creva_finance/frontend/app/profile/security/page.tsx`: tres cards (cambiar contraseña, tu sesión,
+  tus datos), la primera con acción real vía `auth.forgotPassword()` (`app/lib/api.ts`, ya existía).
+  **Desviación deliberada del "as is" literal:** el frontend lee el correo con `auth.me()` (backend
+  pre-Clerk); esta pantalla lo lee de la sesión de Clerk (`useUser().primaryEmailAddress`), mismo
+  criterio ya aplicado en `PersonalDataScreen.tsx` — un token pre-Clerk puede devolver el correo de
+  otra cuenta, y enviar un enlace de reseteo a la cuenta equivocada es justo el tipo de bug que ese
+  criterio existe para evitar. Test nuevo `app/test/unit/profile/security.spec.ts`. `tsc --noEmit`
+  limpio, `npx jest` verde (44/44 suites, 187/187 tests).
+  **No se verificó:** resultado nativo/visual (mismo bloqueo ya documentado) ni que
+  `auth.forgotPassword()` realmente dispare un correo para una cuenta creada vía Clerk (el endpoint
+  es pre-Clerk; si Clerk gestiona su propio flujo de contraseña por separado, este botón podría no
+  tener efecto real para usuarios Clerk-only — no se investigó más a fondo, es una pregunta de
+  arquitectura de auth más grande que esta sola pantalla). **No autocertificada como cerrada.**
 
 - [ ] **2026-09-05 — Primer incremento de la migración: `DeleteAccountScreen.tsx` ganó paridad real
   con `/profile/delete-account`, confirmado visualmente vía sesión autenticada real en el

@@ -23,6 +23,7 @@ import { ProfileScreen } from "./features/profile/ProfileScreen";
 import { DeleteAccountScreen } from "./features/profile/DeleteAccountScreen";
 import { PersonalDataScreen } from "./features/profile/PersonalDataScreen";
 import { FiscalInfoScreen } from "./features/profile/FiscalInfoScreen";
+import { SecurityScreen } from "./features/profile/SecurityScreen";
 import { HelpScreen } from "./features/help/HelpScreen";
 import { HelpCategoryScreen } from "./features/help/HelpCategoryScreen";
 import { HelpArticleScreen } from "./features/help/HelpArticleScreen";
@@ -254,14 +255,7 @@ function AppFlow() {
   } else if (step === "profile-fiscal") {
     screen = <FiscalInfoScreen onBack={() => setStep("profile")} />;
   } else if (step === "profile-security") {
-    screen = (
-      <StubScreen
-        title="Seguridad"
-        icon="security"
-        body={findArticle("entrar", "cambiar-contrasena")?.article.answer}
-        onBack={() => setStep("profile")}
-      />
-    );
+    screen = <SecurityScreen onBack={() => setStep("profile")} />;
   } else if (step === "profile-delete-account") {
     screen = (
       <DeleteAccountScreen
