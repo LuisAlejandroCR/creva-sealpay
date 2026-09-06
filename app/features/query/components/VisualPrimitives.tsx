@@ -46,34 +46,28 @@ export function Section({
   );
 }
 
+// Card parity: creva_finance/frontend/components/ui/Card.tsx — default radius 16 / padding 16;
+// `size` bumps both to match the dashboard's score card (radius 24, padding 24) and metric card
+// (radius 20, padding 20). `tone="highlight"` swaps the surface for the dashed evidence/lead card.
+// Border is 1px --cr-border (2px dashed when `dashed`).
 export function Card({
   children,
   dashed = false,
   tone = "default",
-// Card parity: creva_finance/frontend/components/ui/Card.tsx — default radius 16 / padding 16;
-// `size` bumps both to match the dashboard's score card (radius 24, padding 24) and metric card
-// (radius 20, padding 20). Border is 1px --cr-border (2px dashed when `dashed`).
-export function Card({
-  children,
-  dashed = false,
   size = "sm",
   testID,
 }: {
   children: ReactNode;
   dashed?: boolean;
   tone?: "default" | "highlight";
-  testID?: string;
-}) {
-  return (
-    <View
-      className={`rounded-2xl p-4 ${tone === "highlight" ? "bg-surface-2" : "bg-surface-1"} ${dashed ? "border-2 border-dashed" : "border"} border-text/10`}
   size?: "sm" | "md" | "lg";
   testID?: string;
 }) {
   const sizeClass = size === "lg" ? "rounded-[24px] p-6" : size === "md" ? "rounded-[20px] p-5" : "rounded-2xl p-4";
+  const bgClass = tone === "highlight" ? "bg-surface-2" : "bg-surface-1";
   return (
     <View
-      className={`${sizeClass} bg-surface-1 ${dashed ? "border-2 border-dashed" : "border"} border-border`}
+      className={`${sizeClass} ${bgClass} ${dashed ? "border-2 border-dashed" : "border"} border-border`}
       testID={testID}
     >
       {children}
