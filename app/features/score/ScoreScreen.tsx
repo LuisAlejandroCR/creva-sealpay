@@ -27,7 +27,8 @@ export function ScoreScreen({ onOpenQuery, scoreValue = 74 }: ScoreScreenProps) 
 
         <Section>
           <Card>
-            <ScoreGauge value={scoreValue} max={100} band={scoreValue >= 70 ? "success" : "warning"} />
+            {/* creva_finance/frontend/app/score/page.tsx uses shape="ring" for the score hero. */}
+            <ScoreGauge value={scoreValue} max={100} band={scoreValue >= 70 ? "success" : "warning"} shape="ring" />
           </Card>
         </Section>
 

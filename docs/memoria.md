@@ -1629,3 +1629,30 @@ ya no es un 500 genérico, es un error de validación específico y accionable. 
 
 **Dónde queda el pendiente:** ninguno propio del criterio de aceptación de la pista Hedera — cumplido
 con evidencia verificable on-chain. Pendiente cosmético: la aserción del test de integración.
+
+---
+
+## 2026-09-05 — Paridad ScoreGauge (sexto intento, worktree feature-scoregauge-parity)
+
+**Qué se hizo:** cerrado el follow-up de la pasada de dashboard. ScoreGauge de la app (anillo de
+Views NativeWind + barra + chip) reescrito con react-native-svg para espejar
+components/ui/ScoreGauge.tsx: shape="arc" (default, tarjeta dashboard) = arco semicircular en
+viewBox 160x92 con scoreArcPath de app/lib/score-display.ts (ya identico a la web) + etiquetas
+0/max + numero 46 + chip; shape="ring" (pantalla Score) = Circle track + Circle progreso con
+strokeDasharray/offset dentro de G rotation -90 + numero 60 + "de max" + chip. Verificado
+numericamente: getBoundingClientRect del arco renderizado por react-native-svg-web == mismo SVG de
+la web (x 10.5, w 159.19, misma d). Colores de banda: valores hex light de --cr-success/-warning-
+text/-danger-text (scoreBand() devuelve var(--cr-*), inutil para SVG). ScoreScreen.tsx pasa
+shape="ring"; dashboard mantiene arc default. Render-vs-render con reference HTML servida en :8099
+(el web score screen real requiere sesion; el componente es determinista dado value/max/band).
+
+**Qué NO se verificó / fuera de alcance:** el numero usa fuente bold del sistema, la web usa
+Playfair (no empaquetada) — sin fuente no se iguala. Pantalla Score completa (disclosures de
+factores, recomendaciones, menu, disclosure "que no hace") — necesita score.get() con factors +
+recommendations + crevaScore.disclosure(), y /score no esta expuesto en el gateway; ScoreScreen
+sigue siendo el stub minimo deliberado. Certificacion visual del par (humano/Auditor). Expo Go real.
+El install del worktree fallo por un postinstall flaky de @clerk/shared (std-env ESM en node24);
+se copio node_modules de feature-dashboard-parity. react-native-web etc. no van en el commit.
+
+**Dónde queda el pendiente:** bloque "Paridad movil, tercera revision" sigue abierto. El fix de
+Icon.tsx fill=none NO esta en esta rama (no toca iconos) — sigue en las otras tres sin mergear.
