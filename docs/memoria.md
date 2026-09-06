@@ -9,6 +9,28 @@
 > o `gateway/` se refieren a lo que hoy es `frontend/` / `backend/` (el log histórico no se
 > reescribió). `creva_finance/frontend/app/…` (proyecto hermano) no cambia.
 
+## 2026-09-06 — Pasada visual, tercer lote (cobertura ~30/30 completada) (worktree `feature-ui-parity-pass`)
+
+**Qué se hizo:** se completó el walk — card-info, card-create, query, verify, profile-details,
+profile-security, help-category, help-article, business-verification, regulatory, collateral,
+report, movements, statements, notifications. El override `?dev=`/`?stub=` se amplió con `?cat=` /
+`?cat=&art=` para poder llegar a help-category/help-article sin navegar (revertido antes de
+commitear; el diff commiteado es solo docs). El pane del navegador siguió fallando con la ventana
+oculta → se usó `get_page_text` como respaldo.
+**Hallazgos nuevos fuertes:** (1) `VerifyScreen` no tiene el verificador de reporte independiente
+que la referencia `/verify` sí tiene (subir archivo / pegar JSON, sin cuenta) — solo funciona como
+continuación de la consulta pagada. (2) `BusinessVerificationScreen` agrega un formulario manual
+nombre+estado donde la referencia hace lookup automático del perfil fiscal. Ambos con pregunta
+abierta (¿intencional?). También: `CardScreen` sin estado vacío alcanzable offline (la referencia
+sí), help-category/article agregan un glifo de categoría que la referencia no tiene.
+**Correcciones a lotes previos:** el hallazgo "títulos de header tenues vs sólidos" no es
+consistente ni en la referencia (`/profile/security` de referencia = negro sólido) → reclasificado
+a "varía, confirmar contra `ScreenHeader.tsx`".
+**Qué NO se verificó:** la segunda vista REAL de ~13 pantallas de datos (necesitan core desplegado
++ sesión Clerk); Expo Go físico. Nada autocertificado (`[ ]`, no `[x]`).
+**Dónde queda:** bloque abierto "segunda vista visual" con catálogo de 3 lotes + 8 patrones
+transversales + condiciones de cierre.
+
 ## 2026-09-06 — Pasada visual, segundo lote de 6 pantallas (worktree `feature-ui-parity-pass`)
 
 **Qué se hizo:** se comparó onboarding (rama identity_unavailable), kyc, profile, more,

@@ -144,10 +144,53 @@ checklist.
   pestaña Tarjeta ausente; (G) títulos de header sólidos vs tenues; (H) el móvil añade `Card`
   donde la web no la tiene.
 
-  Pendiente del catálogo (segundo pase, ~16 pantallas): card-info, card-create, query, verify,
-  profile-details/fiscal/security, help-category, help-article, y los stubs movements / statements
-  / notifications / regulatory / report / collateral / business-verification. Mismo método
-  (`?dev=`/`?stub=`); las de datos requieren backend para su segunda vista real.
+  **Tercer lote `2026-09-06` (mismo worktree/método, cobertura completada): card-info, card-create,
+  query, verify, profile-details, profile-security, help-category, help-article,
+  business-verification, regulatory, collateral, report, movements, statements, notifications.**
+  El pane del navegador seguía dando render tiled/timeout con la ventana oculta — se usó
+  `get_page_text` como respaldo fiable. Hallazgos nuevos:
+
+  - **blocker — `VerifyScreen` no tiene el verificador de reporte independiente.** La referencia
+    `/verify` es una herramienta pública: "Pega aquí el archivo que te entregaron… No necesitas una
+    cuenta", con botón "Elegir el archivo del reporte" + textarea "O pega su contenido"
+    (`{ "report": …, "certificate": … }`) + botón "Comprobar". El móvil solo maneja el caso
+    "vengo de la consulta pagada" (prop `sealedReport`); sin ese prop muestra "Nada que comprobar
+    todavía / Genera un reporte sellado desde la consulta pagada". Falta la entrada de archivo /
+    pegar-JSON. Verificar contra `sealClient.ts` si el pegado ya existe en otra ruta.
+  - **visible — `BusinessVerificationScreen`: el móvil agrega un formulario manual
+    nombre+estado;** la referencia (`app/business-verification/page.tsx`) hace el lookup automático
+    del nombre/estado guardados en el perfil fiscal, muestra `(?)`, un skeleton del sello, y CTA
+    "Ver reglas que te afectan". Además la card de caveat de la referencia tiene texto en color
+    (crimson) con "Tu puntaje no depende de esto." en negrita; el móvil la pinta en texto oscuro
+    plano. Decidir: el formulario manual es intencional (el móvil no siempre tiene perfil fiscal,
+    igual que `QueryScreen`) o portar el lookup automático.
+  - **visible — `CardScreen`: la referencia `/cards` llega a un estado vacío limpio**
+    ("Sin tarjetas aún" + icono rosa + "Completar KYC") con `(?)` arriba a la derecha; el móvil se
+    queda en spinner (sin backend) y además tiene un botón back que la referencia no tiene.
+  - **nitpick — `HelpCategoryScreen` / `HelpArticleScreen` agregan un glifo+etiqueta de categoría**
+    ("⌐ Tu score") arriba del título que las páginas de referencia no tienen. El resto en paridad:
+    los badges numerados rosa de "Cómo se hace" y la card rosa "TEN EN CUENTA" coinciden 1:1.
+  - **corrección al hallazgo "títulos tenues" del lote 1:** el tratamiento tenue del título NO es
+    consistente ni en la referencia — `/profile/security` de referencia lo pinta negro sólido.
+    Reclasificar a: "varía; confirmar contra `ScreenHeader.tsx` cuál es el correcto".
+
+  Pantallas que renderizan bien offline y no muestran divergencia estructural fuera de los
+  patrones A–H: `SecurityScreen` (paridad completa, 3 cards incl. "Tus datos"),
+  `NotificationsScreen` (paridad de contenido, mismos chips de marca — Rappi/Nu/Tu Plus+/Puntos
+  Colombia también en la referencia), `ReportScreen`, `StatementsScreen` (pantalla de
+  consentimiento completa), `MovementsScreen` (chrome + filtro segmentado), `RegulatoryScreen`,
+  `CardCreateScreen` ("Revisando tu verificación…").
+
+  Pantallas cuya segunda vista REAL sigue bloqueada por falta de backend/sesión Clerk (solo se vio
+  el chrome/estado de carga): home, score, credit, card-info, personal-data, fiscal-info,
+  movements (lista), statements (resultado), report (resultado), regulatory (lista), collateral,
+  business-verification (resultado del sello), card-create (resultado KYC). `query` y `verify` no
+  tienen ruta equivalente en `creva_finance` (capa demo x402, solo móvil).
+
+  **Cobertura del catálogo: ~30/30 pantallas vistas al menos en chrome. Cero autocertificadas
+  (`[ ]`).** Cierre del bloque pendiente de: (1) decisión sobre los 2 hallazgos blocker/visible
+  con pregunta abierta (verify checker, business-verification form); (2) segunda vista de las ~13
+  pantallas de datos contra un core desplegado con sesión Clerk; (3) Expo Go físico.
 
 - [ ] **2026-09-06 — AUDIT app↔core de `frontend/lib/api.ts`.** Duplicado del bloque superior,
   conservado como recordatorio compacto: la mayoría de métodos ya apunta a endpoints reales del
