@@ -1663,3 +1663,33 @@ con evidencia verificable on-chain. Pendiente cosmético: la aserción del test 
 
 **Dónde queda el pendiente:** bloques nuevos en `docs/plan.md` ("Migración de PWA a app nativa..." y
 "Primer incremento de la migración..."), con el backlog completo de rutas restantes.
+
+## 2026-09-05 — Migración PWA→nativa, segundo incremento: `PersonalDataScreen.tsx` (Solver, local)
+
+**Qué se hizo:**
+- Confirmado con el humano el ritmo: una pantalla por pasada, verificada, no un lote — se sigue
+  la misma disciplina que ya usaba "Paridad móvil, tercera revisión".
+- Construida `PersonalDataScreen.tsx` (nueva), puerto real de
+  `creva_finance/frontend/app/profile/details/page.tsx`: nombres/apellidos/teléfono editables vía
+  `profiles.get()`/`profiles.update()` (`app/lib/api.ts`, cliente ya existía, no se tocó); correo de
+  solo lectura desde `useUser().primaryEmailAddress` (Clerk), mismo criterio de seguridad que el
+  frontend (un token pre-Clerk podría devolver el correo de otra cuenta).
+- `App.tsx`: `step === "profile-details"` pasó de `StubScreen` genérico a `PersonalDataScreen` real.
+- Test nuevo `app/test/unit/profile/personal-data.spec.ts`, mismo patrón de aserciones por fuente
+  que `profile/structure.spec.ts` (sin montar Clerk ni React Native Testing Library).
+- No se creó un componente `Button` compartido nuevo — se siguió la convención ya existente en el
+  proyecto (`Pressable` + `bg-crimson`, patrón de `QueryScreen.tsx`) para no introducir una
+  abstracción que nadie más usa todavía.
+
+**Qué NO se verificó, y por qué:**
+- Resultado visual/nativo (Expo Go, simulador, `expo start --web`) — mismo bloqueo de versión
+  `react-native-web`/NativeWind ya diagnosticado y no resuelto; no se reintentó para no ensanchar
+  el alcance de esta pantalla.
+- Guardado real contra el backend de Creva — no hay credenciales/entorno de ese backend disponibles
+  desde esta sesión de agente (distinto del frontend Next.js, que sí se pudo autenticar con
+  credenciales de prueba suministradas directamente en el chat).
+- No se cerró como definitiva — falta segunda vista antes de mover a Cerrados.
+
+**Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Segundo incremento de la
+migración..."), backlog restante sin tocar: Crédito, Tarjeta, 9 stubs de "Más" (menos "Datos
+personales", ya resuelto), KYC, auth.

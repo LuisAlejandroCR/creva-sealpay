@@ -21,6 +21,7 @@ import { VerifyScreen } from "./features/verify/VerifyScreen";
 import { DashboardScreen } from "./features/dashboard/DashboardScreen";
 import { ProfileScreen } from "./features/profile/ProfileScreen";
 import { DeleteAccountScreen } from "./features/profile/DeleteAccountScreen";
+import { PersonalDataScreen } from "./features/profile/PersonalDataScreen";
 import { HelpScreen } from "./features/help/HelpScreen";
 import { HelpCategoryScreen } from "./features/help/HelpCategoryScreen";
 import { HelpArticleScreen } from "./features/help/HelpArticleScreen";
@@ -248,14 +249,7 @@ function AppFlow() {
       />
     );
   } else if (step === "profile-details") {
-    screen = (
-      <StubScreen
-        title="Datos personales"
-        icon="profile"
-        body={findArticle("datos", "cambiar-mis-datos")?.article.answer}
-        onBack={() => setStep("profile")}
-      />
-    );
+    screen = <PersonalDataScreen onBack={() => setStep("profile")} />;
   } else if (step === "profile-fiscal") {
     screen = <StubScreen title="Información fiscal" icon="fiscal" onBack={() => setStep("profile")} />;
   } else if (step === "profile-security") {

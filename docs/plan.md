@@ -34,11 +34,31 @@ checklist.
     Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
     coordinar (regla de §Colaboración punto 7).
   - Sin pantalla mobile todavía: `movements`, `calculator`, `statements`, `collateral`,
-    `business-verification`, `regulatory`, `report`, `notifications`, `privacy`, `profile/details`,
-    `profile/fiscal`, `profile/security` — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a
-    pantallas reales 1:1 es el grueso de este bloque, no se ha empezado.
+    `business-verification`, `regulatory`, `report`, `notifications`, `privacy`, `profile/fiscal`,
+    `profile/security` — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a pantallas reales
+    1:1 es el grueso de este bloque. `profile/details` ya no está en esta lista: ver el incremento
+    de abajo (`PersonalDataScreen.tsx`, 2026-09-05).
   - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
     evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
+
+- [ ] **2026-09-05 — Segundo incremento de la migración: `PersonalDataScreen.tsx` nueva, reemplaza
+  el `StubScreen` genérico de "Datos personales" (`profile/details`).** Puerto real de
+  `creva_finance/frontend/app/profile/details/page.tsx`: nombres/apellidos/teléfono editables vía
+  `profiles.get()`/`profiles.update()` de `app/lib/api.ts` (ya existía el cliente, no se tocó);
+  correo de solo lectura desde la sesión de Clerk (`useUser().primaryEmailAddress`), mismo criterio
+  que el frontend — el backend todavía acepta tokens pre-Clerk que devolverían el correo de otra
+  cuenta. Estados de carga (`ActivityIndicator`), error y "Cambios guardados" replicados. Sin
+  componente `Button` compartido en el proyecto — se siguió la convención ya existente
+  (`Pressable` + `bg-crimson`, ver `QueryScreen.tsx`) en vez de crear una abstracción nueva.
+  `App.tsx`: `step === "profile-details"` ahora monta `PersonalDataScreen` en vez de `StubScreen`.
+  Test nuevo `app/test/unit/profile/personal-data.spec.ts` (mismo patrón de aserciones por fuente
+  que `profile/structure.spec.ts`, sin montar Clerk). `tsc --noEmit` limpio, `npx jest` verde
+  (42/42 suites, 179/179 tests — antes 41/176).
+  **No se verificó:** el resultado nativo/visual — mismo bloqueo de `react-native-web` vs.
+  NativeWind que el resto de esta migración; tampoco se probó el guardado contra un backend real
+  (no hay credenciales/entorno de backend de Creva disponibles desde esta sesión de agente, distinto
+  del frontend Next.js que sí se pudo autenticar). **No autocertificada como cerrada** — falta
+  segunda vista.
 
 - [ ] **2026-09-05 — Primer incremento de la migración: `DeleteAccountScreen.tsx` ganó paridad real
   con `/profile/delete-account`, confirmado visualmente vía sesión autenticada real en el
