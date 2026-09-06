@@ -261,7 +261,13 @@ function AppFlow() {
   } else if (step === "score") {
     screen = <ScoreScreen onOpenQuery={() => setStep("query")} />;
   } else if (step === "credit") {
-    screen = <CreditScreen onOpenVerify={() => setStep("verify")} />;
+    screen = (
+      <CreditScreen
+        onOpenVerify={() => setStep("verify")}
+        onOpenKyc={() => setStep("kyc")}
+        onOpenStatements={() => openStub("statements", "credit")}
+      />
+    );
   } else if (step === "card-info") {
     screen = <CardScreen onBack={() => setStep("home")} />;
   } else if (step === "query") {

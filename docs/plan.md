@@ -93,7 +93,25 @@ checklist.
     57 suites / 253 tests. Prefill de email/nombre desde `useUser()` de Clerk + `profiles.get()`.
     **No se verificó:** `kyc.apply`/`kyc.status` contra `/kyc/*` real (sin backend), ni el retorno
     del `WebBrowser` tras completar la verificación externa.
-  - `credit` — pendiente.
+  - **`credit` — hecho.** `CreditScreen.tsx` reconstruida del stub mínimo ("Próximamente") al
+    flujo completo de `app/credit/page.tsx`: gate de contacto (enlace de correo vía
+    `auth.forgotPassword` + verificación de teléfono con código vía
+    `auth.sendPhoneCode`/`verifyPhoneCode`), la petición de 4 pasos, las opciones con cada
+    criterio del match visible (`FactorMark` → círculo ✓/!), y las 4 ramas de resultado
+    (ok/insufficient_data/no_match/not_eligible) + la elección con gate de KYC opcional
+    (`credit.select`/`updateSelection`). `CreditRequestForm.tsx` nuevo — puerto de
+    `components/credit/RequestForm.tsx` (532 líneas): 4 pasos (negocio / ingresos 3 meses /
+    gastos 3 meses / solicitud), prefill de `profiles.getFiscal()` + `declarations.latest()`,
+    salto directo al paso 4 si la última declaración cubre los 3 meses actuales, guarda
+    `profiles.updateFiscal` + `declarations.create` antes de `onSubmit`. `<Chip>` del frontend →
+    `ChipRow` local (pressables redondeados en `flex-wrap`); `<Consent>` → checkbox pressable.
+    `App.tsx`: `CreditScreen` ahora recibe `onOpenKyc` (→ paso `"kyc"`) y `onOpenStatements`
+    (→ `openStub("statements", "credit")`); se conservó `onOpenVerify` (el puente a VerifyScreen).
+    Test nuevo `app/test/unit/credit/structure.spec.ts`. `tsc` limpio; `jest` 60 suites / 270 tests.
+    **Fuera de alcance:** el `DemoOverlay`, el header con barra de progreso `step 5/6` visual
+    (se puso "Paso N de 6" en texto), y el `RequestForm` no usa `Field`/`FieldGroup`/`ScreenHeader`
+    del frontend (no existen en la app). **No se verificó:** ninguno de los endpoints de crédito
+    contra el backend real (sin credenciales).
   - `card` — pendiente.
   - **Fix aparte (no era del inventario):** `MoreSheet.tsx` — `w-[calc(50%-4px)]` en la celda no lo
     evalúa NativeWind, dejaba la celda sin ancho y ocultaba la etiqueta (reportado con captura por

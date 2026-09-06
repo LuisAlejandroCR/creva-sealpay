@@ -2373,3 +2373,36 @@ form.
 **Dónde queda el pendiente:** las 3 pantallas de Ayuda quedan al nivel de la web. Siguientes:
 `credit`, `card`, business form. El bloque de coordinación de `app/features/help/**` sigue abierto
 hasta la segunda vista visual.
+
+## 2026-09-06 — Migración: `credit` reconstruida al flujo completo (Solver, cloud)
+
+**Qué se hizo:**
+- `CreditScreen.tsx`: del stub mínimo ("Próximamente" + link a VerifyScreen) al puerto completo de
+  `creva_finance/frontend/app/credit/page.tsx`: gate de contacto (email link + phone OTP), petición
+  de 4 pasos, opciones con match explicado (cada criterio visible, `FactorMark` → círculo ✓/!), las
+  4 ramas de estado, y la elección con gate de KYC opcional. Endpoints reales:
+  `credit.eligibility/recommend/select/updateSelection`, `auth.sendPhoneCode/verifyPhoneCode/me/
+  forgotPassword`, `profiles.get`.
+- `CreditRequestForm.tsx` nuevo — puerto de `components/credit/RequestForm.tsx` (532 líneas): 4
+  pasos, prefill de `profiles.getFiscal()` + `declarations.latest()`, salto al paso 4 si la
+  declaración cubre los 3 meses actuales, guarda `profiles.updateFiscal` + `declarations.create`
+  antes de `onSubmit`. `<Chip>` → `ChipRow` local; `<Consent>` → checkbox pressable.
+- `App.tsx`: `CreditScreen` recibe `onOpenKyc` (paso `"kyc"`) y `onOpenStatements`
+  (`openStub("statements", "credit")`); `onOpenVerify` conservado.
+- Test nuevo `app/test/unit/credit/structure.spec.ts` (unit — mismo método que las 13; el
+  unit+fuzz+invariant que pidió Main es para el business form).
+
+**Desviaciones / fuera de alcance:**
+- `DemoOverlay` no portado. Barra de progreso `step N/6` del `ScreenHeader` → texto "Paso N de 6".
+- `Field`/`FieldGroup`/`ScreenHeader`/`Chip`/`Consent` del frontend no existen en la app — se usó
+  `TextField`/`SelectField` compartidos + primitivas locales.
+
+**Qué NO se verificó, y por qué:**
+- Ningún endpoint de crédito contra el backend real de Creva — sin credenciales; la forma de
+  `CreditRecommendationResult`/`CreditMatch`/`CreditProfile` se tomó de `app/lib/api.ts` (ya
+  portado), no se confirmó contra el servicio.
+- Render nativo/visual — el humano tiene el simulador; certificación es de la sesión 2.
+- `tsc --noEmit` limpio. `jest` full-run: 60 suites / 270 tests. Baseline tras Ayuda: 59 / 261.
+
+**Dónde queda el pendiente:** bloque "Migración: últimas 4 pantallas" en `docs/plan.md`.
+Siguientes: `card`, business form.
