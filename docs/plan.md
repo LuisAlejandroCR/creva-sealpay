@@ -17,6 +17,19 @@ checklist.
 
 ## Abiertos
 
+- [ ] **2026-09-06 — COORDINACIÓN: `app/features/help/**` reasignado a la sesión "1 UI/UX"
+  (`feature-last-screens-parity`).** El humano lo reasignó el 2026-09-06 tras comparar las
+  pantallas de Ayuda nativas contra la web y verlas a medio construir. Sale del área
+  `codex/mobile-parity-help` — ese worktree Codex **no debe editar `app/features/help/**` mientras
+  este bloque esté abierto** (regla §Colaboración punto 7). Se avisó al Main orchestrator por
+  mensaje. Gap concreto: `HelpArticleScreen.tsx` (50 líneas) vs
+  `creva_finance/frontend/app/help/[category]/[article]/page.tsx` (105) — faltan la sección "Cómo
+  se hace" con `Steps`, la card "Ten en cuenta" (`surface-2`), el botón CTA `resolvedBy` (va a la
+  pantalla que resuelve la duda), la lista "Otras de este tema" (`relatedArticles`), el footer, y
+  usa `<View>` en vez de `<ScrollView>`. `HelpScreen`/`HelpCategoryScreen` con huecos análogos
+  (tiles "Lo que más se pregunta", descripciones por tema). `app/lib/help-content.ts` ya está
+  portado — es port de contenido, mismo método que las 13.
+
 - [ ] **2026-09-06 — `QueryScreen` no tiene form de datos del negocio: el flujo "Comprobar
   un reporte" manda un `BUSINESS_NAME` hardcodeado a `/creva-score/report`.**
   `app/features/query/QueryScreen.tsx:31` y `:58` llaman `requestSignal({ businessName:
