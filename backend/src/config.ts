@@ -30,6 +30,29 @@ export const config = {
   arcSignerPrivateKey: process.env.ARC_SIGNER_PRIVATE_KEY,
   registryAddress: process.env.REGISTRY_ADDRESS,
   subgraphUrl: process.env.SUBGRAPH_URL,
+
+  // ── Private business-logic service (creva-business-logic) ──────────────────
+  // The deployed Creva core for score / creva-score / classification / recommendations /
+  // collateral / calculator / declarations. Replaces the old proxy to creva_finance on Cloud
+  // Run for what this service owns. Missing means those routes degrade to "unavailable".
+  businessLogicUrl: process.env.BUSINESS_LOGIC_URL,
+  // Fixed service bearer, compared with timingSafeEqual on the service side. Personal-data
+  // context travels separately in the X-User-Id header — never inferred from this token.
+  coreServiceToken: process.env.CORE_SERVICE_TOKEN,
+
+  // ── Clerk (backend validates the mobile app's session token itself) ────────
+  // Either the JWKS URL or the issuer is enough — the well-known path derives from the issuer.
+  clerkJwksUrl: process.env.CLERK_JWKS_URL,
+  clerkIssuer: process.env.CLERK_ISSUER,
+  // Checked only when set; see core-safe/clerk/clerk-token-verifier.ts header.
+  clerkAuthorizedParty: process.env.CLERK_AUTHORIZED_PARTY,
+  // Svix signing secret (whsec_...) for POST /webhooks/clerk. Missing => the route refuses every delivery.
+  clerkWebhookSecret: process.env.CLERK_WEBHOOK_SECRET,
+
+  // ── Supabase (SAME project as creva_finance — clerk_identities lives there) ─
+  supabaseUrl: process.env.SUPABASE_URL,
+  supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
 };
 
 // Secret env-var names routed through the Key Ring. Kept as env names (not config
@@ -41,6 +64,9 @@ const SECRET_ENV_KEYS = [
   "HEDERA_PAYER_PRIVATE_KEY",
   "WORLD_API_KEY",
   "ARC_SIGNER_PRIVATE_KEY",
+  "CORE_SERVICE_TOKEN",
+  "CLERK_WEBHOOK_SECRET",
+  "SUPABASE_SERVICE_ROLE_KEY",
 ] as const;
 
 /**
@@ -63,6 +89,9 @@ export async function hydrateSecrets(): Promise<string[]> {
   config.facilitatorAuthToken = process.env.FACILITATOR_AUTH_TOKEN;
   config.worldApiKey = process.env.WORLD_API_KEY;
   config.arcSignerPrivateKey = process.env.ARC_SIGNER_PRIVATE_KEY;
+  config.coreServiceToken = process.env.CORE_SERVICE_TOKEN;
+  config.clerkWebhookSecret = process.env.CLERK_WEBHOOK_SECRET;
+  config.supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   return fromRing;
 }
 
