@@ -2470,3 +2470,34 @@ integrar `feature-last-screens-parity`; off `main` 7638dbb):**
 
 **Dónde queda el pendiente:** commit en el worktree, sin push (instrucción del Main). Reporte del
 commit block al Main; puede ir directo al Solver.
+
+## 2026-09-06 — Fixes de la primera pasada visual de la sesión 2 (Solver, cloud) — `feature-visual-fixes-1`
+
+**Qué se hizo (off `main` 29b635f; el bloqueo de render `react-native-web` se resolvió y la sesión
+2 corrió el side-by-side de 24 pantallas — ~22 hallazgos; se aplicaron los VISIBLE + NITPICK, el
+bug de iconos negros ya lo había arreglado la migración):**
+- `SelfieCheckScreen.tsx`: CTAs `bg-text` → `bg-crimson`; helper `CenteredState` para poner
+  `BackButton` top-left en vez de flotando centrado (idle/failed/identity_unavailable/verifying).
+- `DashboardScreen.tsx`: `Hola` → `Hola,`; inputs de `buildReminders` para crédito/estados de
+  cuenta de valores fabricados a `null` — sin API real detrás no se inventa un pending count; la
+  campana no muestra badge y `mainAction` cae al fallback del ref.
+- `FormField.tsx` (`SegmentedField` compartido): `numberOfLines={1}` + `px-1` + `text-[13px]` para
+  que no recorte a 375px (reportado en `MovementsScreen`).
+- `QueryScreen.tsx`: "Creva SealPay" → "Creva" (marca inventada, no existe en el frontend).
+- `MoreSheet.tsx` + `App.tsx`: botón "Cerrar" nuevo (`onClose` → `home`).
+- `DeleteAccountScreen.tsx`: "Eliminar mi cuenta" → "Eliminar tu cuenta" + subtítulo del ref.
+- Tests: `test/unit/visual-fixes-1.spec.ts` (9), `test/invariant/dashboard-bell-honest.invariant.spec.ts`.
+
+**Qué NO se verificó / desviaciones:**
+- No hay screenshots before/after — sin dev server corriendo en esta sesión; los fixes son por
+  código + cita `file:line` del frontend. La verificación visual la re-hace la sesión 2.
+- `ScoreScreen` se dejó abierto (Main lo tiene en hold por el trabajo de `/score` del gateway).
+- `SegmentedField` es compartido — el cambio de fuente 14→13px afecta también a Statements,
+  BusinessVerification y CreditRequestForm; es una mejora neutral (labels cortas), no un cambio de
+  diseño.
+- `tsc --noEmit` limpio. `jest` full-run: 66 suites / 300 tests (corrida limpia; los 2 flakes
+  `auth-gate`/`help-search` aparecen bajo carga). Base de la rama: 64 suites / 290.
+
+**Dónde queda el pendiente:** commit en el worktree, sin push (instrucción del Main). El bloque
+"segunda vista visual" en `docs/plan.md` §Abiertos se actualizó con la lista de fixes + lo que
+sigue abierto (ScoreScreen, side-by-side nativo).

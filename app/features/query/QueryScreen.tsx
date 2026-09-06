@@ -100,7 +100,7 @@ export function QueryScreen({ onVerify, onBack }: { onVerify: (result: QueryResu
       <ScrollView className="flex-1" contentContainerClassName="px-6 pb-10 pt-6">
       {onBack ? <BackButton onPress={onBack} /> : null}
       <View className="mb-8">
-        <Text className="text-xs font-bold uppercase text-text/60">Creva SealPay</Text>
+        <Text className="text-xs font-bold uppercase text-text/60">Creva</Text>
         <Text className="mt-2 text-3xl font-bold text-text">Consulta pagada</Text>
         <Text className="mt-2 text-base leading-6 text-text/70">
           Consulta señales públicas del negocio, liquida el reto x402 y entrega un reporte sellado.

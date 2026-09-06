@@ -136,6 +136,27 @@ checklist.
   cuando se resuelva el bloqueo de render — owner sesión 2; (2) alcance de `credit`/`card`/`kyc`/
   `auth` a decidir con el humano; (3) el gateway no expone `/score` todavía; (4) `kyc`/`welcome`/
   `auth/callback` sin evaluar contra su equivalente mobile.
+  **Actualización 2026-09-06 — el bloqueo de render se resolvió; primera pasada visual de la
+  sesión 2 hecha (~22 hallazgos).** Fixes VISIBLE + NITPICK aplicados en
+  `feature-visual-fixes-1` (off `main` 29b635f, sin push):
+  - `SelfieCheckScreen`: CTAs `bg-text` (negro) → `bg-crimson`; `BackButton` sale del contenedor
+    centrado a top-left vía un helper `CenteredState` (como QueryScreen/VerifyScreen).
+  - `DashboardScreen`: saludo `Hola` → `Hola,` con coma (ref `dashboard/page.tsx:199`); los inputs
+    de `buildReminders` para crédito/estados de cuenta pasan de valores fabricados
+    (`creditEligible: true`, `statementCount: 2`) a `null` — sin datos reales no se inventa un
+    conteo, la campana no muestra badge y `mainAction` cae al fallback honesto "Mira qué mueve tu
+    score" (ref `dashboard/page.tsx:188-189`).
+  - `MovementsScreen` / `SegmentedField` compartido: `numberOfLines={1}` + `px-1` + `text-[13px]`
+    para que las etiquetas no recorten el control a 375px.
+  - `QueryScreen`: "Creva SealPay" (marca inventada) → "Creva".
+  - `MoreSheet`: botón "Cerrar" nuevo (`onClose` → `home`), como el `BottomSheet` del frontend.
+  - `DeleteAccountScreen`: título "Eliminar mi cuenta" → "Eliminar tu cuenta" + subtítulo del ref
+    (`delete-account/page.tsx:30-31`).
+  Tests: `test/unit/visual-fixes-1.spec.ts` + `test/invariant/dashboard-bell-honest.invariant.spec.ts`.
+  `tsc` limpio; `jest` 66 suites / 300 tests.
+  **Sigue abierto:** `ScoreScreen` (necesita trabajo de `/score` en el gateway — en revisión con el
+  humano); el render nativo lado a lado de todo (owner sesión 2); los hallazgos de sesión 2 más
+  allá de VISIBLE/NITPICK si los hubiera.
 
 - [ ] **2026-09-05 — `facilitator.ts` no envuelve su `fetch` en try/catch: un facilitador
   caído tumba el proceso del gateway entero, no solo la request.** Sobrevive del bloque de abajo

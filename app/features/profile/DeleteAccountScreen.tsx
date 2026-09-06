@@ -37,7 +37,10 @@ export function DeleteAccountScreen({ onBack, onOpenPrivacy }: DeleteAccountScre
     <SafeAreaView className="flex-1 bg-bg" edges={["top", "bottom"]} testID="delete-account-screen">
       <View className="px-6 pb-10 pt-6">
         <BackButton onPress={onBack} />
-        <Text className="text-3xl font-bold text-text">Eliminar mi cuenta</Text>
+        <Text className="text-3xl font-bold text-text">Eliminar tu cuenta</Text>
+        <Text className="mb-2 mt-1 text-sm leading-5 text-text/60">
+          Se puede, y aquí está cómo. No es un botón porque no se puede deshacer.
+        </Text>
 
         <Section>
           <Card>

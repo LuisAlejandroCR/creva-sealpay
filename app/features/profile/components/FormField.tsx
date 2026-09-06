@@ -130,12 +130,15 @@ export function SegmentedField({
             <Pressable
               key={option.value}
               onPress={() => onChange(option.value)}
-              className={`flex-1 items-center py-2.5 ${active ? "bg-crimson" : "bg-surface-1"} ${
+              className={`flex-1 items-center px-1 py-2.5 ${active ? "bg-crimson" : "bg-surface-1"} ${
                 index > 0 ? "border-l border-text/10" : ""
               }`}
               testID={testID ? `${testID}-${option.value}` : undefined}
             >
-              <Text className={`text-sm font-semibold ${active ? "text-white" : "text-text/70"}`}>
+              <Text
+                numberOfLines={1}
+                className={`text-[13px] font-semibold ${active ? "text-white" : "text-text/70"}`}
+              >
                 {option.label}
               </Text>
             </Pressable>
