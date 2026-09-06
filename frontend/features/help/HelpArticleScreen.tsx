@@ -15,6 +15,7 @@ export interface HelpArticleScreenProps {
   onBack: () => void;
   onOpenArticle: (article: HelpArticle) => void;
   onResolve: (href: string) => void;
+  onOpenIndex: () => void;
 }
 
 export function HelpArticleScreen({
@@ -23,6 +24,7 @@ export function HelpArticleScreen({
   onBack,
   onOpenArticle,
   onResolve,
+  onOpenIndex,
 }: HelpArticleScreenProps) {
   const related = relatedArticles(category.slug, article.slug);
 
@@ -100,8 +102,11 @@ export function HelpArticleScreen({
         ) : null}
 
         <Text className="text-xs leading-4 text-text/50">
-          ¿No era esto? <Text className="font-semibold text-crimson">Busca en toda la ayuda</Text> con
-          una palabra suelta. Para lo que tenga que ver con tus datos personales, el correo es
+          ¿No era esto?{" "}
+          <Text className="font-semibold text-crimson" onPress={onOpenIndex} testID="help-article-search-all">
+            Busca en toda la ayuda
+          </Text>{" "}
+          con una palabra suelta. Para lo que tenga que ver con tus datos personales, el correo es
           privacidad@finarahub.mx.
         </Text>
       </ScrollView>

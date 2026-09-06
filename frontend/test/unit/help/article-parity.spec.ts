@@ -26,6 +26,12 @@ describe('HelpArticleScreen parity with the web reference', () => {
     expect(screen).toContain('privacidad@finarahub.mx')
   })
 
+  it('the "Busca en toda la ayuda" footer link navigates to the index, like the web <Link href="/help">', () => {
+    expect(screen).toMatch(/onPress=\{onOpenIndex\}/)
+    expect(screen).toContain('help-article-search-all')
+    expect(app).toMatch(/onOpenIndex=\{\(\) => setStep\("help"\)\}/)
+  })
+
   it('the resolvedBy CTA and related rows navigate through App.tsx, never dead-end', () => {
     expect(screen).toMatch(/onResolve\(article\.resolvedBy\.href\)/)
     expect(screen).toMatch(/onOpenArticle\(other\)/)

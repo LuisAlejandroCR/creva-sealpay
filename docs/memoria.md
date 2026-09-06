@@ -50,6 +50,84 @@ las notas de la sesión 5 + `creva-score.controller.ts:21` del plan §1.4).
 
 **Rama `feature-backend-slice2` off `origin/main` `292625c`, commit en worktree, NO pusheada**
 (agente local). Modelo B: el Main mergea.
+## 2026-09-06 — Pasada visual, tercer lote (cobertura ~30/30 completada) (worktree `feature-ui-parity-pass`)
+
+**Qué se hizo:** se completó el walk — card-info, card-create, query, verify, profile-details,
+profile-security, help-category, help-article, business-verification, regulatory, collateral,
+report, movements, statements, notifications. El override `?dev=`/`?stub=` se amplió con `?cat=` /
+`?cat=&art=` para poder llegar a help-category/help-article sin navegar (revertido antes de
+commitear; el diff commiteado es solo docs). El pane del navegador siguió fallando con la ventana
+oculta → se usó `get_page_text` como respaldo.
+**Hallazgos nuevos fuertes:** (1) `VerifyScreen` no tiene el verificador de reporte independiente
+que la referencia `/verify` sí tiene (subir archivo / pegar JSON, sin cuenta) — solo funciona como
+continuación de la consulta pagada. (2) `BusinessVerificationScreen` agrega un formulario manual
+nombre+estado donde la referencia hace lookup automático del perfil fiscal. Ambos con pregunta
+abierta (¿intencional?). También: `CardScreen` sin estado vacío alcanzable offline (la referencia
+sí), help-category/article agregan un glifo de categoría que la referencia no tiene.
+**Correcciones a lotes previos:** el hallazgo "títulos de header tenues vs sólidos" no es
+consistente ni en la referencia (`/profile/security` de referencia = negro sólido) → reclasificado
+a "varía, confirmar contra `ScreenHeader.tsx`".
+**Qué NO se verificó:** la segunda vista REAL de ~13 pantallas de datos (necesitan core desplegado
++ sesión Clerk); Expo Go físico. Nada autocertificado (`[ ]`, no `[x]`).
+**Dónde queda:** bloque abierto "segunda vista visual" con catálogo de 3 lotes + 8 patrones
+transversales + condiciones de cierre.
+
+## 2026-09-06 — Pasada visual, segundo lote de 6 pantallas (worktree `feature-ui-parity-pass`)
+
+**Qué se hizo:** se comparó onboarding (rama identity_unavailable), kyc, profile, more,
+delete-account, calculator (Expo web `:3002` vs `:3001`, 375x812, mismo override `?dev=`/`?stub=`
+temporal, revertido antes de commitear). Hallazgos añadidos al catálogo en `docs/plan.md` y un
+consolidado de 8 patrones transversales (A–H) para no repetir por pantalla.
+**Hallazgo nuevo más fuerte:** `DeleteAccountScreen` está reestructurado, no portado — la
+referencia tiene dos secciones con encabezado ("Qué se borra" / "Cómo se pide") y el móvil las
+condensa. Requiere decisión (¿intencional?). También: filas de menú de Perfil sin badge de icono
+(inconsistente con Help), avatar circular vs cuadrado, spinner vs skeleton en carga, celdas de
+MoreSheet sobredimensionadas.
+**Qué NO se verificó:** ~16 pantallas restantes (card, query, verify, profile-details/fiscal/
+security, help-category/article, stubs movements/statements/notifications/regulatory/report/
+collateral/business-verification). El pane del navegador empezó a fallar (ventana oculta →
+render tiled/timeout) al final del lote. Nada autocertificado.
+**Dónde queda:** mismo bloque abierto "segunda vista visual", lista de pendientes actualizada.
+
+## 2026-09-06 — Pasada visual render-vs-render, primer lote de 6 pantallas (worktree `feature-ui-parity-pass`)
+
+**Qué se hizo:** Expo web en `:3002` (sin `CI=1`, si no Metro no rebundlea) contra
+`creva_finance/frontend` en `:3001` (server de la sesión 2, read-only), viewport 375x812. El
+bloqueo de render está resuelto: `react-native-web ^0.21.2` ya vive en `main`. Para saltar el gate
+de Clerk sin sesión real se usó un override temporal en `App.tsx` (`?dev=<step>` / `?stub=<key>`),
+**revertido antes de commitear** (el diff commiteado es solo `docs/plan.md`). Se compararon limpio
+6 pantallas: sign-in, home, score, credit, help índice, privacy. Catálogo rankeado en
+`docs/plan.md` bajo el bloque "segunda vista visual".
+**Hallazgo principal:** la app móvil no carga ninguna fuente (`App.tsx` sin `useFonts`,
+`tailwind.config.js` sin `fontFamily`); la referencia corre Manrope + Montserrat en todo. Es la
+causa raíz de que cada encabezado/párrafo se vea distinto. Otros: el móvil mete `Card` blancas
+donde la web no las tiene (gauge de score, lista de temas de Ayuda); `(?)`/back cambiados; chevron
+de texto vs icono; "Tarjeta" sin "PRONTO" en el nav.
+**Qué NO se verificó:** ~20 pantallas restantes (onboarding, kyc, card, query, verify, profile*,
+delete-account, help-category/article, more, stubs). Las de datos (home/score/credit/card/
+movements/statements/report/regulatory/business-verification/personal-data) sin backend caen a
+spinner/error — su segunda vista real necesita sesión Clerk contra un core desplegado. Nada del
+catálogo está autocertificado (`[ ]`, no `[x]`).
+**Dónde queda:** bloque abierto "Paridad móvil: segunda vista visual pendiente" en `docs/plan.md`,
+con método (`?dev=`/`?stub=`) y lista de pendientes.
+
+## 2026-09-06 — Paridad de Ayuda: cierre funcional + arranque de la pasada visual (worktree `feature-ui-parity-pass`)
+
+**Qué se hizo:** se auditó `frontend/features/help/**` contra `creva_finance/frontend/app/help/**`
+(read-only). Las 3 pantallas ya estaban portadas fieles y en `main`, con 5 specs
+(`test/unit/help/*`); los ~14 `resolvedBy.href` distintos ya están mapeados en `App.tsx`. Único gap
+real: el footer "Busca en toda la ayuda" de `HelpArticleScreen` no navegaba (era `Text` sin
+`onPress`) — se agregó prop `onOpenIndex`, cableado a `setStep("help")` en `App.tsx`, espejo del
+`<Link href="/help">` de la referencia. Spec ampliada en `article-parity.spec.ts`.
+**Qué NO se verificó:** render nativo / comparación visual lado a lado de Ayuda (bloqueo
+`react-native-web`/NativeWind del repo); Expo web propio en `:3002` aún no levantado.
+**Pendiente:** bloque abierto "Paridad móvil: segunda vista visual pendiente" — arrancar el walk
+render-vs-render de ~30 pantallas a 375x812 contra `localhost:3001` (server de la sesión 2).
+**Entorno:** `frontend/.env.local` dummy creado (`EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxx`,
+gitignored, nunca commiteado). VERIFY: `tsc` limpio; `jest --runInBand` 85 suites / 387 tests
+(1 flake `auth/auth-gate` documentado, 5/5 aislado).
+**Nota de integración (Modelo B):** branch off `833e568`; `origin/main` ya está en `292625c`
+(merge de backend sesión 6). Main reconcilia `docs/plan.md` + `docs/memoria.md` al mergear.
 
 ## 2026-09-06 — Limpieza de estilo en Markdown
 ## 2026-09-06 — Auth Clerk + infra segura del core a `backend/`, proxy de scoring al servicio privado (worktree `feature-backend-core-infra`, agente local)

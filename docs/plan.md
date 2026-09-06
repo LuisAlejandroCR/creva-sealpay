@@ -43,13 +43,6 @@ checklist.
   Pendiente: crear app Privy, instalar SDK, configurar env vars y cablear `makePrivySigner`.
   VERIFY registrado: `tsc` limpio; Jest 68 suites / 300 tests.
 
-- [ ] **2026-09-06 — Coordinación de Ayuda (`frontend/features/help/**`).** Decisión tomada:
-  Ayuda sale del worktree `codex/mobile-parity-help` y queda en la sesión UI/UX.
-  Hecho: `HelpArticleScreen`, `HelpCategoryScreen` y `HelpScreen` reconstruidas al nivel web con
-  búsqueda, pasos, CTA, relacionadas y rutas nativas.
-  Pendiente: cerrar el bloque cuando la rama UI/UX se integre o se descarte.
-  VERIFY registrado: `tsc` limpio; Jest 59 suites / 261 tests.
-
 - [ ] **2026-09-06 — Migración: últimas 4 pantallas (`feature-last-screens-parity`).** Decisión
   tomada: portar `auth`, `kyc`, `credit` y `card` completos, no mantener stubs mínimos.
   Hecho: `SignInScreen`, `KycFormScreen`, flujo completo de crédito, tarjeta virtual/creación y
@@ -69,6 +62,135 @@ checklist.
   marca "Creva", cierre de `MoreSheet` y copy de borrado.
   Pendiente: segunda vista pantalla por pantalla y Expo Go físico; no afirmar paridad visual final
   hasta cerrar esa revisión.
+
+  **Pasada visual `2026-09-06` (`feature-ui-parity-pass`, render-vs-render 375x812, Expo web
+  `:3002` vs `creva_finance/frontend` `:3001`).** Bloqueo de render RESUELTO: `react-native-web`
+  `^0.21.2` ya está en `main`, el bundle web arranca. Método: override temporal NO commiteado en
+  `App.tsx` (`?dev=<step>` / `?stub=<key>`) para saltar el gate de Clerk sin sesión real —
+  revertido antes del commit. Limitación: sin backend vivo, las pantallas con datos (home, score,
+  credit, card, movements, statements, report, regulatory, business-verification, personal-data)
+  caen a spinner/error; su segunda vista real necesita una sesión Clerk contra un core desplegado.
+  Pantallas comparadas limpio esta pasada: sign-in, home, score, credit, help (índice), privacy.
+  Hallazgos rankeados (NO autocertificados, sin `[x]`, catálogo — no se arregló nada salvo lo ya
+  hecho en el lote de Ayuda):
+
+  - **blocker — tipografía: la app móvil no carga ninguna fuente.** `App.tsx` no tiene
+    `useFonts`/`expo-font`, `tailwind.config.js` `extend` no tiene `fontFamily`. La referencia
+    corre **Manrope** en todo el cuerpo (`--font-inter`, aliased en `app/layout.tsx:6-21`) +
+    **Montserrat** en `.cr-name`/display (`--font-playfair`, `tailwind.config.ts:51-53`,
+    `globals.css:441`). En móvil todo el texto sale en la fuente del SO → cada encabezado y
+    párrafo se ve distinto. Fuente: `creva_finance/frontend/app/layout.tsx:6`,
+    `creva_finance/frontend/tailwind.config.ts:51`.
+  - **visible — el móvil envuelve listas/gauges en `Card` blancas que la referencia renderiza sin
+    tarjeta.** ScoreScreen: el gauge va dentro de un `Card` con sombra; en `app/score/page.tsx` el
+    ring va directo sobre el fondo. HelpScreen "Entra por tema": lista dentro de `Card`; en
+    `app/help/page.tsx:38-50` los `MenuRow` van sueltos con divisores y el badge de icono cuelga
+    en el margen. Fuente: `creva_finance/frontend/app/score/page.tsx:106`,
+    `creva_finance/frontend/app/help/page.tsx:38`.
+  - **visible — botón "Ayuda"/`(?)` ausente o cambiado.** ScoreScreen referencia: botón circular
+    `(?)` arriba a la derecha junto al back (`app/score/page.tsx:95-102`); móvil lo cambia por un
+    link de texto "Ayuda sobre tu score" bajo el subtítulo. HelpScreen referencia tiene back arriba
+    a la izquierda (`ScreenHeader backHref="/profile"`); la `HelpScreen.tsx` móvil no tiene back
+    (se llega por tab, pero desde Perfil/MoreSheet queda sin salida salvo el tab bar).
+  - **visible — chevron de fila.** Referencia usa un chevron `>` (glifo de icono) en filas de menú
+    y "Sigue por aquí"; móvil usa `›` (U+203A, carácter de texto, más fino) o nada (ScoreScreen
+    "Sigue por aquí" sin chevron). Fuente: `creva_finance/frontend/app/score/page.tsx:170-176`.
+  - **visible — bottom nav "Tarjeta" sin sublabel "PRONTO".** Referencia marca la pestaña Tarjeta
+    con "PRONTO" debajo (`components/BottomNav.tsx`); el `TABS` de `App.tsx:89` no pone
+    `disabled`/PRONTO. Verlo contra el estado real de tarjeta antes de fijarlo.
+  - **nitpick — encabezados más chicos y pegados al top en móvil.** "Aviso de Privacidad" ~32px
+    pegado al back; referencia ~40px con más aire arriba. Recurrente en todas las pantallas con
+    header propio.
+  - **nitpick — el cuerpo de texto móvil envuelve antes** (subtítulo de HelpScreen a 3 líneas vs
+    2 en referencia) — revisar escala de texto global / ancho de contenedor (`px-6`).
+  - **nitpick — bullets de lista.** PrivacyScreen móvil antepone "• " manual con sangría colgante;
+    la referencia usa lista CSS sin viñeta visible.
+
+  **Segundo lote `2026-09-06` (mismo worktree/método): onboarding, kyc, profile, more,
+  delete-account, calculator.** Hallazgos nuevos:
+
+  - **visible — filas de menú sin badge de icono en Perfil.** `ProfileScreen` móvil pinta los
+    iconos (Datos personales / Info fiscal / Seguridad / Avisos / Ayuda) sin fondo; la referencia
+    (`app/profile/page.tsx`) los mete en un badge rosa `rounded-2xl` `bg-crimson/10`. Inconsistente
+    incluso dentro del móvil: `HelpScreen` "Entra por tema" SÍ tiene ese badge.
+  - **visible — avatar circular vs cuadrado redondeado.** Perfil móvil: círculo pleno; referencia:
+    `rounded-2xl`. Mismo criterio que el icon badge.
+  - **visible — DeleteAccount reestructurado, no portado.** La referencia
+    (`app/profile/delete-account/page.tsx`) tiene dos secciones con encabezado —"Qué se borra"
+    (card con 5 items) y "Cómo se pide" (card con pasos numerados en badge rosa)—; el móvil las
+    condensa en una card de intro + una card rosa "TEN EN CUENTA" más corta, sin encabezados de
+    sección y con los pasos como texto "1. / 2. / 3." en línea. Además la referencia nombra
+    `privacidad@finarahub.mx` dentro del paso 1; el móvil solo en el botón. Decidir: condensación
+    intencional (pasada 1 tocó "copy de borrado") o portar las dos secciones.
+  - **visible — estados de carga: spinner (móvil) vs skeleton shimmer (referencia).** Confirmado en
+    home, score, credit, kyc, calculator: el móvil muestra un `ActivityIndicator` centrado; la
+    referencia una barra/tarjeta con shimmer rosa. Transversal.
+  - **visible — MoreSheet: celdas sobredimensionadas.** El `NavCell` de la referencia
+    (`components/BottomNav.tsx`) es fila compacta (`minHeight 56`, `padding 10/12`, `fontSize 13`,
+    icono 20); el móvil usa cards más altas con texto ~15px, y varias etiquetas envuelven a 2
+    líneas ("Estados de cuenta", "Sello de tu negocio", "Reglas que te afectan", "Aviso de
+    privacidad"). Contenido y grupos sí coinciden 1:1.
+  - **visible — títulos de header: la referencia los pinta grandes y tenues** (estilo `ScreenHeader`
+    semitransparente en Perfil, DeleteAccount, Privacy); el móvil los pinta negro sólido. Confirmar
+    cuál es el diseño correcto contra `ScreenHeader.tsx`.
+  - **nitpick — botón "Continuar" de `SelfieCheckScreen` (rama identity_unavailable) es
+    `rounded-full` pill;** el resto de la app usa `rounded-xl`.
+  - **nitpick — `kyc` móvil sin bottom nav; la referencia (`/kyc`) sí lo lleva.**
+
+  Consolidado de patrones transversales (aplican a casi todas las pantallas, no repetir por
+  pantalla): (A) sin fuentes propias [blocker]; (B) falta back en pantallas alcanzables por tab
+  (score, help, profile); (C) badge de icono en filas de menú presente en unas pantallas y no en
+  otras; (D) chevron `›` texto vs `>` icono; (E) spinner vs skeleton en carga; (F) "PRONTO" en la
+  pestaña Tarjeta ausente; (G) títulos de header sólidos vs tenues; (H) el móvil añade `Card`
+  donde la web no la tiene.
+
+  **Tercer lote `2026-09-06` (mismo worktree/método, cobertura completada): card-info, card-create,
+  query, verify, profile-details, profile-security, help-category, help-article,
+  business-verification, regulatory, collateral, report, movements, statements, notifications.**
+  El pane del navegador seguía dando render tiled/timeout con la ventana oculta — se usó
+  `get_page_text` como respaldo fiable. Hallazgos nuevos:
+
+  - **blocker — `VerifyScreen` no tiene el verificador de reporte independiente.** La referencia
+    `/verify` es una herramienta pública: "Pega aquí el archivo que te entregaron… No necesitas una
+    cuenta", con botón "Elegir el archivo del reporte" + textarea "O pega su contenido"
+    (`{ "report": …, "certificate": … }`) + botón "Comprobar". El móvil solo maneja el caso
+    "vengo de la consulta pagada" (prop `sealedReport`); sin ese prop muestra "Nada que comprobar
+    todavía / Genera un reporte sellado desde la consulta pagada". Falta la entrada de archivo /
+    pegar-JSON. Verificar contra `sealClient.ts` si el pegado ya existe en otra ruta.
+  - **visible — `BusinessVerificationScreen`: el móvil agrega un formulario manual
+    nombre+estado;** la referencia (`app/business-verification/page.tsx`) hace el lookup automático
+    del nombre/estado guardados en el perfil fiscal, muestra `(?)`, un skeleton del sello, y CTA
+    "Ver reglas que te afectan". Además la card de caveat de la referencia tiene texto en color
+    (crimson) con "Tu puntaje no depende de esto." en negrita; el móvil la pinta en texto oscuro
+    plano. Decidir: el formulario manual es intencional (el móvil no siempre tiene perfil fiscal,
+    igual que `QueryScreen`) o portar el lookup automático.
+  - **visible — `CardScreen`: la referencia `/cards` llega a un estado vacío limpio**
+    ("Sin tarjetas aún" + icono rosa + "Completar KYC") con `(?)` arriba a la derecha; el móvil se
+    queda en spinner (sin backend) y además tiene un botón back que la referencia no tiene.
+  - **nitpick — `HelpCategoryScreen` / `HelpArticleScreen` agregan un glifo+etiqueta de categoría**
+    ("⌐ Tu score") arriba del título que las páginas de referencia no tienen. El resto en paridad:
+    los badges numerados rosa de "Cómo se hace" y la card rosa "TEN EN CUENTA" coinciden 1:1.
+  - **corrección al hallazgo "títulos tenues" del lote 1:** el tratamiento tenue del título NO es
+    consistente ni en la referencia — `/profile/security` de referencia lo pinta negro sólido.
+    Reclasificar a: "varía; confirmar contra `ScreenHeader.tsx` cuál es el correcto".
+
+  Pantallas que renderizan bien offline y no muestran divergencia estructural fuera de los
+  patrones A–H: `SecurityScreen` (paridad completa, 3 cards incl. "Tus datos"),
+  `NotificationsScreen` (paridad de contenido, mismos chips de marca — Rappi/Nu/Tu Plus+/Puntos
+  Colombia también en la referencia), `ReportScreen`, `StatementsScreen` (pantalla de
+  consentimiento completa), `MovementsScreen` (chrome + filtro segmentado), `RegulatoryScreen`,
+  `CardCreateScreen` ("Revisando tu verificación…").
+
+  Pantallas cuya segunda vista REAL sigue bloqueada por falta de backend/sesión Clerk (solo se vio
+  el chrome/estado de carga): home, score, credit, card-info, personal-data, fiscal-info,
+  movements (lista), statements (resultado), report (resultado), regulatory (lista), collateral,
+  business-verification (resultado del sello), card-create (resultado KYC). `query` y `verify` no
+  tienen ruta equivalente en `creva_finance` (capa demo x402, solo móvil).
+
+  **Cobertura del catálogo: ~30/30 pantallas vistas al menos en chrome. Cero autocertificadas
+  (`[ ]`).** Cierre del bloque pendiente de: (1) decisión sobre los 2 hallazgos blocker/visible
+  con pregunta abierta (verify checker, business-verification form); (2) segunda vista de las ~13
+  pantallas de datos contra un core desplegado con sesión Clerk; (3) Expo Go físico.
 
 - [ ] **2026-09-06 — AUDIT app↔core de `frontend/lib/api.ts`.** Duplicado del bloque superior,
   conservado como recordatorio compacto: la mayoría de métodos ya apunta a endpoints reales del
@@ -291,6 +413,16 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   **VERIFY:** `backend/` tsc 0 · eslint 0 · vitest 122/122 · `frontend/` tsc 0 · jest 387/387 (1 skip)
   · E2E real con mocks (401 sin token / 200 con token Clerk firmado, `X-User-Id` llega, token Clerk no
   se filtra) · grep de negocio sobre `backend/` vacío.
+- [x] `2026-09-06` — **Coordinación de Ayuda: paridad funcional cerrada (`feature-ui-parity-pass`,
+  off `origin/main` `833e568`).** `HelpScreen` / `HelpCategoryScreen` / `HelpArticleScreen` ya
+  estaban portadas al nivel web y en `main`; los ~14 `resolvedBy.href` distintos están todos
+  mapeados en `App.tsx` (`HELP_RESOLVE_STUBS` + `HELP_RESOLVE_STEPS`). Único gap cerrado en esta
+  pasada: el footer "Busca en toda la ayuda" de `HelpArticleScreen` era `Text` muerto; ahora
+  navega al índice (`onOpenIndex`), espejo del `<Link href="/help">` de la referencia
+  (`help/[category]/[article]/page.tsx:93`). Spec nueva en `test/unit/help/article-parity.spec.ts`.
+  VERIFY: `tsc` limpio; Jest 85 suites / 387 tests (1 flake documentado `auth/auth-gate`, pasa
+  aislado 5/5). NO verificado: render nativo lado a lado — cae en el bloque abierto "segunda vista
+  visual", no autocertificado aquí.
 
 - [x] `2026-09-06` — **`ScoreScreen` deja de ser el stub mínimo: muestra el score real, no un
   `74` hardcodeado (`feature-scorescreen-real`, off `origin/main` `29b635f`).** El blocker
