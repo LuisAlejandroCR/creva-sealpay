@@ -223,6 +223,142 @@ checklist.
   **Sigue abierto:** el render nativo lado a lado de todo (owner sesión 2); los hallazgos de sesión 2
   más allá de VISIBLE/NITPICK si los hubiera.
 
+  **Actualización `2026-09-06` — sesión 2, worktree `audit-ui-smoke-test`: el bloqueo de render web
+  ESTÁ RESUELTO; primera pasada visual hecha contra el main viejo (`8074021`); re-pasada contra el
+  main nuevo bloqueada por inestabilidad de Metro en esta máquina. Findings only, ningún `.tsx`
+  tocado.**
+
+  **Render web — RESUELTO** (proof: `Web Bundled 8060ms index.ts (548 modules)`, bundle limpio, sin
+  `Class extends value undefined`). El error NO era de `react-native-web`/NativeWind: era
+  `@grpc/grpc-js` (arrastrado por `@hashgraph/sdk`) que referencia el módulo `events` de Node y
+  truena en el runtime web de Metro. Fix en el worktree (sin commit — regla de agente local):
+  - `npx expo install react-native-web react-dom` (el target web nunca se configuró).
+  - `app/web-shims/hashgraph-sdk-web-stub.js` — stub que lanza; las pantallas auditadas nunca llegan
+    al path de firma en web.
+  - `app/web-shims/clerk-expo-web-stub.js` — el worktree no trae `app/.env`; sin
+    `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` real `useAuth().isLoaded` nunca pasa a `true` y la app se
+    queda en el loader de `App.tsx`. El stub reporta sesión cargada + sin autenticar.
+  - `app/metro.config.js` — `resolver.resolveRequest` redirige `@hashgraph/sdk` y `@clerk/clerk-expo`
+    a los stubs solo cuando `platform === "web"`; los bundles nativos no se tocan. Arrancar con
+    `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=<cualquier pk_test_...>` porque `ClerkAppProvider.tsx` lanza si
+    la env var falta.
+  - Ruido no bloqueante en web: `Cannot manually set color scheme … dark mode is type 'media'`
+    (NativeWind v4); la app renderiza igual, emular `prefers-color-scheme: light` lo silencia.
+
+  **Re-pasada contra el main nuevo — BLOQUEADA (entorno, no código).** Con `creva_finance` en `:3001`,
+  el Metro de Codex en `:8081` y a ratos el de Expo Go corriendo a la vez, cada arranque de un 2º/3º
+  Metro de Expo en esta máquina Windows se cuelga en "Starting Metro Bundler" indefinidamente
+  (4 intentos; solo el 1er arranque en frío funcionó y dio el bundle de 548 módulos). Para la
+  certificación pantalla por pantalla hace falta correr el Metro web del worktree solo.
+
+  **Hallazgos de la 1ª pasada (contra `8074021`, pre-migración de las 13 pantallas; re-confirmar):**
+  - **Icon set (`app/features/shared/icons/Icon.tsx`) RELLENO NEGRO** en toda la app (nav, MoreSheet,
+    Profile, Help, Stub). La ref dibuja cada glyph como trazo (`stroke`, `fill="none"`,
+    `stroke-width 1.7-1.8`) en `--cr-text-secondary` #6F675C — `components/BottomNav.tsx:24-72`,
+    `components/help/HelpGlyph.tsx:6-8`, `app/profile/page.tsx:23-73`. Sistémico. (blocker)
+  - Nav: glyph `score` es mancha sólida oscura (activa e inactiva); la ref es arco fino + aguja +
+    punto — `components/BottomNav.tsx:39-44`. (blocker)
+  - `ScoreScreen.tsx` no espeja `/score`: título "Tu score" vs "Score Creva", score hardcodeado
+    `74`/"Bueno" sin sesión (ref: `0 de 100`, `app/score/page.tsx:52`), sin la lista "Sigue por
+    aquí" (`app/score/page.tsx:26-50`), sin back ni botón de ayuda. (blocker)
+  - `DeleteAccountScreen.tsx` no espeja `/profile/delete-account`: falta `Button href={MAILTO}`
+    "Escribir el correo" (`app/profile/delete-account/page.tsx:63`) — afordancia central no
+    accionable; no expone `privacidad@finarahub.mx`; título "mi" vs "tu cuenta" + subtítulo ausente
+    (`delete-account/page.tsx:28-31`); paso 1 circular; falta lista "Qué se borra" y aviso
+    anti-fraude. (blocker)
+  - `DashboardScreen.tsx`: falta link "Ver por qué" junto a "Tu score" (`app/dashboard/page.tsx:216`);
+    botón principal negro (`bg-text`) + "Ver mis opciones" donde la ref usa `Button` crimson +
+    "Ver por qué" / "Mira qué mueve tu score…" (`dashboard/page.tsx:194-200`); tarjeta "Encuentra tu
+    mejor opción" negra + link de texto donde la ref usa `ActionCard` con `--cr-gradient` + icono +
+    chevron (`dashboard/page.tsx:233-247`); "Mis tarjetas" variante punteada donde la ref sin sesión
+    muestra `tone="danger"` KYC-gate (`dashboard/page.tsx:268-273`); "Saldo disponible" caja baja +
+    "— MXN" donde la ref usa versalitas + apilado; "Hola" sin coma (`dashboard/page.tsx:210`); badge
+    de campana "1" inventado sin sesión. (visible)
+  - Nav: badge "PRONTO" de "Tarjeta" `absolute -top-1 right-2`, se encima sobre el icono. (visible)
+  - MoreSheet: pantalla completa donde la ref es bottom sheet (`BottomSheet`, asa + "Cerrar");
+    títulos de grupo caja baja grande donde la ref usa versalitas gris; celdas icono-centrado-arriba
+    donde la ref es fila (`NavCell`). (visible)
+  - HelpScreen: "Lo que más se pregunta" grid 2 col donde la ref es `Stack columns={4}` de `Tile`
+    (`app/help/page.tsx:26`); sin back (ref: `ScreenHeader backHref`). (visible)
+  - `SelfieCheckScreen.tsx` (`identity_unavailable`/`idle`): CTA `bg-text` negro en vez de crimson
+    (`:52`, `:72`); `SafeAreaView` raíz con `justify-center` deja el `BackButton` flotando al centro
+    vertical (`:44`, `:63`). (visible)
+  - Header apretado en full-screen sin tab bar (`CardScreen`, `DeleteAccountScreen`, `StubScreen`):
+    círculo del `BackButton` y `<h1>` encimados; primera tarjeta pega contra el `<h1>`. (visible)
+  - Falta safe-area top en `DashboardScreen`/`ScoreScreen`/`HelpScreen` — coincide con el bloque
+    "Safe-area insets". (visible)
+  - `QueryScreen.tsx`: "402 -> pago -> respuesta" usa `->` ASCII donde el resto usa `→`. (nitpick)
+  - Profile: "Cerrar sesión" pill rosa a ancho completo donde la ref es fila `.cr-logout`; sin back.
+    (nitpick)
+  - "SealPay" como marca en `ScoreScreen`/`QueryScreen` — no aparece en la ref; confirmar si es
+    intencional del track x402. (nitpick)
+
+  **No verificado:** las 13 pantallas nuevas + los 4 ajustes de paridad contra su ruta de referencia
+  (bloqueo de entorno); Expo Go en dispositivo físico; pantallas que exijan sesión Clerk real o
+  gateway/backend real; rutas de referencia que redirigen a login sin sesión (solo `/dashboard` y
+  `/score` rinden shell). Capturas en el transcript, no en disco.
+
+  **Actualización `2026-09-06` (2ª entrada, mismo día) — re-pasada visual contra el main NUEVO
+  (`7638dbb`), con el Metro del worktree corriendo solo (el `.expo/` del worktree se borra o el 2º
+  arranque de Metro se cuelga — dato para el siguiente que renderice). Resultado: la migración de
+  paridad móvil arregló la GRAN MAYORÍA de los hallazgos de arriba.**
+
+  **Bug de iconos negros — RESUELTO en el main nuevo. Root cause confirmado.** El `Icon.tsx` viejo
+  no ponía `fill="none"` en la raíz `<Svg>`; react-native-svg (y su shim web) por defecto rinde
+  cada `<Path>`/`<Rect>` sin `fill` propio como `fill:black` → el arco del glyph `score`, el `<Rect>`
+  de `card`, y cada glyph del sheet "Más" salían rellenos sólidos. El fix (`feature-nav-parity-render`,
+  serie que cierra en `a8c71aa`): `const common = { viewBox: "0 0 24 24", fill: "none" }` en el `<Svg>`
+  + `fill={fillColor}` explícito (`fillColor = filled ? stroke : "none"`) en los casos con primitiva
+  de forma. Verificado en render: nav (`score` = arco fino + aguja + punto), MoreSheet (11 glyphs
+  trazo gris `--cr-text-secondary`), campo de contraseña (`eye` trazo), Profile — todos correctos.
+
+  **Arreglado por la migración (ya no aplica):**
+  - Nav: glyph `score` fino ✓; "Tarjeta" ahora es pestaña real habilitada, sin badge "PRONTO"
+    encimado ✓ (`f4b33bd`).
+  - `DashboardScreen`: link "Ver por qué" junto a "Tu score" ✓; tarjeta "Encuentra tu mejor opción"
+    ahora `--cr-gradient` crimson + icono a la izquierda + chevron ✓; "SALDO DISPONIBLE" en
+    versalitas + unidad/valor apilados ✓; score card muestra estado de error real ("No pudimos
+    cargar tu score…") en vez de spinner/número inventado ✓.
+  - MoreSheet: asa de bottom-sheet ✓; títulos de grupo en versalitas gris ✓; celdas en fila
+    (icono izq + label der) ✓; iconos trazo ✓.
+  - `DeleteAccountScreen`: botón "Escribir el correo" → `Linking.openURL(MAILTO)` con
+    `privacidad@finarahub.mx` ✓; card highlight "Ten en cuenta" ✓.
+  - Header de las full-screen sin tab bar: `BackButton` y `<h1>` ya con respiro (visto en
+    `KycFormScreen`, `MovementsScreen`); el apretón que vi en el main viejo ya no aparece.
+  - Pantallas nuevas revisadas en render y bien construidas / on-brand: `KycFormScreen`
+    (CTA crimson "Verificar identidad", form con Nombre/Apellido/CURP/Correo/Teléfono),
+    `MovementsScreen` (segmented Todos/Ingresos/Gastos, empty state, copy = `app/movements/page.tsx:208-230`).
+
+  **Sigue abierto tras la re-pasada:**
+  - `ScoreScreen.tsx` NO entró en la migración (último commit `4209ea9`, pre-migración): `scoreValue
+    = 74` hardcodeado como default prop; título "Tu score" vs "Score Creva"; solo el link "Consultar
+    con pago (SealPay) →", sin la lista "Sigue por aquí" (`app/score/page.tsx:26-50`); sin back ni
+    botón de ayuda. El gateway aún no expone `/score` — decisión de alcance pendiente con el humano.
+    (blocker)
+  - `SelfieCheckScreen.tsx`: CTA "Iniciar Selfie Check" / "Continuar sin verificarme" siguen en
+    `bg-text` (negro) en vez de crimson; en el estado `idle` el `SafeAreaView` con `justify-center`
+    aún deja el `BackButton` flotando al centro vertical. (visible)
+  - `DashboardScreen`: score card body sigue "Revisa los productos compatibles con tu perfil…" /
+    botón "Ver mis opciones" donde el fallback de la ref es "Mira qué mueve tu score y qué lo
+    mejoraría." / "Ver por qué" (`app/dashboard/page.tsx:194-200`); "Hola" sin coma
+    (`:210`); badge de campana "1" sin sesión (dato inventado). (visible + 2 nitpick)
+  - `MoreSheet`: no tiene botón "Cerrar" (la ref sí); el asa es decorativa (no arrastrable). (nitpick)
+  - `MovementsScreen`: el segmented "Todos/Ingresos/Gastos" se recorta en el borde derecho a 375px
+    ("Gastos" queda cortado). (visible)
+  - `DeleteAccountScreen`: título "Eliminar mi cuenta" vs "Eliminar tu cuenta" de la ref + subtítulo
+    ausente ("Se puede, y aquí está cómo…"); la CTA de correo es un `Card` con texto crimson, no un
+    `Button` crimson relleno como la ref (`app/profile/delete-account/page.tsx:63`); prop
+    `onOpenPrivacy` declarada pero sin uso visible. (nitpick)
+  - "SealPay" como marca visible en `ScoreScreen`/`QueryScreen` — sigue sin aparecer en la ref;
+    confirmar si es intencional del track x402. (nitpick)
+
+  **No re-verificado en esta pasada** (nav de clicks sintéticos poco fiable + presupuesto): recorrido
+  completo pantalla-por-pantalla de las otras ~9 pantallas nuevas (Calculadora, Estados de cuenta,
+  Tu garantía, Sello de tu negocio, Reglas que te afectan, Tu reporte, Avisos, Aviso de privacidad,
+  Datos personales/Info fiscal/Seguridad) — vistas en el grid del MoreSheet, no abiertas una a una;
+  `credit`/`card` nuevos; `help` x3. `ScoreGauge` como arco/ring web (`4209ea9`) sin comparar pixel
+  a pixel contra el de la ref.
+
 - [ ] **2026-09-05 — `facilitator.ts` no envuelve su `fetch` en try/catch: un facilitador
   caído tumba el proceso del gateway entero, no solo la request.** Sobrevive del bloque de abajo
   (ya resuelto el gap de config que lo disparó): con `FACILITATOR_URL` apuntando a
