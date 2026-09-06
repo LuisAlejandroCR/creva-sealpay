@@ -12,6 +12,7 @@
 **Última actualización:** 2026-09-05 (barra de navegación inferior — paridad de iconos, sexto intento)
 **Última actualización:** 2026-09-05 (sheet "Más" — paridad de iconos y layout de tarjeta, sexto intento)
 **Última actualización:** 2026-09-05 (pantalla Inicio/dashboard — paridad de primitivos, sexto intento)
+**Última actualización:** 2026-09-05 (ScoreGauge arco/anillo SVG — paridad, sexto intento)
 
 Ver [`brainstorming.md`](../brainstorming.md) §8 y §9 para el análisis completo. Detalle de
 qué-se-hizo/qué-no-se-verificó por sesión: [`docs/memoria.md`](memoria.md). Esta tabla es solo el
@@ -506,6 +507,36 @@ checklist.
   visual del par por humano/Auditor; Expo Go en dispositivo físico real. El fix de `Icon.tsx`
   `fill="none"` vive ahora en tres ramas sin mergear (`feature-nav-parity-render`,
   `feature-more-sheet-parity`, `feature-dashboard-parity`) — cambio idéntico.
+  **Actualización `2026-09-05` (sexto intento — `ScoreGauge`, worktree
+  `feature-scoregauge-parity`).** Cierra el follow-up que dejó abierto la pasada de dashboard: el
+  `ScoreGauge` de la app era un anillo completo de `<View>` NativeWind + barra lineal + chip; la
+  web (`components/ui/ScoreGauge.tsx`) es un arco semicircular (`shape="arc"`, en la tarjeta del
+  dashboard) o un anillo con dasharray (`shape="ring"`, héroe de la pantalla Score). Reescrito
+  con `react-native-svg` (ya es dependencia):
+  - `shape="arc"` (default): `<Svg viewBox="0 0 160 92">`, track `M 8 80 A 72 72 0 0 1 152 80`
+    stroke `--cr-border` w11 round; arco de valor con `scoreArcPath(value,max)` de
+    `app/lib/score-display.ts` (ya idéntico a la web) stroke color de banda; etiquetas 0/max en
+    las esquinas; número 46px + chip debajo.
+  - `shape="ring"`: `<Circle r=72 strokeWidth=14>` track + `<Circle>` de progreso con
+    `strokeDasharray=2πr` / `strokeDashoffset=C·(1-ratio)` dentro de un `<G rotation={-90}>`;
+    número 60px + "de {max}" + chip debajo.
+  Verificación numérica: `getBoundingClientRect` del arco de valor renderizado por
+  `react-native-svg-web` vs. el mismo SVG de la web → **idéntico** (x 10.5, w 159.19, h 94.5 en
+  ambos; misma `d="M 8 80 A 72 72 0 0 1 129.29 27.51"` para 74/100). Colores de banda tomados de
+  los valores light de `--cr-success`/`--cr-warning-text`/`--cr-danger-text` y sus `-bg` (mapa
+  local en `ScoreGauge.tsx` — `scoreBand()` de `score-display.ts` devuelve `var(--cr-*)`, inútil
+  para SVG). `ScoreScreen.tsx` ahora pasa `shape="ring"` (la web usa ring en esa pantalla); el
+  dashboard mantiene el default `arc`. **Única diferencia restante:** el número usa la fuente
+  bold del sistema — la web usa Playfair (serif condensada) que la app no empaqueta; sin fuente
+  no hay forma de igualarlo en este pass. **Fuera de alcance (documentado):** la pantalla Score
+  completa (disclosures de factores, recomendaciones, menú "Sigue por aquí", disclosure "qué no
+  hace") — necesita `score.get()` con `factors`, `recommendations` y `crevaScore.disclosure()`, y
+  `/score` no está expuesto en el gateway (línea de arriba); `ScoreScreen.tsx` sigue siendo el
+  stub mínimo deliberado que enlaza a `QueryScreen`. **Verify:** `tsc --noEmit` limpio; `jest
+  unit fuzz invariant` → 41/176 verdes (mismo flake de `auth-gate.spec.ts` bajo carga, verde en
+  reruns; `score-display`/`dashboard/structure` 18/18). **Falta:** certificación visual del par
+  por humano/Auditor; Expo Go real. El fix de `Icon.tsx` `fill="none"` **no** va en esta rama
+  (no toca iconos) — sigue en las otras tres sin mergear.
 
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.
