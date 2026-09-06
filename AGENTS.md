@@ -53,7 +53,7 @@ Esto va en `docs/memoria.md` (o en la entrada de bitácora del archivo que se to
 del cambio — nunca como una nota mental que solo vive en la sesión actual. Un agente que arranca
 después no tiene la conversación anterior; solo tiene estos archivos.
 
-**4. Una decisión se escribe "decisión escogida", no "decisión del humano".** Regla escogida,
+**4. Una decisión se escribe "decisión escogida", no "decisión tomada".** Regla escogida,
 2026-09-04, en la misma línea que la regla 1 y 2 de esta sección: no se atribuye la decisión a
 "el humano" — se documenta que la decisión **se tomó**, no quién la pidió. Aplica a toda mención
 nueva en cualquier `.md` de este proyecto. No aplica a descripciones de rol en el flujo de trabajo
@@ -315,7 +315,7 @@ Esto **anula el default** de `procedures/00_Files/agent_contract.md` y `document
 
 ## Documentación
 
-> **Regla dura, 2026-09-04, reforzada por el humano — no negociable, aplica a cada archivo tocado:**
+> **Regla dura, 2026-09-04, reforzada para esta entrega — no negociable, aplica a cada archivo tocado:**
 > encabezado de 2-3 líneas en código (`// <filename>: <what this file does>`), **nunca** un
 > comentario que explique un bloque de código obvio; encabezado de 2-3/4 líneas en todo `.md`.
 > Un agente que entrega un archivo sin su encabezado, o con comentarios narrando lo obvio, no

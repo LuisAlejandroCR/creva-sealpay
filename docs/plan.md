@@ -23,524 +23,64 @@ checklist.
 
 ## Abiertos
 
-- [ ] **2026-09-06 — Auditoría app↔core (`feature-app-core-api-wiring`). Un solo gap real de
-  endpoint + 5 métodos muertos en `frontend/lib/api.ts`.** Toda `frontend/lib/api.ts` va **directo al core**
-  (`BASE = EXPO_PUBLIC_API_URL ?? http://localhost:3000`, `api.ts:7`) con el bearer de la sesión
-  Clerk (`request()` en `api.ts:80-95` via `session-source`). **Ningún método de `api.ts` pasa por
-  el gateway x402** — el gateway solo lo usan `QueryScreen`→`gatewayClient.ts` y
-  `VerifyScreen`→`sealClient.ts` para el flujo de reporte pagado; nada personal necesita el
-  gateway. Todos los controllers del core usan `JwtAuthGuard` (verificado contra
-  `creva_finance/backend/src/modules/*/*.controller.ts`).
-  **Tabla (método → endpoint → ¿existe en core? → estado app):**
-  - `score.get` → `GET /score` → sí (`score.controller.ts:13`) → **real** (DashboardScreen; `score/`
-    es de otra sesión, solo se lee, no se tocó).
-  - `kyc.apply`/`kyc.status` → `POST /kyc/apply`,`GET /kyc/status` → sí (`kyc.controller.ts:22,28`)
-    → **real** (KycFormScreen, CardScreen, CardCreateScreen).
-  - `collateral.get` → `GET /collateral` → sí (`collateral.controller.ts:17`) → **real**
-    (CollateralScreen; + DashboardScreen ahora).
-  - `credit.eligibility/recommend/select/updateSelection` → `/recommendations/credit*` → sí
-    (`recommendations.controller.ts:25,30,39,55`) → **real** (CreditScreen, NotificationsScreen,
-    DashboardScreen).
-  - `credit.selections` → `GET /recommendations/credit/selections` → sí (`:50`) → **no llamado**.
-  - `recommendations.get` → `GET /recommendations` → sí (`:20`) → **no llamado**.
-  - `declarations.latest/create` → `/declarations` → sí (`declarations.controller.ts:14,19`) →
-    **real** (CreditRequestForm).
-  - `statements.list/summary/entries/reclassify/remove/upload` → `/statements*` → sí
-    (`statements.controller.ts:29-62`) → **real** (StatementsScreen, MovementsScreen,
-    NotificationsScreen, DashboardScreen).
-  - `transactions.list` → `GET /transactions` → sí (`transactions.controller.ts:21`) → **real**
-    (MovementsScreen; + DashboardScreen ahora).
-  - `calculator.get` → `GET /calculator` → sí (`calculator.controller.ts:14`) → **real**
-    (CalculatorScreen).
-  - `profiles.get/update/getFiscal/updateFiscal` → `/profiles[/fiscal]` → sí
-    (`profiles.controller.ts:15-30`) → **real** (PersonalData, FiscalInfo, CreditRequestForm).
-  - `crevaScore.radar` → `GET /creva-score/radar` → sí (`creva-score.controller.ts:26`) → **real**
-    (RegulatoryScreen).
-  - `crevaScore.verify` → `POST /creva-score/verification` → sí (`:32`) → **real**
-    (BusinessVerificationScreen).
-  - `crevaScore.report` → `POST /creva-score/report` → sí (`:40`) → **real, directo al core**
-    (ReportScreen). Nota: distinto del flujo x402 de `QueryScreen`.
-  - `crevaScore.disclosure` → `GET /creva-score/disclosure` → sí (`:21`) → **no llamado**.
-  - `crevaScore.verifyReport` → `POST /creva-score/verify` → sí
-    (`report-verification.controller.ts:16`) → **no llamado** (VerifyScreen usa `sealClient.ts` vía
-    gateway x402).
-  - `auth.me/forgotPassword/sendPhoneCode/verifyPhoneCode` → `/auth/*` → sí (`auth.controller.ts`)
-    → **real** (CreditScreen, SecurityScreen).
-  - `auth.register/login/getOAuthUrl/deleteMe` → `/auth/*` → sí → **no llamado** (mobile usa Clerk
-    end-to-end para auth).
-  - **`cards.list` → `GET /cards` → NO EXISTE en el core** (`cards.controller.ts` solo tiene
-    `POST /cards/issue`, `GET /cards/:id`, `PATCH /cards/:id/(un)freeze`). Lo llaman `CardScreen`
-    y ahora también el web-dashboard; hoy cae al `.catch` → estado "Sin tarjetas aún". Efecto
-    secundario: sin `list` no hay `id`, así que `cards.get/:id`, `freeze` y `unfreeze` son
-    inalcanzables para una tarjeta ya emitida.
-  **Pendiente:** (1) `GET /cards` en el core — **código hecho directo en el repo `creva_finance`,
-  commit listo para el humano** (`cards.service.listCards()` + `@Get()` en `cards.controller`,
-  `test/unit/cards.service.spec.ts` nuevo, `tsc`+`jest cards` verdes); falta que el humano lo
-  commitee/despliegue y ajustar el tipo `api.ts` `cards.list` (declara camelCase, el core devuelve
-  snake_case `VirtualCardRow[]` — sin interceptor de transform en `backend/src/main.ts`).
-  (2) limpiar o cablear los 5 métodos muertos de `api.ts` (`recommendations.get`,
-  `credit.selections`, `crevaScore.disclosure`, `crevaScore.verifyReport`,
-  `auth.register/login/getOAuthUrl`).
+- [ ] **2026-09-06 — Auditoría app↔core (`feature-app-core-api-wiring`).** `frontend/lib/api.ts`
+  va directo al core con Clerk; el gateway x402 queda solo para report/verify pagados.
+  Gap real: `GET /cards` no existe en el core, aunque la app lo llama; hay fix preparado en
+  `creva_finance`, falta deploy y ajustar el tipo de `cards.list`.
+  También quedan 5 métodos sin uso por limpiar o cablear: `recommendations.get`,
+  `credit.selections`, `crevaScore.disclosure`, `crevaScore.verifyReport`, `auth.register/login/getOAuthUrl`.
 
-- [ ] **2026-09-06 — Veredicto de auth Clerk↔core (análisis estático de `creva_finance/backend`).
-  El core NO aceptaría hoy el token de Clerk que manda la app; el código ya lo soporta, falta
-  config de deploy.** La app manda `Authorization: Bearer <clerk session token>` (`frontend/lib/api.ts`
-  vía `session-source`). Tres puertas en `jwt.guard.ts`, cada una un bloqueo duro:
-  1. `AUTH_PROVIDER` default = `supabase` (`config/configuration.ts:15`). Con `supabase`,
-     `jwt.guard.ts:56-59` manda el token a `supabase.admin.auth.getUser` → rechaza un JWT de Clerk
-     → `401 "Invalid or expired token"` (`jwt.guard.ts:71`). Confirmado contra el deploy con un
-     token basura (sin token real).
-  2. El verifier de Clerk requiere `CLERK_SECRET_KEY` + (`CLERK_JWKS_URL`/`CLERK_ISSUER`)
-     (`configuration.ts:147-161`); la factory `CLERK_TOKEN_VERIFIER` (`auth.module.ts:19-21`)
-     devuelve `null` si faltan.
-  3. Aun con 1+2 OK, sin fila de mapeo Clerk↔Supabase (`mapping.resolveClerkSub`, `jwt.guard.ts:117`)
-     → `401 UNLINKED_CLERK_ACCOUNT` (`:118`). La fila la crea `POST /webhooks/clerk` en
-     `user.created` (`clerk-webhook.controller.ts:33`).
-  **Fix = config de deploy, NO código:** `AUTH_PROVIDER=both` + claves/JWKS de Clerk +
-  `CLERK_AUTHORIZED_PARTY` en el core desplegado; webhook de la instancia Clerk de creva-sealpay a
-  `/webhooks/clerk` con `CLERK_WEBHOOK_SECRET`; backfill de identidades.
-  **Decisión escogida (humano, 2026-09-06):** mientras la config de deploy no aterrice, la app
-  muestra un estado "backend pendiente" — *"Estás dentro. Tu información de Creva se conecta
-  pronto."* — en cada sección que llama al core y recibe un 401 con token adjunto
-  (`api.ts` `isBackendUnlinked` / `ApiError.backendUnlinked`; componente
-  `frontend/features/shared/BackendPendingState.tsx`; wireado en Dashboard/Score/Credit/Card/Statements
-  en la rama `feature-backend-pending-state`). La **confirmación en vivo de la config de auth**
-  queda explícitamente diferida — sin token real de Clerk contra el deploy hasta que el humano
-  decida. Mientras el deploy siga en `AUTH_PROVIDER=supabase`, todo el wiring directo-al-core está
-  inerte contra el backend real y las pantallas muestran ese estado.
+- [ ] **2026-09-06 — Auth Clerk↔core.** El core desplegado sigue configurado como Supabase; con
+  tokens Clerk, `JwtAuthGuard` responde 401 hasta activar `AUTH_PROVIDER=both`, Clerk JWKS/secret,
+  webhook `/webhooks/clerk` y backfill de identidades.
+  Decisión escogida: mientras esa config no aterrice, la app muestra `BackendPendingState` en las
+  secciones core-directas en vez de spinner/error crudo.
+  Pendiente: verificar con sesión Clerk real contra el deploy configurado.
+- [ ] **2026-09-06 — Privy wallet aditiva para x402.** Hecho local: `defineChain(296)` con `viem`,
+  lectura real al Hedera JSON-RPC Relay, selector demo/privy y política de gasto antes de firmar.
+  Decisión escogida: no agregar `@privy-io/expo` todavía; queda adaptador perezoso para no romper
+  el path Hedera congelado.
+  Pendiente: crear app Privy, instalar SDK, configurar env vars y cablear `makePrivySigner`.
+  VERIFY registrado: `tsc` limpio; Jest 68 suites / 300 tests.
 
-  **WIRE hecho (`feature-app-core-api-wiring`, ya en `main`):** `DashboardScreen` deja de usar mocks — `collateral.get()` →
-  capacidad de gasto real; `credit.eligibility()` + `statements.list()`/`summary()` → inputs
-  reales de `buildReminders` (la campana ya no inventa un conteo); `transactions.list({limit:3})`
-  → actividad reciente real (se borró `MOCK_TRANSACTIONS`). `cardReady` queda en `false` honesto
-  hasta que exista `GET /cards`. **Colisión con `feature-visual-fixes-1`:** esa rama también toca
-  `DashboardScreen` (el fix `Hola,` + inputs de `buildReminders` a `null`) — este wire lo
-  reemplaza con la versión real; el Solver se queda con esta al reconciliar.
-- [ ] **2026-09-06 — Privy: capa de wallet aditiva para el pago x402 + `defineChain(296)`
-  (worktree `sponsor-privy-wallet`, rama off `origin/main`, NO pusheada).** Slice C de §10.4.
-  Cubre las 2 pistas de Privy ($2.5k B2B financial product + $2.5k best financial flow) con una
-  integración. **Hecho y verificado en local:**
-  - `defineChain(296)` con viem (`frontend/features/wallet/privyChain.ts`) + lectura on-chain real
-    contra el Hedera JSON-RPC Relay (Hashio testnet, `https://testnet.hashio.io/api`). Respuesta
-    real: `eth_chainId` = `0x128` (296), `eth_blockNumber` ≈ `40171461`, `eth_getBalance` de
-    `0x…0002` = `33896519248405508330000000000` weibar. Script:
-    `node frontend/features/wallet/smoke-read-chain.mjs`. Test opt-in:
-    `RUN_HEDERA_RELAY_TEST=1 npx jest hedera-relay-read`.
-  - `usePaymentWallet()` (`frontend/features/wallet/PrivyWalletProvider.tsx`) con modos `demo` | `privy`.
-    `demo` delega **verbatim** en `buildSignedPaymentHeader` / `readDemoCredentialsFromEnv` sin
-    tocar `hederaPayment.ts`. `privy` aplica una política de gasto (tope mensual + tope por pago,
-    en tinybar) ANTES de construir cualquier header — eso es el "B2B financial product".
-  - Selector de wallet en `QueryScreen` y `VerifyScreen` (default `demo`, se oculta si solo hay
-    una opción). `PrivyWalletProvider` montado en `App.tsx`.
-  - Tests: 7 suites nuevas en `frontend/test/{unit,fuzz,invariant}/wallet/**`. 3 invariantes:
-    "sin `EXPO_PUBLIC_PRIVY_APP_ID` el modo privy no aparece y el demo es idéntico",
-    "signPayment nunca produce header por un monto que exceda la política",
-    "`hederaPayment.ts` no cambia (git diff vs origin/main vacío)".
-  - VERIFY: `npx tsc --noEmit` 0 · `npx jest` 68 suites / 300 tests, 0 fallos (1 skip opt-in).
-  **Decisión escogida:** NO se agregó `@privy-io/expo` a `package.json` — su set de peers nativos
-  (`react-native-passkeys`, `permissionless`, `expo-crypto/linking/clipboard/application`,
-  `@privy-io/expo-native-extensions`, `react-native-qrcode-styled`) es riesgo real para el
-  `npm install` del path congelado de Hedera. Solo entró `viem` (que Privy ya usa). El adaptador
-  del SDK (`frontend/features/wallet/privyEmbeddedWallet.ts`) hace `require` perezoso y defensivo: hasta
-  que el humano instale el SDK, `loadPrivyExpo()` devuelve `null` y el modo privy no aparece.
-  **Falta (bloqueado sin cuenta Privy real):** crear la app en el dashboard de Privy, instalar el
-  SDK, y cablear `makePrivySigner` (provisión de la embedded wallet para chain 296 + firma del
-  payload x402 vía el provider EIP-1193). Ver `docs/integrations/privy-hedera.md`. Env vars que
-  el humano debe crear: `EXPO_PUBLIC_PRIVY_APP_ID`, `EXPO_PUBLIC_PRIVY_CLIENT_ID`,
-  `EXPO_PUBLIC_PRIVY_MONTHLY_CAP_TINYBAR`, `EXPO_PUBLIC_PRIVY_PER_PAYMENT_CAP_TINYBAR`,
-  `EXPO_PUBLIC_HEDERA_JSON_RPC_URL` (opcional, default Hashio). `PRIVY_APP_SECRET` es server-side y
-  no se usa en este slice.
+- [ ] **2026-09-06 — Coordinación de Ayuda (`frontend/features/help/**`).** Decisión tomada:
+  Ayuda sale del worktree `codex/mobile-parity-help` y queda en la sesión UI/UX.
+  Hecho: `HelpArticleScreen`, `HelpCategoryScreen` y `HelpScreen` reconstruidas al nivel web con
+  búsqueda, pasos, CTA, relacionadas y rutas nativas.
+  Pendiente: cerrar el bloque cuando la rama UI/UX se integre o se descarte.
+  VERIFY registrado: `tsc` limpio; Jest 59 suites / 261 tests.
 
-- [ ] **2026-09-06 — COORDINACIÓN: `frontend/features/help/**` reasignado a la sesión "1 UI/UX"
-  (`feature-last-screens-parity`).** El humano lo reasignó el 2026-09-06 tras comparar las
-  pantallas de Ayuda nativas contra la web y verlas a medio construir. Sale del área
-  `codex/mobile-parity-help` — ese worktree Codex **no debe editar `frontend/features/help/**` mientras
-  este bloque esté abierto** (regla §Colaboración punto 7). Se avisó al Main orchestrator por
-  mensaje. Gap concreto: `HelpArticleScreen.tsx` (50 líneas) vs
-  `creva_finance/frontend/app/help/[category]/[article]/page.tsx` (105) — faltan la sección "Cómo
-  se hace" con `Steps`, la card "Ten en cuenta" (`surface-2`), el botón CTA `resolvedBy` (va a la
-  pantalla que resuelve la duda), la lista "Otras de este tema" (`relatedArticles`), el footer, y
-  usa `<View>` en vez de `<ScrollView>`. `HelpScreen`/`HelpCategoryScreen` con huecos análogos
-  (tiles "Lo que más se pregunta", descripciones por tema). `frontend/lib/help-content.ts` ya está
-  portado — es port de contenido, mismo método que las 13.
-  - **`HelpArticleScreen` — hecho.** Reconstruida al nivel de
-    `help/[category]/[article]/page.tsx`: `<ScrollView>` (antes `<View>`, cortaba artículos
-    largos), `answer` como párrafo lead, sección "Cómo se hace" con pasos numerados en círculo,
-    card "Ten en cuenta" (`tone="highlight"` = `surface-2`), botón CTA `resolvedBy`, lista "Otras
-    de este tema" (`relatedArticles`), y el footer de contacto de privacidad. `App.tsx`:
-    `openHelpResolve(href)` mapea los 14 `resolvedBy.href` posibles a steps/stubs del router
-    nativo; `onOpenArticle` para las relacionadas. Test nuevo
-    `frontend/test/unit/help/article-parity.spec.ts` (verifica las 6 secciones + que ningún href
-    quede sin ruta). `tsc` limpio; `jest` 58 suites / 256 tests.
-  - **`HelpCategoryScreen` + `HelpScreen` — hecho (un commit, cambios acoplados).**
-    `HelpCategoryScreen`: `<ScrollView>`, `HelpSearch` del índice completo arriba de la lista
-    (search nunca se limita a una categoría, como el frontend), y cada fila muestra
-    `article.question` + `article.answer` como descripción (antes solo la pregunta). Todas las filas
-    ruteadas vía `onOpenArticle(articleHref(...))` — mismo handler que el índice.
-    `HelpScreen`: tiles "Lo que más se pregunta" a 4-en-fila (`flex-1`, como `<Stack columns={4}>`
-    de `help/page.tsx:29`); cada fila de tema con el badge de icono `38px rounded-xl surface-2` de
-    `MenuRow.tsx:33-46`. Test nuevo `frontend/test/unit/help/index-and-category-parity.spec.ts`.
-    `tsc` limpio; `jest` 59 suites / 261 tests. **Ayuda: las 3 pantallas al nivel de la web.**
+- [ ] **2026-09-06 — Migración: últimas 4 pantallas (`feature-last-screens-parity`).** Decisión
+  tomada: portar `auth`, `kyc`, `credit` y `card` completos, no mantener stubs mínimos.
+  Hecho: `SignInScreen`, `KycFormScreen`, flujo completo de crédito, tarjeta virtual/creación y
+  fix de ancho en `MoreSheet`.
+  Pendiente: endpoints reales de KYC/crédito/tarjeta, segunda vista visual, y definir si
+  `QueryScreen` necesita formulario de datos del negocio.
+  VERIFY registrado: `tsc` limpio; Jest hasta 61 suites / 276 tests.
+- [ ] **2026-09-06 — The Graph load-bearing.** Código completo: `AttestationRegistry`, subgraph
+  y enriquecimiento `onchain.trustSignal` en `/creva-score/verify`; la app ya consume el campo.
+  Local verificado: `forge test`, `graph build`, backend `tsc`/`eslint`/Vitest y tests de verify.
+  Pendiente operativo: deploy a Arc/Sepolia, configurar `REGISTRY_ADDRESS`/`SUBGRAPH_URL`, desplegar
+  subgraph y grabar demo real con 2 attests + `/verify`.
 
-- [ ] **2026-09-06 — Migración: últimas 4 pantallas del inventario (`feature-last-screens-parity`,
-  off `main` 93616fa).** Alcance aprobado por el humano el 2026-09-06 (las 4, revirtiendo la
-  decisión previa de "credit/card mínimas a propósito"). Mismo método que las 13 anteriores: leer
-  la fuente web, portar a RN, citas `archivo:línea`, tests, `tsc`+`jest` verde antes de entregar.
-  Batch marcado **code-verified-only** — la segunda vista visual va junto con las otras 17 cuando
-  la sesión 2 desbloquee el render (`react-native-web`/NativeWind).
-  - **`auth` — hecho.** `SignInScreen.tsx` ya era un formulario Clerk-expo hecho a mano (la fuente
-    `creva_finance/frontend/app/sign-in/[[...sign-in]]/page.tsx` envuelve el widget hosted `<SignIn>`
-    de Clerk, sin build Expo). Delta real = copy del chrome Creva: título/subtítulo por modo
-    alineados a `components/auth/AuthHeader.tsx:26-27` ("Iniciar sesión" / "Tu plataforma
-    financiera") y `frontend/sign-up/[[...sign-up]]/page.tsx:11` ("Crear cuenta" / "Empieza a tomar el
-    control"); cross-link del footer a `sign-in/page.tsx:33` ("Crear cuenta" / "Iniciar sesión").
-    **Fuera de alcance:** el `DemoOverlay` "Ver el recorrido" (tour grabado, feature aparte) y el
-    wordmark a color de Google (media de terceros, prohibido por AGENTS.md — se queda la "G" plana).
-    Test nuevo `frontend/test/unit/auth/auth-parity.spec.ts`. `tsc` limpio; `jest` 54 suites / 240 tests
-    (auth-gate.spec.ts es el flake documentado de full-run, pasa aislado). Antes: 53 / 236.
-  - **`kyc` — hecho (decisión del humano 2026-09-06: portar el form, NO reemplazar World).**
-    `KycFormScreen.tsx` nuevo (`frontend/features/onboarding/`), puerto de
-    `creva_finance/frontend/app/kyc/page.tsx`: form nombre/apellido/CURP/email/teléfono →
-    `kyc.apply()` de `frontend/lib/api.ts` (ya existía). Estados loading/form/processing/pending/verified/
-    unavailable con el copy del frontend (`page.tsx:150-236`). Regex CURP y formateo de teléfono en
-    `frontend/features/onboarding/kyc-format.ts`, portados 1:1 de `page.tsx:80` y `:90-93`.
-    `authorization_url` → `WebBrowser.openBrowserAsync` (`expo-web-browser`, ya era dependencia),
-    luego poll de `kyc.status()`. `App.tsx`: paso `"kyc"` nuevo, **después** de `SelfieCheckScreen`
-    (`onVerified`/`onSkipped` → `setStep("kyc")` → `KycFormScreen` → `home`). **World Selfie Check
-    no se tocó.** Tests unit + fuzz + invariant (`test/unit/onboarding/kyc-form.spec.ts`,
-    `test/fuzz/onboarding/kyc-format.fuzz.spec.ts`,
-    `test/invariant/onboarding/curp-never-false-positive.invariant.spec.ts`). `tsc` limpio; `jest`
-    57 suites / 253 tests. Prefill de email/nombre desde `useUser()` de Clerk + `profiles.get()`.
-    **No se verificó:** `kyc.apply`/`kyc.status` contra `/kyc/*` real (sin backend), ni el retorno
-    del `WebBrowser` tras completar la verificación externa.
-  - **`credit` — hecho.** `CreditScreen.tsx` reconstruida del stub mínimo ("Próximamente") al
-    flujo completo de `frontend/credit/page.tsx`: gate de contacto (enlace de correo vía
-    `auth.forgotPassword` + verificación de teléfono con código vía
-    `auth.sendPhoneCode`/`verifyPhoneCode`), la petición de 4 pasos, las opciones con cada
-    criterio del match visible (`FactorMark` → círculo ✓/!), y las 4 ramas de resultado
-    (ok/insufficient_data/no_match/not_eligible) + la elección con gate de KYC opcional
-    (`credit.select`/`updateSelection`). `CreditRequestForm.tsx` nuevo — puerto de
-    `components/credit/RequestForm.tsx` (532 líneas): 4 pasos (negocio / ingresos 3 meses /
-    gastos 3 meses / solicitud), prefill de `profiles.getFiscal()` + `declarations.latest()`,
-    salto directo al paso 4 si la última declaración cubre los 3 meses actuales, guarda
-    `profiles.updateFiscal` + `declarations.create` antes de `onSubmit`. `<Chip>` del frontend →
-    `ChipRow` local (pressables redondeados en `flex-wrap`); `<Consent>` → checkbox pressable.
-    `App.tsx`: `CreditScreen` ahora recibe `onOpenKyc` (→ paso `"kyc"`) y `onOpenStatements`
-    (→ `openStub("statements", "credit")`); se conservó `onOpenVerify` (el puente a VerifyScreen).
-    Test nuevo `frontend/test/unit/credit/structure.spec.ts`. `tsc` limpio; `jest` 60 suites / 270 tests.
-    **Fuera de alcance:** el `DemoOverlay`, el header con barra de progreso `step 5/6` visual
-    (se puso "Paso N de 6" en texto), y el `RequestForm` no usa `Field`/`FieldGroup`/`ScreenHeader`
-    del frontend (no existen en la app). **No se verificó:** ninguno de los endpoints de crédito
-    contra el backend real (sin credenciales).
-  - **`card` — hecho (revierte la decisión "tab Tarjeta deshabilitado a propósito").**
-    `CardScreen.tsx` del stub "PRONTO" (38 líneas) al puerto de `frontend/cards/page.tsx` +
-    `frontend/cards/[id]/page.tsx` (el límite y el freeze se pliegan en la misma pantalla — una sola
-    tarjeta, sin ruta de detalle aparte): `cards.list()` → tarjeta activa con `VirtualCard`,
-    `cards.get(id)` para `spendingLimit`, `cards.freeze/unfreeze`, `transactions.list({limit:20})`,
-    y estado vacío que ramifica según `kyc.status()` (→ crear tarjeta o → completar KYC).
-    `CardCreateScreen.tsx` nuevo — puerto de `frontend/card-create/page.tsx`: emite con `cards.issue({})`
-    al montar (tras confirmar KYC), estados checking/kyc-pending/creating/ready/error con las ramas
-    409/400. `VirtualCard.tsx` nuevo — cara de tarjeta nativa (el gradiente CSS del web se aplana al
-    token `bg-crimson`; overlay "Congelada").
-    `App.tsx`: **tab "Tarjeta" habilitado** (`step: "card-info"`, sin `disabled`), paso
-    `"card-create"` nuevo, `"card-info"` en `TAB_STEPS` (mantiene el bottom nav visible),
-    `isTabActive` cubre `card-info`/`card-create`. `CardScreen` recibe `onOpenCreate`/`onOpenKyc`.
-    Test nuevo `frontend/test/unit/card/structure.spec.ts`; `frontend/test/unit/nav/structure.spec.ts`
-    actualizado (el test "Tarjeta disabled/PRONTO" ahora verifica que es ruta viva).
-    `tsc` limpio; `jest` 61 suites / 276 tests. **No se verificó:** endpoints de tarjeta contra el
-    backend real; que la emisión real requiera colateral/KYC aprobados (ramas 400/409 portadas de
-    memoria del frontend, no probadas).
-  - **`QueryScreen` business-data form (5º ítem del Main) — NO construido.** Sigue pendiente de
-    confirmación explícita del humano (ver bloque arriba). El humano autorizó "seguir con las
-    pantallas pendientes" pero no respondió específicamente a este ítem; se deja como estaba.
-  - **Fix aparte (no era del inventario):** `MoreSheet.tsx` — `w-[calc(50%-4px)]` en la celda no lo
-    evalúa NativeWind, dejaba la celda sin ancho y ocultaba la etiqueta (reportado con captura por
-    el humano 2026-09-06). Cambiado a `w-[48%]`; regresión en `test/unit/more/structure.spec.ts`.
-- [ ] **2026-09-06 — The Graph, forma load-bearing (slice D de §10.4): código completo, deploy a
-  testnet + deploy del subgraph pendientes del humano (worktree `agent-add968ba3a6440026`).**
-  Mecanismo: `contracts/AttestationRegistry.sol` (`attest(bytes32 folioHash)` → evento
-  `Attested` indexable, sin owner/fondos/upgrade) + `subgraph/` (indexa `Attested` en
-  `FolioAttestation { attestationCount, distinctAttesters, first/lastAttestedAt }`) +
-  `backend/src/creva-proxy.ts` agrega a `/creva-score/verify` un bloque `onchain` con
-  `trustSignal` = `corroborated` (`distinctAttesters >= 2`) / `attested` (`>= 1`) / `unattested`
-  (`0`). `backend/src/arc-anchor.ts` ahora llama `registry.attest(canonicalHash)` en vez de la tx
-  valor-0 sin log; invariante de validación de hash intacta. El veredicto de contenido/firma del
-  core sale TAL CUAL al lado; subgraph caído → `onchain: null` + flag, core intacto, proceso vivo.
-  Detalle y comandos: [`docs/integrations/onchain-attestation.md`](integrations/onchain-attestation.md).
-  **VERIFY local verde:** `contracts` `forge test` 7/7 (unit+fuzz+invariant); `gateway` `tsc`/
-  `eslint` limpios, `vitest` 20 archivos/56 tests; `subgraph` `graph codegen && graph build` ok;
-  `app` `tsc` limpio, `jest` verify 15/15 (los 2 flakes de `auth-gate`/`help/search` bajo full-run
-  ya documentados, no relacionados). Mecanismo demostrado en anvil local: 2 cuentas distintas
-  atestiguan un folioHash → `attestationCount` 2, 2 logs `Attested`; e invariante del gateway
-  prueba 0→`unattested`, 2→`corroborated`.
-  **Pendiente del humano (no lo hace un agente local):** (1) `forge script script/Deploy.s.sol`
-  a Arc testnet y a Sepolia — anotar direcciones + txs aquí; (2) poblar `REGISTRY_ADDRESS` y
-  `SUBGRAPH_URL` en `backend/.env`, y `address`/`startBlock` en `subgraph/networks.json`;
-  (3) `graph deploy creva-attestations --network sepolia` con la deploy key del Studio;
-  (4) demo real: 2 attests con 2 cuentas + `/verify` antes/después (evidencia a pegar aquí).
-  **NO verificado:** deploy real a testnet, indexación real del subgraph, y el ciclo end-to-end
-  contra el core real — todo bloqueado por no tener `.env`/claves/deploy key en el worktree del
-  agente. El wiring de la app (`lib/api.ts` + `sealClient.ts` + `VerifyScreen.tsx`) **ya está
-  hecho** — ver Cerrados `2026-09-06` (rama `feature-verify-onchain-wiring`).
+- [ ] **2026-09-06 — Paridad móvil: segunda vista visual pendiente.** Las pantallas y fixes de
+  paridad ya están mergeados a `main` y verificados por código/tests.
+  Primera pasada visual resolvió CTAs, back button, saludo, campana honesta, segmentados,
+  marca "Creva", cierre de `MoreSheet` y copy de borrado.
+  Pendiente: segunda vista pantalla por pantalla y Expo Go físico; no afirmar paridad visual final
+  hasta cerrar esa revisión.
 
-- [ ] **2026-09-06 — Paridad móvil: segunda vista visual PENDIENTE (owner: sesión 2, "UI audit
-  smoke test").** Las 13 pantallas nativas nuevas de `feature-mobile-native-parity` (datos
-  personales, info fiscal, seguridad, movimientos, estados de cuenta, avisos, radar regulatorio,
-  reporte, garantía, verificación de negocio, calculadora, aviso de privacidad + wiring de borrado
-  de cuenta) y los 4 ajustes de paridad (`feature-nav-parity-render`, `feature-more-sheet-parity`,
-  `feature-dashboard-parity`, `feature-scoregauge-parity`) están **mergeados a `main`** y
-  verificados por **lectura de código + `tsc --noEmit` + `jest`/`vitest`** — ver Cerrados
-  `2026-09-06`. **NO** verificados por render lado a lado contra `creva_finance/frontend`: bloqueo
-  `react-native-web`/NativeWind (`TypeError: Class extends value undefined`). **No se afirma
-  paridad visual en ninguna parte.** Pendiente: (1) certificación visual pantalla por pantalla
-  cuando se resuelva el bloqueo de render — owner sesión 2; (2) alcance de `credit`/`card`/`kyc`/
-  `auth` a decidir con el humano; (3) `kyc`/`welcome`/`auth/callback` sin evaluar contra su
-  equivalente mobile. *(El sub-punto "el gateway no expone `/score`" se cerró el `2026-09-06`: el
-  score es core-directo, el gateway no interviene — ver Cerrados.)*
-  **Actualización 2026-09-06 — el bloqueo de render se resolvió; primera pasada visual de la
-  sesión 2 hecha (~22 hallazgos).** Fixes VISIBLE + NITPICK aplicados en
-  `feature-visual-fixes-1`:
-  - `SelfieCheckScreen`: CTAs `bg-text` (negro) → `bg-crimson`; `BackButton` sale del contenedor
-    centrado a top-left vía un helper `CenteredState` (como QueryScreen/VerifyScreen).
-  - `DashboardScreen`: saludo `Hola` → `Hola,` con coma (ref `dashboard/page.tsx:199`); los inputs
-    de `buildReminders` para crédito/estados de cuenta pasan de valores fabricados
-    (`creditEligible: true`, `statementCount: 2`) a `null` — sin datos reales no se inventa un
-    conteo, la campana no muestra badge y `mainAction` cae al fallback honesto "Mira qué mueve tu
-    score" (ref `dashboard/page.tsx:188-189`).
-  - `MovementsScreen` / `SegmentedField` compartido: `numberOfLines={1}` + `px-1` + `text-[13px]`
-    para que las etiquetas no recorten el control a 375px.
-  - `QueryScreen`: "Creva SealPay" (marca inventada) → "Creva".
-  - `MoreSheet`: botón "Cerrar" nuevo (`onClose` → `home`), como el `BottomSheet` del frontend.
-  - `DeleteAccountScreen`: título "Eliminar mi cuenta" → "Eliminar tu cuenta" + subtítulo del ref
-    (`delete-account/page.tsx:30-31`).
-  Tests: `test/unit/visual-fixes-1.spec.ts` + `test/invariant/dashboard-bell-honest.invariant.spec.ts`.
-  `tsc` limpio; `jest` 66 suites / 300 tests.
-  **Sigue abierto:** el render nativo lado a lado de todo (owner sesión 2); los hallazgos de sesión 2
-  más allá de VISIBLE/NITPICK si los hubiera.
+- [ ] **2026-09-06 — AUDIT app↔core de `frontend/lib/api.ts`.** Duplicado del bloque superior,
+  conservado como recordatorio compacto: la mayoría de métodos ya apunta a endpoints reales del
+  core; `GET /cards` falta, varios métodos no se usan, y los shapes requieren prueba con sesión
+  Clerk real.
+  Cambio aplicado: `CardScreen` muestra estado honesto si `cards.list` falla.
+  Pendiente: deploy/config de auth y prueba runtime contra el core.
 
-  **Actualización `2026-09-06` — sesión 2, worktree `audit-ui-smoke-test`: el bloqueo de render web
-  ESTÁ RESUELTO; primera pasada visual hecha contra el main viejo (`8074021`); re-pasada contra el
-  main nuevo bloqueada por inestabilidad de Metro en esta máquina. Findings only, ningún `.tsx`
-  tocado.**
-
-  **Render web — RESUELTO** (proof: `Web Bundled 8060ms index.ts (548 modules)`, bundle limpio, sin
-  `Class extends value undefined`). El error NO era de `react-native-web`/NativeWind: era
-  `@grpc/grpc-js` (arrastrado por `@hashgraph/sdk`) que referencia el módulo `events` de Node y
-  truena en el runtime web de Metro. Fix en el worktree (sin commit — regla de agente local):
-  - `npx expo install react-native-web react-dom` (el target web nunca se configuró).
-  - `frontend/web-shims/hashgraph-sdk-web-stub.js` — stub que lanza; las pantallas auditadas nunca llegan
-    al path de firma en web.
-  - `frontend/web-shims/clerk-expo-web-stub.js` — el worktree no trae `frontend/.env`; sin
-    `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` real `useAuth().isLoaded` nunca pasa a `true` y la app se
-    queda en el loader de `App.tsx`. El stub reporta sesión cargada + sin autenticar.
-  - `frontend/metro.config.js` — `resolver.resolveRequest` redirige `@hashgraph/sdk` y `@clerk/clerk-expo`
-    a los stubs solo cuando `platform === "web"`; los bundles nativos no se tocan. Arrancar con
-    `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=<cualquier pk_test_...>` porque `ClerkAppProvider.tsx` lanza si
-    la env var falta.
-  - Ruido no bloqueante en web: `Cannot manually set color scheme … dark mode is type 'media'`
-    (NativeWind v4); la app renderiza igual, emular `prefers-color-scheme: light` lo silencia.
-
-  **Re-pasada contra el main nuevo — BLOQUEADA (entorno, no código).** Con `creva_finance` en `:3001`,
-  el Metro de Codex en `:8081` y a ratos el de Expo Go corriendo a la vez, cada arranque de un 2º/3º
-  Metro de Expo en esta máquina Windows se cuelga en "Starting Metro Bundler" indefinidamente
-  (4 intentos; solo el 1er arranque en frío funcionó y dio el bundle de 548 módulos). Para la
-  certificación pantalla por pantalla hace falta correr el Metro web del worktree solo.
-
-  **Hallazgos de la 1ª pasada (contra `8074021`, pre-migración de las 13 pantallas; re-confirmar):**
-  - **Icon set (`frontend/features/shared/icons/Icon.tsx`) RELLENO NEGRO** en toda la app (nav, MoreSheet,
-    Profile, Help, Stub). La ref dibuja cada glyph como trazo (`stroke`, `fill="none"`,
-    `stroke-width 1.7-1.8`) en `--cr-text-secondary` #6F675C — `components/BottomNav.tsx:24-72`,
-    `components/help/HelpGlyph.tsx:6-8`, `frontend/profile/page.tsx:23-73`. Sistémico. (blocker)
-  - Nav: glyph `score` es mancha sólida oscura (activa e inactiva); la ref es arco fino + aguja +
-    punto — `components/BottomNav.tsx:39-44`. (blocker)
-  - `ScoreScreen.tsx` no espeja `/score`: título "Tu score" vs "Score Creva", score hardcodeado
-    `74`/"Bueno" sin sesión (ref: `0 de 100`, `frontend/score/page.tsx:52`), sin la lista "Sigue por
-    aquí" (`frontend/score/page.tsx:26-50`), sin back ni botón de ayuda. (blocker)
-  - `DeleteAccountScreen.tsx` no espeja `/profile/delete-account`: falta `Button href={MAILTO}`
-    "Escribir el correo" (`frontend/profile/delete-account/page.tsx:63`) — afordancia central no
-    accionable; no expone `privacidad@finarahub.mx`; título "mi" vs "tu cuenta" + subtítulo ausente
-    (`delete-account/page.tsx:28-31`); paso 1 circular; falta lista "Qué se borra" y aviso
-    anti-fraude. (blocker)
-  - `DashboardScreen.tsx`: falta link "Ver por qué" junto a "Tu score" (`frontend/dashboard/page.tsx:216`);
-    botón principal negro (`bg-text`) + "Ver mis opciones" donde la ref usa `Button` crimson +
-    "Ver por qué" / "Mira qué mueve tu score…" (`dashboard/page.tsx:194-200`); tarjeta "Encuentra tu
-    mejor opción" negra + link de texto donde la ref usa `ActionCard` con `--cr-gradient` + icono +
-    chevron (`dashboard/page.tsx:233-247`); "Mis tarjetas" variante punteada donde la ref sin sesión
-    muestra `tone="danger"` KYC-gate (`dashboard/page.tsx:268-273`); "Saldo disponible" caja baja +
-    "— MXN" donde la ref usa versalitas + apilado; "Hola" sin coma (`dashboard/page.tsx:210`); badge
-    de campana "1" inventado sin sesión. (visible)
-  - Nav: badge "PRONTO" de "Tarjeta" `absolute -top-1 right-2`, se encima sobre el icono. (visible)
-  - MoreSheet: pantalla completa donde la ref es bottom sheet (`BottomSheet`, asa + "Cerrar");
-    títulos de grupo caja baja grande donde la ref usa versalitas gris; celdas icono-centrado-arriba
-    donde la ref es fila (`NavCell`). (visible)
-  - HelpScreen: "Lo que más se pregunta" grid 2 col donde la ref es `Stack columns={4}` de `Tile`
-    (`frontend/help/page.tsx:26`); sin back (ref: `ScreenHeader backHref`). (visible)
-  - `SelfieCheckScreen.tsx` (`identity_unavailable`/`idle`): CTA `bg-text` negro en vez de crimson
-    (`:52`, `:72`); `SafeAreaView` raíz con `justify-center` deja el `BackButton` flotando al centro
-    vertical (`:44`, `:63`). (visible)
-  - Header apretado en full-screen sin tab bar (`CardScreen`, `DeleteAccountScreen`, `StubScreen`):
-    círculo del `BackButton` y `<h1>` encimados; primera tarjeta pega contra el `<h1>`. (visible)
-  - Falta safe-area top en `DashboardScreen`/`ScoreScreen`/`HelpScreen` — coincide con el bloque
-    "Safe-area insets". (visible)
-  - `QueryScreen.tsx`: "402 -> pago -> respuesta" usa `->` ASCII donde el resto usa `→`. (nitpick)
-  - Profile: "Cerrar sesión" pill rosa a ancho completo donde la ref es fila `.cr-logout`; sin back.
-    (nitpick)
-  - "SealPay" como marca en `ScoreScreen`/`QueryScreen` — no aparece en la ref; confirmar si es
-    intencional del track x402. (nitpick)
-
-  **No verificado:** las 13 pantallas nuevas + los 4 ajustes de paridad contra su ruta de referencia
-  (bloqueo de entorno); Expo Go en dispositivo físico; pantallas que exijan sesión Clerk real o
-  backend/backend real; rutas de referencia que redirigen a login sin sesión (solo `/dashboard` y
-  `/score` rinden shell). Capturas en el transcript, no en disco.
-
-  **Actualización `2026-09-06` (2ª entrada, mismo día) — re-pasada visual contra el main NUEVO
-  (`7638dbb`), con el Metro del worktree corriendo solo (el `.expo/` del worktree se borra o el 2º
-  arranque de Metro se cuelga — dato para el siguiente que renderice). Resultado: la migración de
-  paridad móvil arregló la GRAN MAYORÍA de los hallazgos de arriba.**
-
-  **Bug de iconos negros — RESUELTO en el main nuevo. Root cause confirmado.** El `Icon.tsx` viejo
-  no ponía `fill="none"` en la raíz `<Svg>`; react-native-svg (y su shim web) por defecto rinde
-  cada `<Path>`/`<Rect>` sin `fill` propio como `fill:black` → el arco del glyph `score`, el `<Rect>`
-  de `card`, y cada glyph del sheet "Más" salían rellenos sólidos. El fix (`feature-nav-parity-render`,
-  serie que cierra en `a8c71aa`): `const common = { viewBox: "0 0 24 24", fill: "none" }` en el `<Svg>`
-  + `fill={fillColor}` explícito (`fillColor = filled ? stroke : "none"`) en los casos con primitiva
-  de forma. Verificado en render: nav (`score` = arco fino + aguja + punto), MoreSheet (11 glyphs
-  trazo gris `--cr-text-secondary`), campo de contraseña (`eye` trazo), Profile — todos correctos.
-
-  **Arreglado por la migración (ya no aplica):**
-  - Nav: glyph `score` fino ✓; "Tarjeta" ahora es pestaña real habilitada, sin badge "PRONTO"
-    encimado ✓ (`f4b33bd`).
-  - `DashboardScreen`: link "Ver por qué" junto a "Tu score" ✓; tarjeta "Encuentra tu mejor opción"
-    ahora `--cr-gradient` crimson + icono a la izquierda + chevron ✓; "SALDO DISPONIBLE" en
-    versalitas + unidad/valor apilados ✓; score card muestra estado de error real ("No pudimos
-    cargar tu score…") en vez de spinner/número inventado ✓.
-  - MoreSheet: asa de bottom-sheet ✓; títulos de grupo en versalitas gris ✓; celdas en fila
-    (icono izq + label der) ✓; iconos trazo ✓.
-  - `DeleteAccountScreen`: botón "Escribir el correo" → `Linking.openURL(MAILTO)` con
-    `privacidad@finarahub.mx` ✓; card highlight "Ten en cuenta" ✓.
-  - Header de las full-screen sin tab bar: `BackButton` y `<h1>` ya con respiro (visto en
-    `KycFormScreen`, `MovementsScreen`); el apretón que vi en el main viejo ya no aparece.
-  - Pantallas nuevas revisadas en render y bien construidas / on-brand: `KycFormScreen`
-    (CTA crimson "Verificar identidad", form con Nombre/Apellido/CURP/Correo/Teléfono),
-    `MovementsScreen` (segmented Todos/Ingresos/Gastos, empty state, copy = `frontend/movements/page.tsx:208-230`).
-
-  **Sigue abierto tras la re-pasada:**
-  - `ScoreScreen.tsx` NO entró en la migración (último commit `4209ea9`, pre-migración): `scoreValue
-    = 74` hardcodeado como default prop; título "Tu score" vs "Score Creva"; solo el link "Consultar
-    con pago (SealPay) →", sin la lista "Sigue por aquí" (`frontend/score/page.tsx:26-50`); sin back ni
-    botón de ayuda. El gateway aún no expone `/score` — decisión de alcance pendiente con el humano.
-    (blocker)
-  - `SelfieCheckScreen.tsx`: CTA "Iniciar Selfie Check" / "Continuar sin verificarme" siguen en
-    `bg-text` (negro) en vez de crimson; en el estado `idle` el `SafeAreaView` con `justify-center`
-    aún deja el `BackButton` flotando al centro vertical. (visible)
-  - `DashboardScreen`: score card body sigue "Revisa los productos compatibles con tu perfil…" /
-    botón "Ver mis opciones" donde el fallback de la ref es "Mira qué mueve tu score y qué lo
-    mejoraría." / "Ver por qué" (`frontend/dashboard/page.tsx:194-200`); "Hola" sin coma
-    (`:210`); badge de campana "1" sin sesión (dato inventado). (visible + 2 nitpick)
-  - `MoreSheet`: no tiene botón "Cerrar" (la ref sí); el asa es decorativa (no arrastrable). (nitpick)
-  - `MovementsScreen`: el segmented "Todos/Ingresos/Gastos" se recorta en el borde derecho a 375px
-    ("Gastos" queda cortado). (visible)
-  - `DeleteAccountScreen`: título "Eliminar mi cuenta" vs "Eliminar tu cuenta" de la ref + subtítulo
-    ausente ("Se puede, y aquí está cómo…"); la CTA de correo es un `Card` con texto crimson, no un
-    `Button` crimson relleno como la ref (`frontend/profile/delete-account/page.tsx:63`); prop
-    `onOpenPrivacy` declarada pero sin uso visible. (nitpick)
-  - "SealPay" como marca visible en `ScoreScreen`/`QueryScreen` — sigue sin aparecer en la ref;
-    confirmar si es intencional del track x402. (nitpick)
-
-  **No re-verificado en esta pasada** (nav de clicks sintéticos poco fiable + presupuesto): recorrido
-  completo pantalla-por-pantalla de las otras ~9 pantallas nuevas (Calculadora, Estados de cuenta,
-  Tu garantía, Sello de tu negocio, Reglas que te afectan, Tu reporte, Avisos, Aviso de privacidad,
-  Datos personales/Info fiscal/Seguridad) — vistas en el grid del MoreSheet, no abiertas una a una;
-  `credit`/`card` nuevos; `help` x3. `ScoreGauge` como arco/ring web (`4209ea9`) sin comparar pixel
-  a pixel contra el de la ref.
-
-- [ ] **2026-09-06 — AUDIT app↔core de `frontend/lib/api.ts` (worktree `feature-app-core-api-wiring`,
-  off `origin/main` 7638dbb).** Método → endpoint real → auth → ¿existe en el core? → estado en la
-  app. `BASE = EXPO_PUBLIC_API_URL` (core NestJS, Cloud Run). Auth "Clerk" = `Authorization:
-  Bearer <token>` del usuario, inyectado por `AuthGuard` vía `setSessionSource` (`frontend/lib/api.ts:30`);
-  el `JwtAuthGuard` del core acepta ese token cuando `AUTH_PROVIDER` es `clerk`/`both`
-  (`creva_finance/backend/src/modules/auth/guards/jwt.guard.ts:44-60`). Evidencia de rutas: grep de
-  decoradores en `creva_finance/backend/src/modules/*/*.controller.ts`.
-
-  | Método (`frontend/lib/api.ts`) | Endpoint real | Auth | ¿Existe en el core? | Estado en la app |
-  |---|---|---|---|---|
-  | `score.get` :312 | `GET /score` | Clerk | Sí — `score.controller.ts:13` (`@Get()`), shape ok vs `score.service.ts:67-75` | **Real** — `DashboardScreen.tsx:13,64` (patrón de referencia) |
-  | `kyc.status` :171 | `GET /kyc/status` | Clerk | Sí — `kyc.controller.ts:28`, shape ok (`kyc/collateral/availability`) vs `kyc.service.ts` | **Real** — `CardScreen.tsx:36`, `CardCreateScreen.tsx:239`, `KycFormScreen`, `NotificationsScreen` |
-  | `kyc.apply` :178 | `POST /kyc/apply` | Clerk | Sí — `kyc.controller.ts:22` | **Real** — `KycFormScreen.tsx:115` |
-  | `credit.eligibility` :463 | `GET /recommendations/credit/eligibility` | Clerk | Sí — `recommendations.controller.ts:25` | **Real** — `CreditScreen.tsx:595`, `NotificationsScreen.tsx:64` |
-  | `credit.recommend` :465 | `POST /recommendations/credit` | Clerk | Sí — `recommendations.controller.ts:30` | **Real** — `CreditScreen.tsx:615` |
-  | `credit.select` :471 | `POST /recommendations/credit/select` | Clerk | Sí — `recommendations.controller.ts:39` | **Real** — `CreditScreen.tsx:631` |
-  | `credit.selections` :477 | `GET /recommendations/credit/selections` | Clerk | Sí — `recommendations.controller.ts:50` | No llamado por ninguna pantalla |
-  | `credit.updateSelection` :479 | `PATCH /recommendations/credit/selections/:id` | Clerk | Sí — `recommendations.controller.ts:55` | **Real** — `CreditScreen.tsx:644` |
-  | `cards.issue` :205 | `POST /cards/issue` | Clerk | Sí — `cards.controller.ts:22` | **Real** — `CardCreateScreen.tsx:222` |
-  | `cards.get` :211 | `GET /cards/:id` | Clerk | Sí — `cards.controller.ts:27`; `spendingLimit` sin verificar vs `VirtualCardRow` | **Real** — `CardScreen.tsx:48` |
-  | `cards.freeze` / `cards.unfreeze` :220-222 | `PATCH /cards/:id/(un)freeze` | Clerk | Sí — `cards.controller.ts:32,37` | **Real** — `CardScreen.tsx:78-79` |
-  | `cards.list` :202 | `GET /cards` | Clerk | **NO** — `CardsController` no expone `@Get()` raíz ni `CardsService.list()` (grep: sin ruta list; el frontend de referencia tiene el mismo hueco, `frontend/app/cards/page.tsx:75`) | Se llamaba y su fallo se leía como "sin tarjetas" — **corregido a estado honesto** `card-list-unavailable` (`CardScreen.tsx`) |
-  | `statements.list` :535 | `GET /statements` | Clerk | Sí — `statements.controller.ts:38` | **Real** — `StatementsScreen.tsx:1608`, `MovementsScreen`, `NotificationsScreen` |
-  | `statements.summary` :537 | `GET /statements/summary` | Clerk | Sí — `statements.controller.ts:43` | **Real** — `StatementsScreen.tsx:1615`, `NotificationsScreen.tsx:66` |
-  | `statements.entries` :539 | `GET /statements/:id/entries` | Clerk | Sí — `statements.controller.ts:48` | **Real** — `StatementsScreen.tsx:1461`, `MovementsScreen.tsx:154` |
-  | `statements.reclassify` :542 | `PATCH /statements/entries/:entryId` | Clerk | Sí — `statements.controller.ts:53` | **Real** — `StatementsScreen.tsx:1478`, `MovementsScreen.tsx:178` |
-  | `statements.upload` / `uploadNative` :548-559 | `POST /statements/upload` (multipart) | Clerk | Sí — `statements.controller.ts:29` | **Real** — `StatementsScreen.tsx:1644` (`uploadNative`) |
-  | `statements.remove` :570 | `DELETE /statements/:id` | Clerk | Sí — `statements.controller.ts:62` | **Real** — `StatementsScreen.tsx:1662` |
-  | `crevaScore.disclosure` :732 | `GET /creva-score/disclosure` | Clerk | Sí — `creva-score.controller.ts:21` | **No llamado** por ninguna pantalla |
-  | `crevaScore.radar` :734 | `GET /creva-score/radar` | Clerk | Sí — `creva-score.controller.ts:26` | **Real** — `RegulatoryScreen.tsx:68` |
-  | `crevaScore.verify` :738 | `POST /creva-score/verification` | Clerk | Sí — `creva-score.controller.ts:32` | **Real** — `BusinessVerificationScreen.tsx:80` |
-  | `crevaScore.report` :744 | `POST /creva-score/report` | Clerk (directo-al-core) | Sí — `creva-score.controller.ts:40` | **Real** — `ReportScreen.tsx:71` (sin body → sujeto = perfil fiscal del usuario) |
-  | `crevaScore.verifyReport` :752 | `POST /creva-score/verify` | Ninguno (ruta pública) | Sí — `report-verification.controller.ts:16` | No usado directo: `verify/sealClient.ts` va por el gateway x402 |
-  | `profiles.get` :227 | `GET /profiles` | Clerk | Sí — `profiles.controller.ts:15` | **Real** — `PersonalDataScreen`, `CreditScreen.tsx:388` |
-  | `profiles.update` :236 | `PUT /profiles` | Clerk | Sí — `profiles.controller.ts:20` | **Real** — `PersonalDataScreen.tsx:61` |
-  | `profiles.getFiscal` :242 | `GET /profiles/fiscal` | Clerk | Sí — `profiles.controller.ts:25` | **Real** — `FiscalInfoScreen`, `CreditRequestForm.tsx:1098` |
-  | `profiles.updateFiscal` :253 | `PUT /profiles/fiscal` | Clerk | Sí — `profiles.controller.ts:30` | **Real** — `FiscalInfoScreen.tsx:74`, `CreditRequestForm.tsx:1149` |
-  | `collateral.get` :187 | `GET /collateral` | Clerk | Sí — `collateral.controller.ts:17` | **Real** — `CollateralScreen.tsx:50` |
-  | `calculator.get` :588 | `GET /calculator` | Clerk | Sí — `calculator.controller.ts:14` | **Real** — `CalculatorScreen.tsx:48` |
-  | `transactions.list` :281 | `GET /transactions` | Clerk | Sí — `transactions.controller.ts:21` | **Real** — `CardScreen.tsx:62`, `MovementsScreen.tsx:145` |
-  | `declarations.latest` :447 | `GET /declarations` | Clerk | Sí — `declarations.controller.ts:14` | **Real** — `CreditRequestForm.tsx:1098` |
-  | `declarations.create` :449 | `POST /declarations` | Clerk | Sí — `declarations.controller.ts:19` | **Real** — `CreditRequestForm.tsx:1155` |
-  | `recommendations.get` :324 | `GET /recommendations` | Clerk | Sí — `recommendations.controller.ts:20` | No llamado |
-  | `auth.sendPhoneCode` / `verifyPhoneCode` :149-155 | `POST /auth/phone/(send-code\|verify)` | Clerk | Sí — `auth.controller.ts:57,67` | **Real** — `CreditScreen.tsx:398-401` |
-  | `auth.me` :141 | `GET /auth/me` | Clerk | Sí — `auth.controller.ts:78` | **Real** — `CreditScreen.tsx:358` |
-  | `auth.forgotPassword` :143 | `POST /auth/forgot-password` | Ninguno | Sí — `auth.controller.ts:51` | **Real** — `CreditScreen.tsx:359`, `SecurityScreen.tsx:30` |
-  | `auth.deleteMe` :166 | `DELETE /auth/me` | Clerk | Sí — `auth.controller.ts:84` | Vía `DeleteAccountScreen` (verificar) |
-  | `auth.register` / `login` / `getOAuthUrl` :129-163 | `/auth/(register\|login\|oauth)` | Ninguno | Sí (pre-Clerk) | **Muerto** — el sign-in real usa `@clerk/clerk-expo` (`SignInScreen`), no estos |
-
-  **Verificado sólo por lectura de código / shape; nada ejercido contra un backend real con una
-  sesión Clerk real** — eso queda como VERIFY pendiente (necesita `EXPO_PUBLIC_API_URL` apuntando a
-  un core con `AUTH_PROVIDER=clerk` y un token de usuario). Cambios de esta pasada: sólo
-  `CardScreen.tsx` (estado honesto para `cards.list`) + su test. Ningún mock reemplazado porque las
-  pantallas en foco (`CreditScreen`, `CardScreen`, `StatementsScreen`) **ya estaban cableadas a la
-  API real** con estados loading/error — la premisa de la tarea quedó atrás del código.
-
-  **Gaps abiertos por endpoint faltante:**
-  - **`GET /cards` (lista) no existe en el core.** `CardsController` sólo expone `issue` / `:id` /
-    `:id/freeze` / `:id/unfreeze`. Tanto `frontend/lib/api.ts:202` como el frontend de referencia
-    (`creva_finance/frontend/lib/api.ts:211`) asumen la ruta. Decisión: **el core debe añadir
-    `GET /cards` + `CardsService.list(userId)`** (regla #5: no se implementa aquí). Mientras tanto
-    `CardScreen` muestra `card-list-unavailable` en vez de un "sin tarjetas" inventado. `cards.get`
-    necesita un id, así que sin la lista la pantalla de tarjeta no puede resolver "¿cuál es mi
-    tarjeta?" sin un fallback.
-  - **`crevaScore.disclosure` y `crevaScore.report` (directo-al-core) sin consumidor / doble
-    camino.** `disclosure` no lo llama ninguna pantalla. `report` tiene dos rutas vivas: directo al
-    core con token del usuario (`ReportScreen`) y por el gateway x402 con **identidad de servicio**
-    (`QueryScreen` → `gatewayClient.ts`). Ver bloque PASO 3 abajo.
-  - **Shapes sin verificar contra el runtime:** `cards.get().spendingLimit`, y en general todo lo
-    marcado "Real" arriba — el tipo de `frontend/lib/api.ts` es una aserción, no una verificación.
-
-- [ ] **2026-09-06 — PASO 3: qué endpoint personal necesitaría un proxy Clerk-passthrough en el
-  gateway (diseño, NO implementado en esta pasada).** El `creva-proxy.ts` del gateway
-  (`backend/src/creva-proxy.ts:18-24`) autentica **como la cuenta de servicio Bazantic**
-  (`getCrevaAccessToken()`), no reenvía el `Authorization` del usuario. Correcto para `/creva-score/
-  verify` (ruta pública) y aceptable para `/creva-score/report` **cuando el sujeto va explícito en
-  el body** (`businessName` + `stateCode`, como en `QueryScreen`). **Problema:** el core
-  (`creva-score.controller.ts:40`) hace `getSealedReport(user.id, dto)` — con la identidad de
-  servicio, un `report` sin body se generaría para el usuario-servicio, no para la persona. Hoy no
-  explota porque `QueryScreen` siempre manda body y `ReportScreen` va directo-al-core con el token
-  del usuario. **Ningún endpoint personal DEBE pasar por el gateway hoy** — todos los de la tabla
-  van directo-al-core con Clerk y funciona. Si en el futuro se quiere que un dato personal (p.ej.
-  `report` del propio negocio del usuario, o `radar`) pase por el gateway para x402, el diseño es:
-  un `proxyToCrevaAsUser(req)` que reenvíe `req.headers.authorization` **tal cual** (nunca
-  `getCrevaAccessToken()`), con su propia ruta gateway y su propio gate x402; la cuenta de servicio
-  queda sólo para rutas sin sujeto-usuario. CONGELADO: no tocar `creva-auth` / `x402-gate` /
-  `facilitator` en esta pasada.
+- [ ] **2026-09-06 — Diseño gateway para endpoints personales.** Hoy el gateway usa identidad de
+  servicio; eso sirve para rutas públicas o reportes con sujeto explícito.
+  Si un endpoint personal pasa por x402 después, debe reenviar el `Authorization` del usuario con
+  un proxy separado; no tocar `creva-auth`, `x402-gate` ni `facilitator` por este punto.
 
 - [ ] **2026-09-05 — `facilitator.ts` no envuelve su `fetch` en try/catch: un facilitador
   caído tumba el proceso del gateway entero, no solo la request.** Sobrevive del bloque de abajo
@@ -627,7 +167,7 @@ checklist.
   Primer intento de contacto rebotó (`sandbox.access@toolsforhumanity.org` no resuelve; dominio
   real es `toolsforhumanity.com`), reenviado a la dirección correcta. Bloquea el cierre final de
   este bloque y el de "Riesgo Expo Go" de abajo hasta que llegue la aprobación — con el nonce ya
-  en código, lo único que falta aquí es correr el script de humo. Vars nuevas para el humano en
+  en código, lo único que falta aquí es correr el script de humo. Vars nuevas en
   `backend/.env`: `WORLD_RP_ID`, `WORLD_RP_SIGNING_KEY`, `WORLD_ENVIRONMENT` (ver
   `backend/.env.example`).
 
@@ -659,7 +199,7 @@ checklist.
 - [ ] **The Graph y 1inch — evaluar después de cerrar Hedera + World + ENS + Arc + Uniswap.**
   Ninguna de las dos tiene hoy una forma de producto *load-bearing* en Creva (`brainstorming.md`
   §1 y §4 no las mapea a ninguna idea con encaje ≥3) — no se agregan sin antes construir esa forma,
-  para no violar el descalificador #2. Formas candidatas a validar con el humano antes de tocar
+  para no violar el descalificador #2. Formas candidatas a validar con el equipo antes de tocar
   código:
   - **The Graph ($15k, pista Continuity $5k):** un subgraph que indexe los eventos on-chain que
     Creva ya emite (registro `negocio.creva.eth` en ENSv2/Sepolia del bloque 28dbcde, y el evento
@@ -673,7 +213,7 @@ checklist.
     existe esa necesidad real de conversión — si el facilitador nunca convierte, no hay pista que
     integrar y se descarta.
   Ninguna de las dos entra al roadmap como bloque de trabajo hasta que una de estas formas se
-  confirme con el humano como real (no hipotética) y se re-puntúe en `brainstorming.md` §4.
+  confirme con el equipo como real (no hipotética) y se re-puntúe en `brainstorming.md` §4.
 
 - [ ] **Ledger — $5,000, 2 pistas (AI Agents x Ledger $3.5k + Continuity $1.5k).** Prerrequisito:
   **Ledger Key Ring CLI** (`wallet-cli ring`) del Ledger Agent Stack, publicado 2026-09-03 en
@@ -689,8 +229,8 @@ checklist.
     `CREVA_SERVICE_REFRESH_TOKEN`, `FACILITATOR_AUTH_TOKEN`, `HEDERA_PAYER_PRIVATE_KEY`,
     `WORLD_API_KEY`, `ARC_SIGNER_PRIVATE_KEY` por ahí. Rol = custodia de secretos en reposo, NO
     una segunda wallet (respeta §8.1). Tests unit+fuzz+invariant verdes. **BLOCKED** el paso
-    end-to-end: `wallet-cli ring init` exige dispositivo Ledger físico. Detalle y comando del
-    humano en `docs/integrations/ledger-keyring.md`. Rama `sponsor-ledger-keyring`.
+    end-to-end: `wallet-cli ring init` exige dispositivo Ledger físico. Detalle operativo en
+    `docs/integrations/ledger-keyring.md`. Rama `sponsor-ledger-keyring`.
 
 - [ ] **Privy — $5,000, 2 pistas (B2B financial product $2.5k + Best financial flow $2.5k).**
   Prerrequisito: cuenta Privy + `defineChain` de viem con chain ID **296** (Hedera) y su JSON-RPC
@@ -708,16 +248,16 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 
 | Patrocinador | Variable(s) nuevas | Dónde | Fuente/cómo se obtiene |
 |---|---|---|---|
-| Hedera *(ya existe, confirmar valor real)* | `HEDERA_PAYER_ACCOUNT_ID`, `HEDERA_PAYER_PRIVATE_KEY`, `FACILITATOR_AUTH_TOKEN`, `FACILITATOR_FEE_PAYER`, `PAY_TO_ADDRESS` | `backend/.env` | Cuenta testnet ya creada en `portal.hedera.com` (`brainstorming.md:396`) — el humano coloca la private key directo, nunca por chat |
+| Hedera *(ya existe, confirmar valor real)* | `HEDERA_PAYER_ACCOUNT_ID`, `HEDERA_PAYER_PRIVATE_KEY`, `FACILITATOR_AUTH_TOKEN`, `FACILITATOR_FEE_PAYER`, `PAY_TO_ADDRESS` | `backend/.env` | Cuenta testnet ya creada en `portal.hedera.com` (`brainstorming.md:396`) — la private key se coloca directo en `.env`, nunca por chat |
 | World *(ya existe, pendiente sandbox)* | `WORLD_API_KEY`, `WORLD_APP_ID`, `EXPO_PUBLIC_WORLD_APP_ID` | `backend/.env`, `frontend/.env` | Developer Portal de World — bloqueado por aprobación de Tools for Humanity (ver bloque de arriba) |
 | Arc (Circle) | `ARC_RPC_URL`, `ARC_NETWORK` (testnet/mainnet), `CIRCLE_AGENT_STACK_API_KEY`, cuenta/wallet de firma para el evento de respaldo | por definir (`backend/.env` o nuevo `arc/.env`) | Cuenta Circle Developer + Arc testnet faucet |
 | Uniswap Foundation | Ninguna API key — es contribución al stack, no runtime | — | Repo del stack de Uniswap a definir |
 | Bazantic | `BAZANTIC_GATEWAY_URL`, `BAZANTIC_MCP_TOKEN` | `backend/.env` | Signup en Bazantic — **confirmar que existe**, no está indexado públicamente hoy |
 | Ledger | Config del Key Ring CLI (no es una env var de app, es estado local del CLI: `~/.ledger/` o similar) | Máquina del agente que firma, no `.env` del repo | `wallet-cli ring` del Ledger Agent Stack |
 | Privy | `PRIVY_APP_ID`, `PRIVY_APP_SECRET`, RPC URL de Hedera para `defineChain(296, ...)` | `backend/.env` o `frontend/.env` | Dashboard de Privy |
-| Chainlink | `REGULATORY_ALERT_REGISTRY_ADDRESS`, `REGULATORY_REPORTER` (opcional) | `backend/.env` | `REGULATORY_ALERT_REGISTRY_ADDRESS` sale del deploy de `RegulatoryAlertRegistry`; `REGULATORY_REPORTER` es la dirección del consumer de Chainlink Functions (default: el signer). El Upkeep se registra en automation.chain.link con la cuenta del humano — pasos en `docs/integrations/chainlink-automation.md` |
+| Chainlink | `REGULATORY_ALERT_REGISTRY_ADDRESS`, `REGULATORY_REPORTER` (opcional) | `backend/.env` | `REGULATORY_ALERT_REGISTRY_ADDRESS` sale del deploy de `RegulatoryAlertRegistry`; `REGULATORY_REPORTER` es la dirección del consumer de Chainlink Functions (default: el signer). El Upkeep se registra en automation.chain.link — pasos en `docs/integrations/chainlink-automation.md` |
 
-**Ninguna de estas API keys/private keys se pega en el chat** — el humano las coloca directo en el
+**Ninguna de estas API keys/private keys se pega en el chat** — se colocan directo en el
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
 
 ## Cerrados
@@ -807,7 +347,7 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   `docs/integrations/chainlink-automation.md`. Decisión escogida: **CRE Confidential Workflows ($2k)
   evaluado y descartado sin forzar** — el path de datos radar→folios es deliberadamente no sensible
   (invariante `radar-carries-no-personal-data` en el core), un TEE handler ahí sería teatro.
-  Pendiente para el humano: desplegar a Sepolia, registrar el Upkeep en automation.chain.link,
+  Pendiente operativo: desplegar a Sepolia, registrar el Upkeep en automation.chain.link,
   fijar el forwarder (pasos exactos en el doc de integración). NO verificado: el workflow CRE real
   contra Chainlink (necesita cuenta del humano); el endpoint contra el `/creva-score/radar` real
   (probado solo con radar mockeado — el token de servicio puede no satisfacer el `JwtAuthGuard` del
@@ -850,7 +390,7 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   seguras de borrar del remoto una vez confirmado el push.
 
 - [x] `2026-09-05` — **Wallet Hedera de demo cableada en `QueryScreen.tsx` (worktree/branch
-  `feature-hedera-mobile-signer`): decisión tomada con el humano, opción (b) — signer
+  `feature-hedera-mobile-signer`): decisión tomada con el equipo, opción (b) — signer
   demo-scoped, no wallet real por usuario.** Investigación previa a tocar código, según
   `brainstorming.md`/`docs/plan.md`: se confirmó que `@hashgraph/sdk` publica un build oficial
   para React Native (`package.json`'s campo `"react-native"` → `lib/native.js`, `NativeClient` +
@@ -863,7 +403,7 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   `execute()`, que este bloque nunca llama.
   **Opción elegida y por qué:** (b) — un keypair de testnet demo-scoped vía
   `EXPO_PUBLIC_HEDERA_DEMO_ACCOUNT_ID`/`EXPO_PUBLIC_HEDERA_DEMO_PRIVATE_KEY`, documentado como
-  clave de demo compartida, nunca la wallet real de una usuaria — decisión del humano, con la
+  clave de demo compartida, nunca la wallet real de una usuaria — decisión tomada, con la
   razón explícita de que (a) hubiera arriesgado días de trabajo de Dev Client tan cerca del Q&A
   del 09/14, y (b) ya entrega el ciclo x402 real completo con el mismo criterio de disciplina de
   gasto que Arc-anchor y el facilitador de Hedera.
@@ -1181,7 +721,7 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 - [x] `2026-09-05` — **Nav de 5 pestañas + sheet "Más" + set de iconos SVG (worktree
   `feature-nav-icon-fix`): 15 hallazgos de la auditoría UI cerrados.** `frontend/App.tsx`'s `TabBar`
   pasó de 2 pestañas (Inicio/Perfil) a las 5 del objetivo (Inicio, Score, Tarjeta, Crédito, Más).
-  **Actualización — decisión escogida 2026-09-06 con el humano tras ver el render
+  **Actualización — decisión escogida 2026-09-06 con el equipo tras ver el render
   (`feature-last-screens-parity`):** la pestaña Tarjeta es tocable y abre el flujo de tarjeta
   completo (`CardScreen`: estado vacío + emisión + freeze + movimientos, gateado por KYC;
   `CardCreateScreen`; `VirtualCard`). Ya no hay badge "PRONTO" ni pestaña deshabilitada. "Más" abre

@@ -56,7 +56,7 @@ OK: defineChain(296) resolves a live Hedera testnet relay
 Endpoint alternativo (Hedera oficial / Hiero): configurable con `EXPO_PUBLIC_HEDERA_JSON_RPC_URL`.
 El público de Hashio no pide API key; el de mirror node / otros proveedores puede pedirla.
 
-## Env vars que el humano debe crear
+## Env vars que se deben crear
 
 Se ponen en `app/.env` (`EXPO_PUBLIC_*` porque las lee el cliente Expo). Ninguna se pega en el chat.
 
