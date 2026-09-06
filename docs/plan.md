@@ -17,6 +17,20 @@ checklist.
 
 ## Abiertos
 
+- [ ] **2026-09-06 — `QueryScreen` no tiene form de datos del negocio: el flujo "Comprobar
+  un reporte" manda un `BUSINESS_NAME` hardcodeado a `/creva-score/report`.**
+  `app/features/query/QueryScreen.tsx:31` y `:58` llaman `requestSignal({ businessName:
+  BUSINESS_NAME })` con una constante fija; `gatewayClient.ts:46-47` ya acepta `businessName?`
+  y `stateCode?` pero la pantalla nunca los recoge del usuario. El frontend sí tiene esa
+  entrada (`creva_finance/frontend/app/report/page.tsx`, `app/business-verification/page.tsx`).
+  Gap load-bearing: el producto es "verificar ESTE negocio" y en cámara un valor fijo se lee
+  como demo falsa. **Alcance mínimo:** campo de nombre + selector de estado (catálogo
+  `state_code`), pasados a `requestSignal`; sin tocar el ciclo x402 ni el sellado. **Prioridad
+  escogida:** después del lote kyc/auth/credit/card, antes de los spikes de patrocinador —
+  bloquea que el video demo muestre el flujo real de entrada. Añadido al scope de
+  `feature-last-screens-parity` por el Main orchestrator el 2026-09-06 (5º ítem del lote); el
+  humano aprobó las 4 pantallas — este ítem se confirma con el humano antes de construirlo.
+
 - [ ] **2026-09-06 — Migración: últimas 4 pantallas del inventario (`feature-last-screens-parity`,
   off `main` 93616fa).** Alcance aprobado por el humano el 2026-09-06 (las 4, revirtiendo la
   decisión previa de "credit/card mínimas a propósito"). Mismo método que las 13 anteriores: leer
