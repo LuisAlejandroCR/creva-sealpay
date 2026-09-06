@@ -9,10 +9,7 @@
 > antes de tocar nada, y cerrar siempre documentando qué se hizo, qué no se verificó y por qué —
 > es el contexto que usan los demás agentes.
 
-**Última actualización:** 2026-09-05 (barra de navegación inferior — paridad de iconos, sexto intento)
-**Última actualización:** 2026-09-05 (sheet "Más" — paridad de iconos y layout de tarjeta, sexto intento)
-**Última actualización:** 2026-09-05 (pantalla Inicio/dashboard — paridad de primitivos, sexto intento)
-**Última actualización:** 2026-09-05 (ScoreGauge arco/anillo SVG — paridad, sexto intento)
+**Última actualización:** 2026-09-06 (integración de la familia de paridad móvil a `main` — 5 ramas, VERIFY verde)
 
 Ver [`brainstorming.md`](../brainstorming.md) §8 y §9 para el análisis completo. Detalle de
 qué-se-hizo/qué-no-se-verificó por sesión: [`docs/memoria.md`](memoria.md). Esta tabla es solo el
@@ -20,326 +17,19 @@ checklist.
 
 ## Abiertos
 
-- [ ] **2026-09-05 — Migración de PWA a app nativa (iOS/Android): replicar cada pantalla y acción
-  de `creva_finance/frontend` en `app/`, uno por uno.** Decisión escogida: **no** un lote — se
-  sigue la misma disciplina que "Paridad móvil, tercera revisión" de abajo (una pantalla por pasada,
-  documentada, sin autocertificar cierre). Worktree/rama: `feature-mobile-native-parity`.
-  **Backlog de rutas del frontend (`creva_finance/frontend/app/**/page.tsx`) contra su pantalla
-  mobile**, para ir tomando una a la vez:
-  - `profile/delete-account` → `DeleteAccountScreen.tsx` — **primer incremento hecho 2026-09-05**
-    (ver más abajo), pendiente de segunda vista.
-  - `credit` → `CreditScreen.tsx` — mobile es intencionalmente mínima (decisión ya registrada,
-    "Crédito son pantallas mínimas reales nuevas"); no replicar el flujo completo de 6 pasos sin
-    reconfirmar que ese es el alcance querido para la migración nativa.
-  - `cards` / `card-create` → `CardScreen.tsx` — mobile es un stub "PRONTO"; mismo caso que Crédito.
-  - `score` → `ScoreScreen.tsx`, `dashboard` → `DashboardScreen.tsx`, `help`/`help/[category]` →
-    `HelpScreen.tsx`/`HelpCategoryScreen.tsx`/`HelpArticleScreen.tsx` — cubiertos por los worktrees
-    Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
-    coordinar (regla de §Colaboración punto 7).
-  - **Todos los stubs de "Más" ya tienen pantalla real** (incrementos 1-13 de abajo):
-    `profile/details`, `profile/fiscal`, `profile/security`, `movements`, `statements`,
-    `notifications`, `regulatory`, `report`, `collateral`, `business-verification`, `calculator` y
-    `privacy`. `StubScreen.tsx` ya no se monta para ninguna clave del backlog original — queda como
-    fallback genérico sin usar. Pendiente de este bloque: la segunda vista visual de las 13
-    pantallas (bloqueo `react-native-web`/NativeWind) y decidir el alcance de `credit`/`card`/`kyc`/
-    `auth` con el humano.
-  - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
-    evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
-
-- [ ] **2026-09-05 — Segundo incremento de la migración: `PersonalDataScreen.tsx` nueva, reemplaza
-  el `StubScreen` genérico de "Datos personales" (`profile/details`).** Puerto real de
-  `creva_finance/frontend/app/profile/details/page.tsx`: nombres/apellidos/teléfono editables vía
-  `profiles.get()`/`profiles.update()` de `app/lib/api.ts` (ya existía el cliente, no se tocó);
-  correo de solo lectura desde la sesión de Clerk (`useUser().primaryEmailAddress`), mismo criterio
-  que el frontend — el backend todavía acepta tokens pre-Clerk que devolverían el correo de otra
-  cuenta. Estados de carga (`ActivityIndicator`), error y "Cambios guardados" replicados. Sin
-  componente `Button` compartido en el proyecto — se siguió la convención ya existente
-  (`Pressable` + `bg-crimson`, ver `QueryScreen.tsx`) en vez de crear una abstracción nueva.
-  `App.tsx`: `step === "profile-details"` ahora monta `PersonalDataScreen` en vez de `StubScreen`.
-  Test nuevo `app/test/unit/profile/personal-data.spec.ts` (mismo patrón de aserciones por fuente
-  que `profile/structure.spec.ts`, sin montar Clerk). `tsc --noEmit` limpio, `npx jest` verde
-  (42/42 suites, 179/179 tests — antes 41/176).
-  **No se verificó:** el resultado nativo/visual — mismo bloqueo de `react-native-web` vs.
-  NativeWind que el resto de esta migración; tampoco se probó el guardado contra un backend real
-  (no hay credenciales/entorno de backend de Creva disponibles desde esta sesión de agente, distinto
-  del frontend Next.js que sí se pudo autenticar). **No autocertificada como cerrada** — falta
-  segunda vista.
-
-- [ ] **2026-09-05 — Tercer incremento de la migración: `FiscalInfoScreen.tsx` nueva, reemplaza el
-  `StubScreen` genérico de "Información fiscal" (`profile/fiscal`).** Puerto real de
-  `creva_finance/frontend/app/profile/fiscal/page.tsx`: tipo de persona (Física/Moral), RFC, razón
-  social, régimen fiscal, estado (catálogo INEGI, `app/lib/mx-states.ts`, ya portado, no se tocó),
-  código postal y dirección — todo vía `profiles.getFiscal()`/`profiles.updateFiscal()` de
-  `app/lib/api.ts` (ya existía, no se tocó). Mismo disclosure "no es asesoría fiscal" que el
-  frontend. **Nuevo:** `app/features/profile/components/FormField.tsx` — `TextField`,
-  `SelectField` y `SegmentedField` compartidos, extraídos porque ya son 2 pantallas (Datos
-  personales y esta) usando el mismo patrón de campo; `PersonalDataScreen.tsx` se refactorizó para
-  reusar `TextField` en vez de mantener su copia local. React Native no tiene `<select>` nativo:
-  `SelectField` es un `Pressable` que expande una lista de opciones en línea — no se agregó ninguna
-  dependencia de picker. `App.tsx`: `step === "profile-fiscal"` ahora monta `FiscalInfoScreen` en
-  vez de `StubScreen`. Test nuevo `app/test/unit/profile/fiscal-info.spec.ts` (mismo patrón de
-  aserciones por fuente). `tsc --noEmit` limpio, `npx jest` verde (43/43 suites, 183/183 tests).
-  **No se verificó:** el resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind) ni
-  el guardado contra el backend real de Creva (sin credenciales de ese backend). El `SelectField`
-  en particular no se probó interactivamente — es una lista expandible simple, no se descarta que
-  necesite ajuste de UX una vez visible (scroll dentro de la lista si el catálogo de estados es
-  largo, por ejemplo) — anotado para la segunda vista. **No autocertificada como cerrada.**
-
-- [ ] **2026-09-05 — Cuarto incremento de la migración: `SecurityScreen.tsx` nueva, reemplaza el
-  `StubScreen` genérico de "Seguridad" (`profile/security`).** Puerto real de
-  `creva_finance/frontend/app/profile/security/page.tsx`: tres cards (cambiar contraseña, tu sesión,
-  tus datos), la primera con acción real vía `auth.forgotPassword()` (`app/lib/api.ts`, ya existía).
-  **Desviación deliberada del "as is" literal:** el frontend lee el correo con `auth.me()` (backend
-  pre-Clerk); esta pantalla lo lee de la sesión de Clerk (`useUser().primaryEmailAddress`), mismo
-  criterio ya aplicado en `PersonalDataScreen.tsx` — un token pre-Clerk puede devolver el correo de
-  otra cuenta, y enviar un enlace de reseteo a la cuenta equivocada es justo el tipo de bug que ese
-  criterio existe para evitar. Test nuevo `app/test/unit/profile/security.spec.ts`. `tsc --noEmit`
-  limpio, `npx jest` verde (44/44 suites, 187/187 tests).
-  **No se verificó:** resultado nativo/visual (mismo bloqueo ya documentado) ni que
-  `auth.forgotPassword()` realmente dispare un correo para una cuenta creada vía Clerk (el endpoint
-  es pre-Clerk; si Clerk gestiona su propio flujo de contraseña por separado, este botón podría no
-  tener efecto real para usuarios Clerk-only — no se investigó más a fondo, es una pregunta de
-  arquitectura de auth más grande que esta sola pantalla). **No autocertificada como cerrada.**
-
-- [ ] **2026-09-05 — Quinto incremento de la migración: `MovementsScreen.tsx` nueva, reemplaza el
-  stub genérico de "Movimientos" en "Más".** Puerto real de
-  `creva_finance/frontend/app/movements/page.tsx`: mezcla movimientos de tarjeta
-  (`transactions.list()`) y de estados de cuenta (`statements.list()` + `statements.entries()`),
-  agrupados por "Hoy/Ayer/Esta semana/Antes", filtrables (Todos/Ingresos/Gastos), con modal de
-  detalle que permite corregir la categoría solo de los movimientos de estado de cuenta
-  (`statements.reclassify()`) y compartir el texto del movimiento (sin datos de cuenta) vía la hoja
-  nativa `Share.share()` de React Native — sin dependencia nueva, es API del framework. Toda la
-  lógica de bucketing/formateo/share-text es la misma del frontend, portada literalmente (mismo
-  criterio "as is" pedido). `App.tsx`: la clave de stub `"movements"` ahora se intercepta antes del
-  `StubScreen` genérico y monta `MovementsScreen`. El modal de detalle usa `Modal` nativo de React
-  Native (no `BottomSheet` del frontend, que es un componente web) — mismo contenido y acciones,
-  presentación adaptada al framework. `SegmentedField`/`SelectField` reusados de
-  `app/features/profile/components/FormField.tsx` para el filtro y el selector de categoría — son
-  controles genéricos, no específicos de perfil, así que reusarlos entre features es la decisión
-  correcta en vez de duplicar. Test nuevo `app/test/unit/more/movements.spec.ts`. `tsc --noEmit`
-  limpio, `npx jest` verde (45/45 suites, 191/191 tests).
-  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni el
-  modal/share/reclasificación contra datos reales (sin backend de Creva disponible desde esta
-  sesión). El modal usa `rounded-t-3xl` con `bg-bg` — no se confirmó que el contraste sobre
-  `bg-black/40` de fondo se vea bien en modo oscuro, si el proyecto llegara a soportarlo (hoy no lo
-  soporta, ver tema de esta app). **No autocertificada como cerrada.**
-
-- [ ] **2026-09-05 — Sexto incremento de la migración: `StatementsScreen.tsx` nueva, reemplaza el
-  stub genérico de "Estados de cuenta" en "Más". Primera pantalla de esta migración que necesitó
-  dependencias nativas nuevas — confirmado con el humano antes de instalar.** Puerto real de
-  `creva_finance/frontend/app/statements/page.tsx`: gate de términos (una vez, persistido),
-  selector de archivos CSV/Excel/PDF, subida, resultado por archivo, historial con
-  revisar/quitar-con-confirmación, y corrección de categoría por movimiento — todo vía
-  `statements.list()/summary()/entries()/reclassify()/remove()` (`app/lib/api.ts`, ya existían).
-  **Dependencias nuevas instaladas** (`npx expo install`, aprobadas explícitamente en el chat antes
-  de tocar `package.json`): `expo-document-picker` (reemplaza el `<input type="file">` del
-  frontend — no hay equivalente nativo) y `@react-native-async-storage/async-storage` (reemplaza
-  `localStorage` para el flag de términos aceptados).
-  **Nuevo en `app/lib/api.ts`:** `statements.uploadNative()` — variante de `statements.upload()`
-  para el objeto `{uri, name, mimeType}` que devuelve `expo-document-picker`, ya que React Native no
-  tiene `File`/`Blob` de un picker; reusa el mismo `requestMultipart` interno, no se duplicó lógica
-  HTTP. `statements.upload()` original queda intacto para no romper el frontend.
-  **Infraestructura de test nueva:** `app/jest.config.js` ganó `setupFiles`, y `app/jest.setup.js`
-  (nuevo) mockea `@react-native-async-storage/async-storage` con su propio mock oficial de Jest —
-  sin esto, cualquier test que importe algo que toque `AsyncStorage` truena con
-  `NativeModule: AsyncStorage is null` (Jest corre en Node, no en un dispositivo). Esto beneficia a
-  cualquier pantalla futura que use `AsyncStorage`, no solo esta.
-  `StackedBar` del frontend (SVG/CSS) se tradujo a una barra simple con `flex` proporcional — sin
-  librería de gráficos nueva. Test nuevo `app/test/unit/more/statements.spec.ts`. `tsc --noEmit`
-  limpio, `npx jest` verde (46/46 suites, 196/196 tests — un fallo de timeout intermitente en
-  `auth-gate.spec.ts`/`help/search.spec.ts` bajo carga completa, confirmado no relacionado: pasa
-  aislado y en un segundo full-run).
-  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), la
-  subida real de un archivo contra el backend de Creva (sin credenciales de ese backend), ni que
-  `expo-document-picker` funcione igual en iOS vs. Android (el picker del sistema difiere entre
-  plataformas — no hay dispositivo/simulador disponible desde esta sesión para confirmarlo).
-  **No autocertificada como cerrada.**
-
-- [ ] **2026-09-05 — Decimotercer incremento de la migración: `PrivacyScreen.tsx` nueva, reemplaza
-  el `StubScreen` genérico de "Aviso de privacidad" (`privacy`). Último stub del backlog original.**
-  Puerto real de `creva_finance/frontend/app/privacy/page.tsx`: el aviso de privacidad que exige la
-  LFPDPPP. **Sin API detrás — es texto legal**, caso explícitamente permitido por el criterio de
-  aceptación (documentar por qué no hay API real). El copy va 1:1: las 9 secciones
-  (responsable, datos recopilados, finalidades, transferencia a terceros —Dynerox/Reap/Supabase—,
-  derechos ARCO, seguridad, cookies, cambios, contacto) con las frases enfatizadas conservadas como
-  runs en negrita (`Esa información de identidad nunca se almacena`, `privacidad@finarahub.mx`).
-  `App.tsx`: rama nueva `activeStub === "privacy"` monta `PrivacyScreen`; las entradas que ya
-  llamaban `openStub("privacy", …)` (DeleteAccountScreen, MoreSheet) caen en la pantalla real.
-  Sin dependencias nuevas. Test nuevo `app/test/unit/more/privacy.spec.ts` (verifica que no importa
-  `lib/api` ni usa `useState`/`useEffect`). `tsc --noEmit` limpio; `npx jest` verde (53/53 suites,
-  236/236 tests — antes 52/231).
-  **Desviación deliberada del "as is":** el layout `<section>`/`<h2>`/`<p>`/`<ul>` HTML se tradujo a
-  una estructura de datos (`SECTIONS`) renderizada con `Text`/`View`; el `<strong>` inline se
-  conserva como `<Text className="font-bold">` anidado. `ScreenHeader backToPrevious` → `BackButton`
-  al `previousStep` (mismo patrón que el resto de la migración).
-  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni que
-  el texto legal esté vigente/actualizado — se copió tal cual del frontend, que es la fuente de
-  verdad. **No autocertificada como cerrada — falta segunda vista.**
-
-- [ ] **2026-09-05 — Duodécimo incremento de la migración: `CalculatorScreen.tsx` nueva, reemplaza
-  el `StubScreen` genérico de "Calculadora" (`calculator`).** Confirmado que **sí tiene API real
-  detrás** (`calculator.get(income?)` de `app/lib/api.ts` → `CalculatorData`, ya existía, no se
-  tocó), a diferencia de lo que anotaba el backlog. Puerto real de
-  `creva_finance/frontend/app/calculator/page.tsx`: utilidad del periodo, barra ingresos/gastos
-  (traducción de `DonutChart` a un `flex` proporcional, sin librería de gráficos), la división
-  sugerida (Salario/Ahorro/Reinversión) con `splitPercent()` sobre los montos que devuelve la API —
-  **nunca se recalcula el porcentaje en el cliente**, es lógica de negocio del backend — y el campo
-  "Prueba otro ingreso" que reenvía `?income=` como override y puede volver a las cifras reales.
-  Sección "De dónde sale cada cifra" con `incomeSources`/`monthlyMargin`. `Progress` de
-  `VisualPrimitives.tsx` reusado para las tres barras; `TextField` compartido para el input.
-  `App.tsx`: rama nueva `activeStub === "calculator"` monta `CalculatorScreen` antes del
-  `StubScreen` genérico. Sin dependencias nuevas. Test nuevo
-  `app/test/unit/more/calculator.spec.ts`. `tsc --noEmit` limpio; `npx jest` verde (52/52 suites,
-  231/231 tests — antes 51/226).
-  **Desviación deliberada del "as is":** `DonutChart` (SVG web) → barra `flex` de dos segmentos;
-  `SPLIT_COLORS` (`var(--cr-*)`) → clases `bg-crimson`/`bg-warning-text`/`bg-success-text`; el
-  `<form onSubmit>` → un botón "Calcular" (no hay submit de formulario nativo).
-  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni
-  `calculator.get()` contra `/calculator` real (sin credenciales del backend de Creva — forma de la
-  respuesta, y si el override `?income=` se comporta igual, sin confirmar). **No autocertificada
-  como cerrada — falta segunda vista.**
-
-- [ ] **2026-09-05 — Undécimo incremento de la migración: `BusinessVerificationScreen.tsx` nueva,
-  reemplaza el `StubScreen` genérico de "Sello de tu negocio" (`business-verification`).** Puerto
-  real de `creva_finance/frontend/app/business-verification/page.tsx`: busca el negocio en el
-  directorio oficial vía `crevaScore.verify()` de `app/lib/api.ts` (ya existía, no se tocó) — es un
-  POST que gasta cuota, y **como el frontend, busca al abrir cuando el perfil fiscal
-  (`profiles.getFiscal()`) ya tiene nombre + estado**; si no, muestra los campos. `STATUS_COPY`
-  completo (verified/not_listed/ambiguous/unavailable), la frase "Tu puntaje no depende de esto",
-  las filas de procedencia del sello (`badge`), y las notas `matchedBy`/`searchedAs`/`rfcNote`.
-  Campos con `TextField`/`SelectField` compartidos de `app/features/profile/components/FormField.tsx`
-  (estado = catálogo `MX_STATES` ya portado). `App.tsx`: rama nueva
-  `activeStub === "business-verification"` monta la pantalla real antes del `StubScreen` genérico.
-  Sin dependencias nuevas. Test nuevo `app/test/unit/more/business-verification.spec.ts`.
-  `tsc --noEmit` limpio; `npx jest` verde (51/51 suites, 226/226 tests — antes 50/220).
-  **Desviación deliberada del "as is":** los avisos de estado usan tokens `success-*`/`info-*`/
-  `warning-*`/`danger-*` de `tailwind.config.js` en vez de las clases `.alert-*` del frontend (no
-  existen en la app). El enlace final "Ver reglas que te afectan" no se portó — cablear esa
-  navegación cruzada desde un stub necesita plomería en `App.tsx` fuera del alcance de una pantalla.
-  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni
-  `crevaScore.verify()` / `profiles.getFiscal()` contra el backend real de Creva (sin credenciales —
-  forma de la respuesta y ramas de estado sin confirmar). **No autocertificada como cerrada — falta
-  segunda vista.**
-
-- [ ] **2026-09-05 — Décimo incremento de la migración: `CollateralScreen.tsx` nueva, reemplaza el
-  `StubScreen` genérico de "Tu garantía" (`collateral`).** Puerto real de
-  `creva_finance/frontend/app/collateral/page.tsx`: estado de la garantía, monto confirmado/
-  pendiente, capacidad de gasto y la CLABE SPEI para depósito — todo vía `collateral.get()` de
-  `app/lib/api.ts` (ya existía, no se tocó). Mapa `STATUS_LABELS` y agrupado de CLABE
-  (`formatClabe`) idénticos al frontend. Estado de carga (`ActivityIndicator`), error, y el caso sin
-  `deposit_account` con su empty state y el `authorization_url` externo. `App.tsx`: rama nueva
-  `activeStub === "collateral"` monta `CollateralScreen` antes del `StubScreen` genérico. Sin
-  dependencias nuevas. Test nuevo `app/test/unit/more/collateral.spec.ts`. `tsc --noEmit` limpio;
-  `npx jest` verde (50/50 suites, 220/220 tests — antes 49/214).
-  **Desviaciones deliberadas del "as is":** (1) sin `KycGate` — no existe ese componente en mobile;
-  la app ya enruta por Clerk/SelfieCheck, así que la pantalla se muestra directo (anotado para la
-  segunda vista: confirmar si hace falta un gate equivalente). (2) La CLABE se entrega por
-  `Share.share({ message })` en vez de `navigator.clipboard.writeText` — sin dependencia de
-  portapapeles nueva (no se instaló `expo-clipboard`). (3) "Iniciar verificación" sin
-  `authorization_url` es texto guía en vez de un enlace a `/kyc` — cablear esa ruta desde un stub
-  necesitaría plomería en `App.tsx` fuera del alcance. (4) Avisos con tokens `warning-*`/`danger-*`
-  en vez de `.alert-*`.
-  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni
-  `collateral.get()` contra `/collateral` real (sin credenciales del backend de Creva — forma de la
-  respuesta y estados posibles sin confirmar). **No autocertificada como cerrada — falta segunda
-  vista.**
-
-- [ ] **2026-09-05 — Noveno incremento de la migración: `ReportScreen.tsx` nueva, reemplaza el
-  `StubScreen` genérico de "Tu reporte" (`report`).** Puerto real de
-  `creva_finance/frontend/app/report/page.tsx`: el reporte se arma con `crevaScore.report()` de
-  `app/lib/api.ts` (ya existía, no se tocó) — **es un POST que gasta cuota de proveedor, así que
-  igual que el frontend está detrás de un botón explícito "Generar mi reporte", nunca se dispara al
-  montar.** Vista previa con el aviso de que consulta el perfil fiscal, vista de resultado con
-  sujeto + fecha, la frase "N de estas M señales son sobre tu negocio", las categorías
-  (`REPORT_CATEGORIES`/`CATEGORY_TITLES`/`CATEGORY_HINTS`/`TONE_LABELS` de `app/lib/report-display.ts`,
-  ya portado, sin tocar), notas, "Qué se consultó", "Lo que este reporte NO dice"
-  (`disclosure.does_not_estimate`) y la card de sello (folio, línea de firma, `does_not_prove`).
-  `App.tsx`: rama nueva `activeStub === "report"` monta `ReportScreen` antes del `StubScreen`
-  genérico. Sin dependencias nuevas. Test nuevo `app/test/unit/more/report.spec.ts`. `tsc --noEmit`
-  limpio; `npx jest` verde (49/49 suites, 214/214 tests — antes 48/208).
-  **Desviaciones deliberadas del "as is":** (1) no se portó `ReportPaper` (la hoja imprimible) ni
-  `window.print()` — son web-only, no hay equivalente nativo sin dependencia nueva; (2) la entrega
-  del archivo sellado va por `Share.share()` con el JSON como `message` en vez de la descarga por
-  `Blob`/`<a download>` del navegador — sin dependencia nueva (no `expo-file-system`); (3)
-  `TONE_COLORS` de `report-display.ts` son strings `var(--cr-*)` inservibles en RN, se mapeó tono →
-  clase Tailwind localmente en la pantalla; (4) los avisos usan tokens `info-*`/`warning-*`/
-  `danger-*` en vez de `.alert-*` del frontend.
-  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni el
-  POST real contra `/creva-score/report` (sin credenciales del backend de Creva — no se confirmó la
-  forma de la respuesta, ni que `Share.share` con un JSON grande sea utilizable en la práctica en
-  iOS/Android). **No autocertificada como cerrada — falta segunda vista.**
-
-- [ ] **2026-09-05 — Octavo incremento de la migración: `RegulatoryScreen.tsx` nueva, reemplaza el
-  `StubScreen` genérico de "Reglas que te afectan" (`regulatory`).** Puerto real de
-  `creva_finance/frontend/app/regulatory/page.tsx`: el radar regulatorio se lee de
-  `crevaScore.radar()` de `app/lib/api.ts` (ya existía, no se tocó) — `SourceResult<RegulatoryRadar>`,
-  con `radar?.available ? radar.data : null` igual que el frontend. Las alertas se parten en
-  "Novedades publicadas" (`kind === "publication"`) y "Reglas que ya estaban vigentes"
-  (`kind === "standing_rule"`), cada una con su fuente oficial (mapa `SOURCE_LABELS` idéntico),
-  agencia, fecha (`formatLongDay`, ya portado) y `EvidenceLink` al documento. Estado de carga
-  (`ActivityIndicator`), fallback "Revisión no disponible" cuando `data === null`, y pie con fuentes
-  consultadas / fechas no leídas. Se conserva la frase de privacidad "Esta revisión no consulta
-  ningún dato tuyo". `App.tsx`: rama nueva `activeStub === "regulatory"` monta `RegulatoryScreen`
-  antes del `StubScreen` genérico (mismo patrón que Movimientos/Estados de cuenta/Avisos). Sin
-  dependencias nuevas. Test nuevo `app/test/unit/more/regulatory.spec.ts` (aserciones por fuente,
-  patrón de `more/notifications.spec.ts`). `tsc --noEmit` limpio; `npx jest` verde (48/48 suites,
-  208/208 tests — antes 47/202).
-  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind ya
-  documentado en los incrementos anteriores), ni el radar contra el backend real de Creva /
-  `/creva-score/radar` (sin credenciales de ese backend desde esta sesión — no se confirmó la forma
-  exacta de la respuesta ni que `alert.kind` venga poblado). El banner de privacidad y el fallback
-  usan tokens `info-*`/`warning-*` de `tailwind.config.js` en vez de las clases `.alert-info`/
-  `.alert-warning` del frontend (no existen en la app). **No autocertificada como cerrada — falta
-  segunda vista.**
-
-- [ ] **2026-09-05 — Séptimo incremento de la migración: `NotificationsScreen.tsx` nueva, reemplaza
-  el `StubScreen` genérico de "Avisos" (`notifications`).** Puerto real de
-  `creva_finance/frontend/app/notifications/page.tsx`: la lista de "Avisos" se arma con
-  `buildReminders()` de `app/lib/reminders.ts` (ya portado, no se tocó) alimentado por cuatro APIs
-  reales vía `Promise.allSettled` — `score.get()`, `credit.eligibility()`, `statements.list()` y
-  `statements.summary()` de `app/lib/api.ts` (ya existían, no se tocaron). Subtítulo por conteo de
-  pendientes, estado de carga (`ActivityIndicator`), estado vacío y el bloque "Beneficios y
-  recompensas / Próximamente" con los cuatro socios de lealtad, todo con el mismo copy del frontend.
-  `App.tsx`: nueva rama `activeStub === "notifications"` monta `NotificationsScreen` antes del
-  `StubScreen` genérico (mismo patrón que Movimientos y Estados de cuenta); las tres entradas que ya
-  abrían `openStub("notifications", …)` (Dashboard, Perfil, Más) caen en la pantalla real sin más
-  cableado. Sin dependencias nuevas. Test nuevo `app/test/unit/more/notifications.spec.ts` (mismo
-  patrón de aserciones por fuente que `more/movements.spec.ts`). `tsc --noEmit` limpio; `npx jest`
-  47/47 suites, 202/202 tests aislado — en el full-run bajo carga fallan por timeout
-  `auth/auth-gate.spec.ts` y `help/search.spec.ts` (flakiness ya documentada en el sexto
-  incremento, pasan aisladas: 3/3 suites, 11/11 tests). Antes: 46 suites / 196 tests.
-  **Desviación deliberada del "as is":** (1) las tarjetas de recordatorio son de solo lectura — el
-  frontend las envuelve en `<Link href={reminder.href}>`, pero la app no tiene router de deep-link
-  para seguir esas rutas desde una pantalla de stub; se muestra el CTA como texto. (2) los mosaicos
-  de socios usan el token `surface-2`/`crimson` de Creva en vez del hex de marca de cada socio que
-  el frontend incrusta inline — regla dura de "cero hex nuevo" + "no incrustar medios de terceros".
-  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind ya
-  documentado en los incrementos anteriores), ni el armado de la lista contra datos reales del
-  backend de Creva (sin credenciales de ese backend desde esta sesión). **No autocertificada como
-  cerrada — falta segunda vista.**
-
-- [ ] **2026-09-05 — Primer incremento de la migración: `DeleteAccountScreen.tsx` ganó paridad real
-  con `/profile/delete-account`, confirmado visualmente vía sesión autenticada real en el
-  frontend.** Screenshots reales tomados a 375×812 con la cuenta de prueba del frontend (login
-  persistido en el navegador, sesión ya autenticada). **Cambios:**
-  - Botón real "Escribir el correo" (`Linking.openURL(mailto:...)`) — mismo `MAILBOX`/`SUBJECT`/
-    `BODY` que `creva_finance/frontend/app/profile/delete-account/page.tsx`, antes la pantalla no
-    tenía ningún canal para iniciar la solicitud (hueco documentado en la auditoría anterior de
-    esta misma pantalla, ver bloque de arriba de "Paridad móvil").
-  - Card "Ten en cuenta" con la advertencia de permanencia (mismo texto que el `note` de
-    `borrar-mi-cuenta` en `help-content.ts`, que ya existía pero no se mostraba en esta pantalla).
-  - Enlace "Aviso de privacidad" que abre el stub `privacy` (`stub-topics.ts`), cableado en
-    `App.tsx` vía `openStub("privacy", "profile-delete-account")` — mismo patrón que el resto de la
-    navegación de `Más`.
-  - `VisualPrimitives.tsx`'s `Card` ganó un prop `tone?: "default" | "highlight"` (usa el token
-    `surface-2` ya existente en `tailwind.config.js`) para la card destacada — no se inventó ningún
-    color nuevo.
-  - `tsc --noEmit` y `npx jest` verdes (41/41 suites, 176/176 tests) después del cambio.
-  **No se verificó:** el resultado nativo (Expo Go / simulador) — sigue bloqueado por el conflicto
-  de versión `react-native-web`/NativeWind ya documentado arriba (`TypeError: Class extends value
-  undefined`), así que no se pudo confirmar visualmente en `app/` mismo, solo por lectura de código
-  y por paridad de texto/wiring contra el frontend ya screenshoteado. **No autocertificada como
-  cerrada** — falta segunda vista antes de mover a Cerrados.
+- [ ] **2026-09-06 — Paridad móvil: segunda vista visual PENDIENTE (owner: sesión 2, "UI audit
+  smoke test").** Las 13 pantallas nativas nuevas de `feature-mobile-native-parity` (datos
+  personales, info fiscal, seguridad, movimientos, estados de cuenta, avisos, radar regulatorio,
+  reporte, garantía, verificación de negocio, calculadora, aviso de privacidad + wiring de borrado
+  de cuenta) y los 4 ajustes de paridad (`feature-nav-parity-render`, `feature-more-sheet-parity`,
+  `feature-dashboard-parity`, `feature-scoregauge-parity`) están **mergeados a `main`** y
+  verificados por **lectura de código + `tsc --noEmit` + `jest`/`vitest`** — ver Cerrados
+  `2026-09-06`. **NO** verificados por render lado a lado contra `creva_finance/frontend`: bloqueo
+  `react-native-web`/NativeWind (`TypeError: Class extends value undefined`). **No se afirma
+  paridad visual en ninguna parte.** Pendiente: (1) certificación visual pantalla por pantalla
+  cuando se resuelva el bloqueo de render — owner sesión 2; (2) alcance de `credit`/`card`/`kyc`/
+  `auth` a decidir con el humano; (3) el gateway no expone `/score` todavía; (4) `kyc`/`welcome`/
+  `auth/callback` sin evaluar contra su equivalente mobile.
 
 - [ ] **2026-09-05 — `facilitator.ts` no envuelve su `fetch` en try/catch: un facilitador
   caído tumba el proceso del gateway entero, no solo la request.** Sobrevive del bloque de abajo
@@ -352,191 +42,22 @@ checklist.
   tumbar el proceso, para cualquier despliegue futuro donde `FACILITATOR_URL` vuelva a
   desconfigurarse o el facilitador externo caiga en medio del evento.
 
-- [ ] **2026-09-05 — Paridad móvil, tercera revisión; coordinación Codex en
-  `codex/mobile-parity-audit`.** Navegación: `codex/mobile-parity-foundation`;
-  Ayuda: `codex/mobile-parity-help`; Inicio: `codex/mobile-parity-dashboard`.
-  Cada módulo conserva su worktree y una trazabilidad de archivo/línea del frontend.
-  Pendientes: todas las rutas restantes, integración, typecheck/lint y suites
-  unit/fuzz/invariant, ejecución autenticada real y comparación visual por pantalla.
-  Hallazgo confirmado: SVG nativo sin `fill="none"` en la raíz; Movimientos y
-  Reporte usan paths distintos a `BottomNav.tsx`. El gateway solo expone reporte,
-  verificación y anclaje; `/score` todavía no está expuesto. Para datos personales
-  debe conservarse la identidad Clerk del solicitante: la identidad de servicio
-  devolvería el score de otra cuenta. No se ha verificado una sesión real.
+- [ ] **2026-09-05 — Paridad móvil, revisión Codex (`codex/mobile-parity-*`): sin mergear.**
+  Worktrees Codex separados de la familia ya integrada: Navegación
+  `codex/mobile-parity-foundation`, Ayuda `codex/mobile-parity-help`, Inicio
+  `codex/mobile-parity-dashboard`, coordinación en `codex/mobile-parity-audit`. Todos en un commit
+  viejo (`83092cd`), sin avance sobre `main`. Pendiente: decidir si su trabajo se retoma o se
+  descarta ahora que `feature-mobile-native-parity` + las 4 ramas de ajuste cubren el sheet "Más",
+  el dashboard y los primitivos (ver Cerrados `2026-09-06`). No re-tomar un módulo Codex sin
+  coordinarlo aquí primero (regla de §Colaboración punto 7). Nota de contexto que sigue vigente:
+  el gateway no expone `/score`, y para datos personales debe conservarse la identidad Clerk del
+  solicitante (la identidad de servicio devolvería el score de otra cuenta).
 
-- [ ] **2026-09-05 — Corrida de integración (Solver v2): auditadas las 26 ramas remotas, 0
-  mergeadas, 7 en HOLD.** 13 ramas ya están en `main` (ancestro directo, sin patch pendiente):
-  `feature-arc-anchor`, `feature-bazantic-recipes`, `feature-creva-service-identity`,
-  `feature-gateway-x402`, `feature-help-search`, `feature-icon-audit`, `feature-logic-port`,
-  `feature-nav-icon-fix`, `feature-report-wiring`, `feature-selfie-check`, `feature-ui-audit-fix`,
-  `feature-ui-port-core-screens`, `feature-web-parity-port` — seguras de borrar del remoto.
-  6 ramas de mecanismo/tooling ignoradas (`codegraph-init`, `feature-agent-loop`,
-  `scaffold-monorepo`, `docs-plan-cleanup`, `worktree-agent-afdbf7b00fe421686`,
-  `claude/magical-taussig-*`). **HOLD, ninguna con bloque "Cerrados" que la respalde** (regla dura
-  de la corrida: solo se pushea lo ya documentado como cerrado/verificado):
-  - `feature-mobile-native-parity` — 9 commits, +2940 líneas (7 pantallas nuevas + 10 suites de
-    test + deps `react-native-web`/otras + 230 líneas de `docs/plan.md` propio). Merge-tree limpio,
-    pero es trabajo grande sin VERIFY de Solver ni bloque cerrado; cae bajo el bloque abierto de
-    "Paridad móvil, tercera revisión". HOLD-no-plan-block.
-  - `feature-dashboard-parity` (`7927d11`), `feature-more-sheet-parity` (`475a997`),
-    `feature-nav-parity-render` (`fa7e3a7`), `feature-scoregauge-parity` (`4209ea9`) — cada una 1
-    commit de ajuste visual de paridad web/móvil (primitivas de dashboard, tarjetas del sheet
-    "Más", `fill="none"` en la raíz del SVG + espaciado del bottom nav, `ScoreGauge` como
-    arco/anillo). Merge-tree limpio. Todas modifican `docs/plan.md`/`docs/memoria.md` dentro de su
-    propio commit — se auto-documentan, no corresponden a un bloque cerrado preexistente en `main`.
-    Pertenecen al bloque abierto de paridad móvil. HOLD-no-plan-block.
-  - `codex/mobile-parity-delete-account` (`3660ffb`) — agrega `react-native-web` a
-    `app/package.json` + lockfile, docs de auditoría de `DeleteAccountScreen`. Merge-tree limpio.
-    WIP del bloque abierto de paridad Codex. HOLD-no-plan-block.
-  - `claude/bazantic-sponsor-block-6s1iv6` (`fe0fe75`) — solo +32 líneas a `docs/plan.md`
-    documentando un bloqueo de `JwtAuthGuard` de Bazantic. **Conflicto de merge en `docs/plan.md`**
-    y además superseded: Bazantic ya está cerrado en `main` vía `feature-creva-service-identity`
-    (identidad de servicio con refresh token). Mergearla reabriría un bloque resuelto.
-    HOLD-conflict + superseded.
-  Cero push, cero merge, cero reescritura de historia en esta corrida. `git merge-tree` se usó en
-  vez de un worktree de integración descartable (no había nada que mergear). Para avanzar las 5
-  ramas de paridad hace falta: integrarlas juntas en un worktree, `tsc`/lint/`jest`
-  unit+fuzz+invariant verdes, y comparación visual por pantalla — exactamente los pendientes que ya
-  lista el bloque abierto de paridad móvil de arriba.
-  **Actualización `2026-09-05` (sexto intento — barra de navegación inferior, worktree
-  `feature-nav-parity-render`, render-vs-render real: `creva_finance/frontend` en `localhost:3001`
-  y `app/` vía Expo web `react-native-web` en `localhost:8090`, ambos a 375×812).** Causa raíz
-  del "parecido pero no igual" en los iconos, confirmada visualmente: `Icon.tsx` no ponía
-  `fill="none"` en la raíz `<Svg>`, y `react-native-svg` (nativo **y** web) rellena de negro
-  por defecto todo `<Path>`/`<Rect>` sin `fill` — el arco del icono **Score** salía como medio
-  disco negro y el de **Tarjeta** como un bloque relleno, mientras que la web hereda `fill="none"`
-  del `<svg fill="none">` de `BottomNav.tsx:25,40,51`. Arreglos aplicados, cada uno con su
-  atributo exacto (`app/features/shared/icons/Icon.tsx` y `app/App.tsx` `TabBar`):
-  1. `Icon.tsx` `common` → `{ viewBox, fill: "none" }` — cubre los 26 glyphs de una vez; los que
-     sí se rellenan mantienen su `fill={stroke}`/`fill={fillColor}` propio.
-  2. `TabBar` icono `size={20}` → `22` (la web usa `width="22"` en `BottomNav.tsx`).
-  3. "PRONTO": era un badge flotante absoluto (`bg-inactive`, `-top-1 right-2`, pill); la web
-     (`globals.css` `.cr-nav-pending`) es texto plano bajo la etiqueta — ahora `<Text>` normal
-     `text-[8px] font-bold tracking-[0.04em] text-text-subtle`.
-  4. Pestaña deshabilitada: se quitó `opacity-40` (la web no atenúa el `/cards`).
-  5. Etiqueta `text-xs` (12px) → `text-[10px]`; `gap-1` → `gap-[3px]`; `py-3` → `py-[9px]`
-     (valores de `.cr-nav-item`).
-  Diferencia menor restante, **no** arreglada: `.cr-nav` de la web lleva
-  `box-shadow: 0 -1px 20px rgba(0,0,0,0.06)` — la barra RN no; efecto casi invisible, sin
-  equivalente RN fiable. **Verify:** `tsc --noEmit` limpio; `jest unit fuzz invariant` → 41
-  suites/176 tests verdes (una corrida bajo carga mostró el flake ya documentado de
-  `auth-gate.spec.ts` — timeout de act(), reproducido y confirmado no relacionado; verde en
-  reruns aislados). **Falta:** certificación visual del par de screenshots (antes/después) por
-  humano o Auditor antes de mover esta pantalla a Cerrados — no se autocertifica. Expo Go en
-  dispositivo físico real tampoco verificado (sin hardware; el render fue Expo web
-  `react-native-web`, que reproduce el default `fill` de `react-native-svg` pero no es idéntico
-  a Hermes/nativo). Resto del bloque (otras pantallas, gateway `/score`, sesión real) sigue
-  abierto.
-  **Actualización `2026-09-05` (sexto intento — sheet "Más" / `MoreSheet.tsx`, worktree
-  `feature-more-sheet-parity`, render-vs-render: `creva_finance/frontend` sheet abierto en
-  `localhost:3001` y `app/` vía Expo web en `localhost:8092`, 375×812).** Se confirmó de nuevo
-  el bug transversal de iconos rellenos de negro (todos los 11 glyphs del sheet salían sólidos):
-  esta rama nace de `main`, que **aún no tiene** el fix `fill="none"` de `Icon.tsx` que vive en
-  `feature-nav-parity-render` sin mergear (lección 13). Se aplicó el **mismo** cambio de una línea
-  aquí (`Icon.tsx` `common` → `{ viewBox, fill: "none" }`) — al mergear ambas ramas el cambio es
-  idéntico. Fixes de `MoreSheet.tsx` contra los valores computados de la web (medidos con
-  `getComputedStyle` sobre el sheet real):
-  1. `Row` era vertical (icono arriba, label centrado, `p-4`, `w-[47%]`); la web (`NavCell`,
-     `BottomNav.tsx:131-158`) es **horizontal**: icono izquierda + label derecha, `gap:10`,
-     `min-height:56`, `padding:10px 12px`, `radius:14`, `border 1px --cr-border`, label `13px/600
-     --cr-text` alineado a la izquierda. Portado 1:1.
-  2. Icono del `Row`: `size={22} color="text"` → `size={20} color="text-secondary"` — la web usa
-     `<svg width="20">` con `stroke: var(--cr-text-secondary)` (`#6F675C`), no el token de texto
-     oscuro.
-  3. Título de grupo: era `text-base font-semibold text-text` (16px/600, capitalización normal);
-     la web (`.cr-nav-group-title`, `globals.css:264`) es `10px/700`, `letter-spacing:0.08em`,
-     `uppercase`, `--cr-text-subtle`, `margin 0 0 8px`. Portado.
-  4. Grid: `gap-3`→`gap-2` (8px), tarjetas `w-[calc(50%-4px)]` para 2 columnas exactas;
-     contenedor de grupo `mb-7`→`mb-4` (16px).
-  5. Título de pantalla: `text-3xl font-bold`→`text-base font-semibold` (la web `<h2>` del
-     `BottomSheet` es `16px/600`), más un drag-handle (40×4, `--cr-border`) que espeja el chrome
-     del sheet web (`BottomSheet.tsx:74-78`).
-  Divergencia deliberada mantenida (ya documentada en la cabecera de `MoreSheet.tsx`): el sheet
-  web es un overlay modal con backdrop; la app lo renderiza como pantalla completa porque su
-  navegación es una máquina de estados sin primitiva de bottom-sheet. Los 11 paths de glyph ya
-  estaban bien citados (`stub-topics.ts` los mapea a los nombres correctos de `Icon.tsx`, que a
-  su vez copian `BottomNav.tsx` NAV_GLYPHS); el problema era solo el `fill` y el layout de la
-  tarjeta. **Verify:** `tsc --noEmit` limpio; `jest unit fuzz invariant` → 41/176 verdes (mismo
-  flake de carga de `auth-gate.spec.ts`, verde en reruns aislados). **Falta:** certificación
-  visual del par antes/después por humano o Auditor; Expo Go en dispositivo físico real (render
-  fue Expo web). Resto del bloque sigue abierto.
-  **Actualización `2026-09-05` (sexto intento — pantalla Inicio / `DashboardScreen.tsx`,
-  worktree `feature-dashboard-parity`, render-vs-render: web `localhost:3001/dashboard` y app
-  Expo web `localhost:8093`, 375×812).** El bloque "Inicio" estaba nominalmente asignado a
-  `codex/mobile-parity-dashboard` (rama en commit viejo `83092cd`, sin avance en `main`); se
-  reasignó a esta pasada para hacer el render-vs-render real que faltaba. Se reaplicó de nuevo el
-  fix transversal `fill="none"` de `Icon.tsx` (esta rama nace de `main`). Divergencias corregidas
-  contra los primitivos web (`components/ui/*`):
-  1. Header (`PageHeader.tsx`): título `text-3xl font-bold` → `text-2xl font-semibold` (h1 web
-     24px/600); subtítulo `text-base text-text/70` → `text-[13px] text-text-muted`; contenedor
-     `mb-6` → `mb-5`.
-  2. `Section` (`VisualPrimitives.tsx`): agregado `action?: {label, onPress}` — la web
-     (`SectionHeader.tsx`) pone un link "ver todo" a la derecha del `<h2>` estilo `.btn-quiet`
-     (13px/600 `--cr-crimson`); header ahora es fila `justify-between`, `mb-[14px]`. Dashboard
-     pasa `action={{label:"Ver por qué"}}` a "Tu score".
-  3. CTA de la tarjeta de score: era `ActionCard` negro; la web es `.btn-primary` (botón full-
-     width, `min-h 52`, radius 14, blanco 16/600). Nuevo `PrimaryButton` en
-     `DashboardPrimitives.tsx`. **Relleno sólido `--cr-crimson`** — la web usa `--cr-gradient`
-     (135° `#D62E52`→`#9E1329`); no hay primitiva de gradiente RN cableada (sin
-     `expo-linear-gradient`), `#C41E3A` queda entre los dos stops.
-  4. `ActionCard` (`DashboardPrimitives.tsx`) reescrito contra `components/ui/ActionCard.tsx`:
-     caja de icono 46×46 (`bg-white/20` en brand, `bg-danger-bg` en el resto), layout horizontal
-     `gap-14`, chevron final (`Icon` nuevo `chevron-right`, path de `ActionCard.tsx`) en vez del
-     texto "cta →"; brand → `rounded-[22px] bg-crimson p-5` (era `bg-text rounded-2xl p-4`),
-     título brand blanco `tracking-[-0.01em]`, body brand blanco pleno (era `white/70`). Tarjeta
-     de financiamiento del dashboard: nuevo icono `financing` (`page.tsx:236-240`), sin `cta`.
-  5. `Metric` (`DashboardPrimitives.tsx`) contra `components/ui/Metric.tsx`: label
-     `text-sm text-text/60` → `text-xs uppercase tracking-[0.08em] text-text-subtle`; unidad
-     pasa **antes** del valor y alineada arriba; valor `text-3xl` → `text-[26px]`; caption
-     `text-xs` → `text-[13px] text-text-muted`.
-  6. `EmptyState` (`DashboardPrimitives.tsx`): la web `compact` es texto centrado **sin borde ni
-     superficie** — se quitó la tarjeta dashed; título 18px/600, body 14px `--cr-text-muted`,
-     `max-w-[300px]`.
-  7. `Card` (`VisualPrimitives.tsx`): agregado `size` (`sm`=16/16, `md`=20/20, `lg`=24/24) — la
-     tarjeta de score web es `radius 24/padding 24`, la de saldo `20/20`.
-  8. `NotificationBell`: `rounded-2xl` → `rounded-[14px]`, icono `text` → `text-muted`
-     (`--cr-text-muted`, `page.tsx:38`).
-  **Sin arreglar (documentado):** (a) `ScoreGauge` de la app es un anillo completo + barra lineal
-  + chip; la web es un arco semicircular con el número dentro y etiquetas min/max — no visible sin
-  sesión (ambos muestran placeholder/error) y es territorio de la pantalla Score; queda como
-  follow-up. (b) Estado de carga de la tarjeta de score: web muestra un skeleton de 168px, la app
-  un spinner + error. (c) Gradiente de marca (punto 3). (d) `TransactionRow` `isBusiness` sin
-  portar (no visible, empty state). (e) Banner inferior de `KycGate` — componente de gate
-  aparte, no el dashboard. **Verify:** `tsc --noEmit` limpio; `jest unit fuzz invariant` → 41/176
-  verdes (mismo flake de carga de `auth-gate.spec.ts`, verde en reruns). **Falta:** certificación
-  visual del par por humano/Auditor; Expo Go en dispositivo físico real. El fix de `Icon.tsx`
-  `fill="none"` vive ahora en tres ramas sin mergear (`feature-nav-parity-render`,
-  `feature-more-sheet-parity`, `feature-dashboard-parity`) — cambio idéntico.
-  **Actualización `2026-09-05` (sexto intento — `ScoreGauge`, worktree
-  `feature-scoregauge-parity`).** Cierra el follow-up que dejó abierto la pasada de dashboard: el
-  `ScoreGauge` de la app era un anillo completo de `<View>` NativeWind + barra lineal + chip; la
-  web (`components/ui/ScoreGauge.tsx`) es un arco semicircular (`shape="arc"`, en la tarjeta del
-  dashboard) o un anillo con dasharray (`shape="ring"`, héroe de la pantalla Score). Reescrito
-  con `react-native-svg` (ya es dependencia):
-  - `shape="arc"` (default): `<Svg viewBox="0 0 160 92">`, track `M 8 80 A 72 72 0 0 1 152 80`
-    stroke `--cr-border` w11 round; arco de valor con `scoreArcPath(value,max)` de
-    `app/lib/score-display.ts` (ya idéntico a la web) stroke color de banda; etiquetas 0/max en
-    las esquinas; número 46px + chip debajo.
-  - `shape="ring"`: `<Circle r=72 strokeWidth=14>` track + `<Circle>` de progreso con
-    `strokeDasharray=2πr` / `strokeDashoffset=C·(1-ratio)` dentro de un `<G rotation={-90}>`;
-    número 60px + "de {max}" + chip debajo.
-  Verificación numérica: `getBoundingClientRect` del arco de valor renderizado por
-  `react-native-svg-web` vs. el mismo SVG de la web → **idéntico** (x 10.5, w 159.19, h 94.5 en
-  ambos; misma `d="M 8 80 A 72 72 0 0 1 129.29 27.51"` para 74/100). Colores de banda tomados de
-  los valores light de `--cr-success`/`--cr-warning-text`/`--cr-danger-text` y sus `-bg` (mapa
-  local en `ScoreGauge.tsx` — `scoreBand()` de `score-display.ts` devuelve `var(--cr-*)`, inútil
-  para SVG). `ScoreScreen.tsx` ahora pasa `shape="ring"` (la web usa ring en esa pantalla); el
-  dashboard mantiene el default `arc`. **Única diferencia restante:** el número usa la fuente
-  bold del sistema — la web usa Playfair (serif condensada) que la app no empaqueta; sin fuente
-  no hay forma de igualarlo en este pass. **Fuera de alcance (documentado):** la pantalla Score
-  completa (disclosures de factores, recomendaciones, menú "Sigue por aquí", disclosure "qué no
-  hace") — necesita `score.get()` con `factors`, `recommendations` y `crevaScore.disclosure()`, y
-  `/score` no está expuesto en el gateway (línea de arriba); `ScoreScreen.tsx` sigue siendo el
-  stub mínimo deliberado que enlaza a `QueryScreen`. **Verify:** `tsc --noEmit` limpio; `jest
-  unit fuzz invariant` → 41/176 verdes (mismo flake de `auth-gate.spec.ts` bajo carga, verde en
-  reruns; `score-display`/`dashboard/structure` 18/18). **Falta:** certificación visual del par
-  por humano/Auditor; Expo Go real. El fix de `Icon.tsx` `fill="none"` **no** va en esta rama
-  (no toca iconos) — sigue en las otras tres sin mergear.
+- [ ] **2026-09-05 — `claude/bazantic-sponsor-block-6s1iv6`: no mergear, descartar.** Solo añade
+  +32 líneas a `docs/plan.md` documentando un bloqueo de `JwtAuthGuard` de Bazantic que **ya está
+  resuelto** en `main` vía `feature-creva-service-identity` (identidad de servicio con refresh
+  token, ver Cerrados). Da conflicto de merge y mergearla reabriría un bloque cerrado. Segura de
+  borrar del remoto.
 
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.
@@ -668,6 +189,42 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
 
 ## Cerrados
+
+- [x] `2026-09-06` — **Integración de la familia de paridad móvil a `main` (Solver, worktree
+  `integration-mobile-parity`): 5 ramas mergeadas `--no-ff`, VERIFY completo verde. Verificado por
+  lectura de código + compilación + tests; NO por comparación visual (ver bloque abierto de arriba,
+  owner sesión 2).** Ramas integradas en este orden: `feature-mobile-native-parity` (13 commits, 13
+  pantallas reales que reemplazan `StubScreen`: datos personales, info fiscal, seguridad,
+  movimientos, estados de cuenta, avisos, radar regulatorio, reporte, garantía, verificación de
+  negocio, calculadora, aviso de privacidad + wiring de borrado de cuenta), `feature-nav-parity-render`,
+  `feature-more-sheet-parity`, `feature-dashboard-parity`, `feature-scoregauge-parity`.
+  **Descartada:** `codex/mobile-parity-delete-account` — solo aportaba la dependencia
+  `react-native-web` (+ un pin de `react-dom`) y docs de auditoría no load-bearing, con conflicto en
+  `docs/memoria.md`; se deja fuera para que la decisión sobre `react-native-web` en `main` se tome
+  aparte (afecta a la rama en vuelo de la sesión 2). **`react-native-web` NO queda en `main`.**
+  **Conflictos resueltos a mano** (el resto auto-merge, incluido `App.tsx`, `package.json` y
+  `package-lock.json`): `Icon.tsx` — las 3 ramas que tocaban la misma línea `const common`
+  triplicaron su comentario de `fill="none"`; se dejó uno (el código era idéntico en las tres).
+  `VisualPrimitives.tsx` — `Card` quedó duplicada: `feature-mobile-native-parity` añadía
+  `tone?: "default"|"highlight"`, `feature-dashboard-parity` añadía `size?: "sm"|"md"|"lg"` +
+  `border-border`; fusionadas en una sola `Card` con ambos props (`fix: reconcile Card tone+size`).
+  `docs/plan.md`/`docs/memoria.md` reconciliados a la unión de todas las ramas; los ~17 bloques
+  por-incremento que vivían en §Abiertos se consolidan en esta entrada (el detalle por pantalla —
+  qué NO se verificó de cada una — queda en `docs/memoria.md`).
+  **VERIFY (árbol integrado, worktree fresco):**
+  - `app/`: `npm install`; `npx tsc --noEmit` → **0 errores**; `npx jest unit fuzz invariant` →
+    **51 suites limpias / 236 tests**; 234 pasan en la corrida completa, los 2 restantes
+    (`test/unit/auth/auth-gate.spec.ts`, `test/unit/help/search.spec.ts`) hacen timeout solo bajo
+    carga full-run y pasan **5/5 aislados** — flake de `act()`/timing ya documentado, reproducido y
+    confirmado, no es regresión.
+  - `gateway/` (sin cambios en esta integración, corrido igual): `npx tsc --noEmit` → 0;
+    `npx eslint .` → 0; `npx vitest run --exclude "test/integration/**"` → **17 archivos / 44
+    tests** verdes.
+  **NO verificado:** render nativo / comparación visual lado a lado de las 13 pantallas + 4 ajustes
+  (bloqueo `react-native-web`/NativeWind: `TypeError: Class extends value undefined`) — bloque
+  abierto arriba, owner sesión 2; Expo Go en dispositivo físico real (sin hardware, igual que el
+  resto del repo). Merge fast-forward a `main` sin `--amend`/`rebase`/force. Ramas de la familia
+  seguras de borrar del remoto una vez confirmado el push.
 
 - [x] `2026-09-05` — **Wallet Hedera de demo cableada en `QueryScreen.tsx` (worktree/branch
   `feature-hedera-mobile-signer`): decisión tomada con el humano, opción (b) — signer

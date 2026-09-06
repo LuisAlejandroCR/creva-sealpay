@@ -2149,19 +2149,6 @@ abierto — esta sesion solo toco la barra de navegacion inferior. Falta certifi
 esta pantalla y todas las demas rutas.
 ---
 
-## 2026-09-05 — Paridad sheet "Más" (sexto intento, worktree `feature-more-sheet-parity`)
-
-**Qué se hizo:** render-vs-render del sheet "Más" (web `localhost:3001`, app Expo web
-`localhost:8092`, 375x812). Se reconfirmó el bug transversal `fill` de `react-native-svg` (los 11
-glyphs del sheet salian negros solidos) — esta rama nace de `main` sin el fix de
-`feature-nav-parity-render`; se aplico el mismo cambio de una linea en `Icon.tsx`. `MoreSheet.tsx`:
-`Row` de vertical a horizontal (icono izq + label der, gap 10, min-h 56, pad 10/12, radius 14,
-label 13px/600 alineado izq) espejando `NavCell` de `BottomNav.tsx:131-158`; icono `22/text` ->
-`20/text-secondary` (stroke `#6F675C` medido en la web); titulo de grupo `16/600` -> `10/700
-uppercase tracking-0.08em text-subtle` (`.cr-nav-group-title`); grid `gap-3`->`gap-2`, tarjetas
-`w-[calc(50
----
-
 ## 2026-09-05 — Paridad sheet "Más" (sexto intento, worktree feature-more-sheet-parity)
 
 **Qué se hizo:** render-vs-render del sheet "Más" (web localhost:3001, app Expo web localhost:8092,
@@ -2232,3 +2219,41 @@ se copio node_modules de feature-dashboard-parity. react-native-web etc. no van 
 
 **Dónde queda el pendiente:** bloque "Paridad movil, tercera revision" sigue abierto. El fix de
 Icon.tsx fill=none NO esta en esta rama (no toca iconos) — sigue en las otras tres sin mergear.
+
+## 2026-09-06 — Integración de la familia de paridad móvil a `main` (Solver, worktree `integration-mobile-parity`)
+
+**Qué se hizo (resultado verificable):**
+- Worktree fresco `integration-mobile-parity` desde `origin/main` (`946ca60`). Merge `--no-ff` en
+  orden: `feature-mobile-native-parity` → `feature-nav-parity-render` → `feature-more-sheet-parity`
+  → `feature-dashboard-parity` → `feature-scoregauge-parity`.
+- `codex/mobile-parity-delete-account` **descartada**: su único aporte de código era la dependencia
+  `react-native-web` (+ pin de `react-dom`); el resto docs de auditoría con conflicto en
+  `docs/memoria.md`. Se deja fuera para decidir `react-native-web` en `main` por separado.
+  `react-native-web` NO queda en `main`.
+- Conflictos de código resueltos a mano: `Icon.tsx` (comentario de `fill="none"` triplicado por las
+  3 ramas que editaban `const common`; código idéntico, se dejó uno) y `VisualPrimitives.tsx`
+  (`Card` duplicada — `tone` de mobile-native-parity + `size`/`border-border` de dashboard-parity —
+  fusionadas en una `Card` con ambos props). `App.tsx`, `package.json`, `package-lock.json`
+  auto-merge limpio. `docs/plan.md`/`docs/memoria.md` a la unión.
+- `docs/plan.md`: los ~17 bloques por-incremento + los 4 "sexto intento" + el bloque stale de
+  "Corrida de integración Solver v2" (0 merges) se consolidan en una entrada de Cerrados
+  `2026-09-06`; se deja un bloque abierto explícito "segunda vista visual PENDIENTE, owner sesión 2"
+  sin afirmar paridad visual.
+- VERIFY completo sobre el árbol integrado: `app/` `npm install` + `tsc --noEmit` 0 +
+  `jest unit fuzz invariant` 51 suites limpias / 236 tests (234 en full-run; `auth-gate.spec.ts` y
+  `help/search.spec.ts` timeout solo bajo carga, 5/5 aislados — flake documentado).
+  `gateway/` (sin cambios, corrido igual) `tsc` 0 + `eslint` 0 + `vitest` 17 archivos / 44 tests.
+
+**Qué NO se verificó, y por qué:**
+- Render nativo / comparación visual lado a lado de las 13 pantallas + 4 ajustes: bloqueo
+  `react-native-web`/NativeWind (`TypeError: Class extends value undefined`). Owner de esa
+  certificación: sesión 2 ("UI audit smoke test"). Bloque abierto en `docs/plan.md`.
+- Expo Go en dispositivo físico real: sin hardware en esta sesión (igual que el resto del repo).
+- El backend real de Creva para las pantallas que llaman `app/lib/api.ts` (datos personales,
+  fiscal, calculadora, reporte, radar, garantía, verificación de negocio): sin credenciales de ese
+  backend — la forma exacta de cada respuesta no se confirmó contra el servicio real (detalle por
+  pantalla en las entradas de incremento de arriba).
+
+**Dónde queda el pendiente:** bloque abierto "Paridad móvil: segunda vista visual PENDIENTE" en
+`docs/plan.md` §Abiertos (owner sesión 2); bloque abierto "Paridad móvil, revisión Codex" para
+decidir qué se hace con `codex/mobile-parity-*`.
