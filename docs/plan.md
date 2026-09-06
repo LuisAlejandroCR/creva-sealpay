@@ -17,6 +17,26 @@ checklist.
 
 ## Abiertos
 
+- [ ] **2026-09-06 — Migración: últimas 4 pantallas del inventario (`feature-last-screens-parity`,
+  off `main` 93616fa).** Alcance aprobado por el humano el 2026-09-06 (las 4, revirtiendo la
+  decisión previa de "credit/card mínimas a propósito"). Mismo método que las 13 anteriores: leer
+  la fuente web, portar a RN, citas `archivo:línea`, tests, `tsc`+`jest` verde antes de entregar.
+  Batch marcado **code-verified-only** — la segunda vista visual va junto con las otras 17 cuando
+  la sesión 2 desbloquee el render (`react-native-web`/NativeWind).
+  - **`auth` — hecho.** `SignInScreen.tsx` ya era un formulario Clerk-expo hecho a mano (la fuente
+    `creva_finance/frontend/app/sign-in/[[...sign-in]]/page.tsx` envuelve el widget hosted `<SignIn>`
+    de Clerk, sin build Expo). Delta real = copy del chrome Creva: título/subtítulo por modo
+    alineados a `components/auth/AuthHeader.tsx:26-27` ("Iniciar sesión" / "Tu plataforma
+    financiera") y `app/sign-up/[[...sign-up]]/page.tsx:11` ("Crear cuenta" / "Empieza a tomar el
+    control"); cross-link del footer a `sign-in/page.tsx:33` ("Crear cuenta" / "Iniciar sesión").
+    **Fuera de alcance:** el `DemoOverlay` "Ver el recorrido" (tour grabado, feature aparte) y el
+    wordmark a color de Google (media de terceros, prohibido por AGENTS.md — se queda la "G" plana).
+    Test nuevo `app/test/unit/auth/auth-parity.spec.ts`. `tsc` limpio; `jest` 54 suites / 240 tests
+    (auth-gate.spec.ts es el flake documentado de full-run, pasa aislado). Antes: 53 / 236.
+  - `kyc` — pendiente.
+  - `credit` — pendiente.
+  - `card` — pendiente.
+
 - [ ] **2026-09-06 — Paridad móvil: segunda vista visual PENDIENTE (owner: sesión 2, "UI audit
   smoke test").** Las 13 pantallas nativas nuevas de `feature-mobile-native-parity` (datos
   personales, info fiscal, seguridad, movimientos, estados de cuenta, avisos, radar regulatorio,

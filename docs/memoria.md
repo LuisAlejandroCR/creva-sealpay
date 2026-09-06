@@ -2257,3 +2257,32 @@ Icon.tsx fill=none NO esta en esta rama (no toca iconos) — sigue en las otras 
 **Dónde queda el pendiente:** bloque abierto "Paridad móvil: segunda vista visual PENDIENTE" en
 `docs/plan.md` §Abiertos (owner sesión 2); bloque abierto "Paridad móvil, revisión Codex" para
 decidir qué se hace con `codex/mobile-parity-*`.
+
+## 2026-09-06 — Migración PWA→nativa, últimas 4 pantallas: `auth` (Solver, cloud)
+
+**Qué se hizo:**
+- Rama nueva `feature-last-screens-parity` off `main` 93616fa. Alcance (auth+kyc+credit+card)
+  aprobado por el humano el 2026-09-06 tras preguntarle — un mensaje del Main orchestrator no
+  contaba como su aprobación para una regla del prompt que exigía confirmación humana.
+- `auth`: `SignInScreen.tsx` ya era un formulario `@clerk/clerk-expo` hecho a mano (la fuente
+  `creva_finance/frontend/app/sign-in/[[...sign-in]]/page.tsx` envuelve el widget hosted `<SignIn>`
+  de Clerk, que no tiene build Expo). El único delta de paridad real era el copy del chrome
+  Creva-autored, no el formulario. Alineado: título/subtítulo por modo a `AuthHeader.tsx:26-27` y
+  `sign-up/[[...sign-up]]/page.tsx:11`; cross-link del footer a `sign-in/page.tsx:33`.
+- Test nuevo `app/test/unit/auth/auth-parity.spec.ts`.
+
+**Fuera de alcance (documentado):**
+- `DemoOverlay` "Ver el recorrido" (`sign-in/page.tsx:35`) — tour grabado, feature aparte.
+- Wordmark a color de Google — media de terceros, prohibido por AGENTS.md; `GoogleButton.tsx` del
+  frontend lo dice también. Se queda la "G" plana de la versión mobile.
+
+**Qué NO se verificó, y por qué:**
+- Render nativo/visual — mismo bloqueo `react-native-web`/NativeWind; batch marcado
+  code-verified-only, segunda vista visual junto con las otras 17 (owner sesión 2).
+- Flujo real de Clerk (sign-in/sign-up/SSO) contra la instancia real — sin entorno de auth en esta
+  sesión; la lógica de hooks no se tocó, solo copy.
+- `tsc --noEmit` limpio. `jest` full-run: 53 suites limpias / 240 tests; `auth-gate.spec.ts` es el
+  flake de timeout documentado (pasa aislado). Baseline previo: 53 suites / 236 tests.
+
+**Dónde queda el pendiente:** bloque abierto "Migración: últimas 4 pantallas
+(`feature-last-screens-parity`)" en `docs/plan.md` §Abiertos. Siguientes: `kyc`, `credit`, `card`.

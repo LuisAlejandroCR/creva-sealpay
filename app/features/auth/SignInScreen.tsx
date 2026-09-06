@@ -1,9 +1,6 @@
-// SignInScreen.tsx: real Expo sign-in/sign-up screen using @clerk/clerk-expo's useSignIn and
-// useSignUp hooks against the Clerk context ClerkAppProvider.tsx already mounts. Not a 1:1 port
-// like dashboard/profile/help — creva_finance's /login is a redirect stub to Clerk's own hosted
-// web form, which has no Expo equivalent, so this recreates components/auth/*'s visual language
-// (AuthHeader mark + title, GoogleButton, AuthDivider, PasswordField's show/hide eye, AuthFooter
-// switch link) in NativeWind instead of importing from the Next.js reference app.
+// SignInScreen.tsx: real Expo sign-in/sign-up via @clerk/clerk-expo hooks. creva_finance's
+// sign-in/[[...sign-in]]/page.tsx wraps Clerk's hosted <SignIn> (no Expo build), so this hand-builds
+// the form and only matches the Creva chrome copy (AuthHeader.tsx:26-27, sign-up/page.tsx:11).
 import { useSignIn, useSignUp, useSSO } from "@clerk/clerk-expo";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
@@ -94,10 +91,8 @@ export function SignInScreen({ onSignedIn }: SignInScreenProps) {
   const { startSSOFlow } = useSSO();
 
   const isSignIn = mode === "sign-in";
-  const title = isSignIn ? "Bienvenida de vuelta" : "Crea tu cuenta";
-  const subtitle = isSignIn
-    ? "Entra con tu correo y contraseña de Creva."
-    : "Un correo y una contraseña, y ya estás dentro.";
+  const title = isSignIn ? "Iniciar sesión" : "Crear cuenta";
+  const subtitle = isSignIn ? "Tu plataforma financiera" : "Empieza a tomar el control";
 
   async function handleGoogle() {
     setError(null);
@@ -209,7 +204,9 @@ export function SignInScreen({ onSignedIn }: SignInScreenProps) {
           >
             <Text className="text-sm text-text/70">
               {isSignIn ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
-              <Text className="font-semibold text-crimson">{isSignIn ? "Regístrate" : "Entra"}</Text>
+              <Text className="font-semibold text-crimson">
+                {isSignIn ? "Crear cuenta" : "Iniciar sesión"}
+              </Text>
             </Text>
           </Pressable>
         </View>
