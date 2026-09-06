@@ -2441,3 +2441,32 @@ cuenta como su aprobación.
 de Ayuda + el fix de MoreSheet están hechas y pusheadas en `feature-last-screens-parity`. Falta:
 (1) confirmación del humano para el business form; (2) segunda vista visual de todo (sesión 2);
 (3) que el Main orchestrator integre la rama.
+
+## 2026-09-06 — Ledger Key Ring como backend de secretos del gateway (agente local, worktree `agent-a59f10c640641b0e8`)
+
+**Qué se hizo (slice B de brainstorming.md §10.4, rama `sponsor-ledger-keyring` off origin/main):**
+- `gateway/src/key-ring.ts` nuevo: `resolveSecret(name)` / `requireSecret(name)`. Orden test
+  backend → Key Ring (`wallet-cli ring decrypt` de un blob dotenv cifrado) → `process.env`.
+  Ausente/vacío → `undefined`, nunca `""`. Errores del CLI se tragan (genéricos), nunca se
+  loguea un secreto.
+- `gateway/src/config.ts`: `hydrateSecrets()` con top-level await en la carga del módulo. No-op
+  si `KEY_RING_ENABLED` != `true`. Resuelve los 5 secretos y los aplica a `config` **y** a
+  `process.env` (para consumidores congelados: `arc-anchor.ts`, `hedera-signer.ts`).
+- `gateway/.env.example`: `KEY_RING_ENABLED=false` + `KEY_RING_CLI/KEY_NAME/SECRETS_FILE` + nota.
+- Tests: `test/unit/{key-ring,config}.spec.ts`, `test/fuzz/key-ring.fuzz.spec.ts`,
+  `test/invariant/key-ring.invariant.spec.ts`. Las 3 invariantes cubiertas.
+- `docs/integrations/ledger-keyring.md` nuevo (versión CLI, llaves migradas, comando del humano).
+
+**VERIFY:** `npx tsc --noEmit` limpio · `npx eslint .` limpio · `npx vitest run --exclude
+"test/integration/**"` → **21 suites / 62 tests verdes**. +4 suites nuevas, sin regresión. No se
+arrancó ningún server.
+
+**Qué NO se verificó, y por qué:**
+- Lectura real de una llave desde el Key Ring usada por el gateway. **BLOCKED:** `wallet-cli ring
+  init` exige dispositivo Ledger físico (`"device required"`); `init/encrypt/decrypt/keys` fallan
+  con `"Ledger Key Ring not initialized"` sin él. El adaptador invoca los comandos reales; falta
+  correr el end-to-end en una máquina con el dispositivo (paso 2-5 del doc).
+- CLI: `@ledgerhq/wallet-cli` **2.1.0** instalado y ejecutable (`wallet-cli --version` OK).
+
+**Dónde queda el pendiente:** `docs/integrations/ledger-keyring.md` §"Estado de verificación" y el
+bloque Ledger en `docs/plan.md`. Commit en el worktree, NO pusheado.

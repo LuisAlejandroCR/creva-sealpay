@@ -269,6 +269,14 @@ checklist.
   el lado Arc/on-chain del respaldo), no una segunda wallet decorativa. **Si esto no se resuelve
   (CLI instalado + rol de firma no-conflictivo definido), no podemos avanzar** con este bloque —
   se descarta antes que forzar una integración pegada que viole el descalificador #2.
+  - `2026-09-06` — **Decisión escogida (slice B de §10.4):** `wallet-cli ring` v2.1.0 es el
+    backend de los secretos del gateway vía `gateway/src/key-ring.ts` (`resolveSecret`), con
+    fallback a `process.env` (cero ruptura con `KEY_RING_ENABLED` ausente). `config.ts` resuelve
+    `CREVA_SERVICE_REFRESH_TOKEN`, `FACILITATOR_AUTH_TOKEN`, `HEDERA_PAYER_PRIVATE_KEY`,
+    `WORLD_API_KEY`, `ARC_SIGNER_PRIVATE_KEY` por ahí. Rol = custodia de secretos en reposo, NO
+    una segunda wallet (respeta §8.1). Tests unit+fuzz+invariant verdes. **BLOCKED** el paso
+    end-to-end: `wallet-cli ring init` exige dispositivo Ledger físico. Detalle y comando del
+    humano en `docs/integrations/ledger-keyring.md`. Rama `sponsor-ledger-keyring`.
 
 - [ ] **Privy — $5,000, 2 pistas (B2B financial product $2.5k + Best financial flow $2.5k).**
   Prerrequisito: cuenta Privy + `defineChain` de viem con chain ID **296** (Hedera) y su JSON-RPC
