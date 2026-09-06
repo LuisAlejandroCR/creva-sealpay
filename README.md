@@ -1,23 +1,33 @@
-<!-- README.md: public entry point for Creva SealPay, the ETHOnline 2026 submission.
-     It states what is built, how to run it, and what remains unverified.
-     Planning detail lives in docs/plan.md; session history lives in docs/memoria.md. -->
+<!-- README.md: root guide for this ETHOnline 2026 submission repo.
+     It explains the folder focus, reading order, and current code surfaces.
+     Product and status detail live in docs/plan.md and docs/memoria.md. -->
 
-# Creva SealPay
+# ETHOnline 2026 — Creva SealPay
 
-Creva SealPay is an ETHOnline 2026 Continuity submission. It adds a mobile app and x402 gateway
-around Creva: a user completes World Selfie Check, then agents or clients pay per signal query and
-per report verification before Creva's signed response is returned.
+This is the public submission repo for Creva SealPay, an ETHOnline 2026 Continuity / Ship a Feature
+project built around Creva.
 
-Creva's private repo remains the source of truth for scoring, provider integrations, credentials,
-and infrastructure. This public repo contains the submission surface only.
+The focus stays the same: document the hackathon work clearly, keep Creva's private business logic
+out of the public repo, and expose only the submission surface that consumes Creva through its API.
 
-## What's Built
+## What's Here
 
-| Area | Status |
+| Path | Purpose |
 |---|---|
-| `app/` | Expo SDK 57 app with onboarding, paid query, report verification, haptics hooks, and client helpers |
-| `gateway/` | Express gateway for `POST /creva-score/report` and `POST /creva-score/verify` behind x402 |
-| `docs/` | SDD planning and implementation record for judges and agents |
+| `app/` | Expo app for Selfie Check, paid queries, and signed report verification |
+| `gateway/` | Express x402 gateway for Creva report and verification routes |
+| `docs/plan.md` | Current checklist and acceptance criteria |
+| `docs/memoria.md` | Short session record: done, not verified, pending |
+| `brainstorming.md` | Track rationale and sponsor analysis |
+| `LEARNINGS.md` | Project learnings while the work is alive |
+| `AGENTS.md` | Collaboration and documentation rules |
+
+## Start Here
+
+1. Read `AGENTS.md`.
+2. Read `docs/plan.md` for what is open or closed today.
+3. Read `brainstorming.md` §8-9 for the why behind the plan.
+4. Check the real repo state before changing anything.
 
 ## Run
 
@@ -40,14 +50,7 @@ npm run dev
 
 Environment templates live in `app/.env.example` and `gateway/.env.example`.
 
-## Verification
-
-Latest documented pass on `main`:
-
-- `app`: TypeScript clean, Jest 16 suites / 100 tests, `expo export --platform ios` bundled.
-- `gateway`: TypeScript clean, ESLint clean, Vitest 3 suites / 9 tests.
-
-Still pending:
+## Still Pending
 
 - Physical Expo Go run with real Clerk and World credentials.
 - Live Hedera testnet settlement through a real facilitator.

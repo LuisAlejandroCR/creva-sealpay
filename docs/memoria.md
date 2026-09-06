@@ -6,7 +6,7 @@
 
 ## 2026-09-06 — Revisión corta de documentación pública
 
-**Qué se hizo:** `README.md` quedó como entrada pública de Creva SealPay; `docs/plan.md` cerró bloques ya absorbidos por `main`.
+**Qué se hizo:** `README.md` raíz quedó como guía del repo; `docs/plan.md` cerró bloques ya absorbidos por `main`.
 **Qué NO se verificó:** no se corrieron builds ni tests; fue un cambio solo de Markdown.
 **Pendiente:** siguen abiertos Expo Go físico, facilitador Hedera vivo, check-ins/equipo y video demo.
 **Nota:** la lógica privada de Creva sigue fuera del repo público por diseño.

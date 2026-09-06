@@ -120,9 +120,9 @@ bloque. Esta tabla es solo el checklist.
 - [x] `2026-09-04` — `engram` wireado para **opencode** (plugin instalado, listo). Wireado para
   **Codex** solo en config MCP + instrucciones — el plugin/hooks queda como bloque abierto porque
   el CLI de Codex no está instalado aquí.
-- [x] `2026-09-06` — **README público reescrito para Creva SealPay.** Ya no describe la carpeta de
-  preparación privada: explica `app/`, `gateway/`, verificación actual y pendientes reales. Inglés
-  solo aquí; el resto de `.md` sigue en español.
+- [x] `2026-09-06` — **README raíz actualizado sin cambiar su foco.** Sigue siendo guía del repo:
+  contexto, orden de lectura, `app/`, `gateway/` y pendientes. Inglés solo aquí; el resto de `.md`
+  sigue en español.
 - [x] `2026-09-06` — **Decisión pública de docs mantenida.** El repo ya publica `AGENTS.md`,
   `docs/`, `brainstorming.md` y `LEARNINGS.md` como artefacto SDD. Límite: lógica privada de Creva,
   fórmulas, credenciales e infraestructura interna siguen fuera del repo público.
