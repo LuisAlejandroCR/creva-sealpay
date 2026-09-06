@@ -32,6 +32,11 @@ export function CardScreen({ onBack, onOpenCreate, onOpenKyc }: CardScreenProps)
   const [freezeLoading, setFreezeLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [backendPending, setBackendPending] = useState(false);
+  // GET /cards (cards.list) is not exposed by the core yet — the reference frontend hits the same
+  // 404 and quietly falls back to "no card". A list failure that isn't an unlinked-account 401
+  // (handled by backendPending) is surfaced as its own honest state, not as "you have no cards".
+  // See docs/plan.md.
+  const [listFailed, setListFailed] = useState(false);
 
   useEffect(() => {
     kyc
@@ -61,6 +66,7 @@ export function CardScreen({ onBack, onOpenCreate, onOpenKyc }: CardScreenProps)
       })
       .catch((err) => {
         if (isBackendUnlinked(err)) setBackendPending(true);
+        else setListFailed(true);
         setCardReady(false);
       });
   }, []);
@@ -104,6 +110,18 @@ export function CardScreen({ onBack, onOpenCreate, onOpenKyc }: CardScreenProps)
           <View className="items-center py-10" testID="card-loading">
             <ActivityIndicator />
           </View>
+        ) : listFailed ? (
+          <Section>
+            <Card testID="card-list-unavailable">
+              <View className="items-start gap-3">
+                <Text className="text-base font-bold text-text">No pudimos consultar tus tarjetas</Text>
+                <Text className="text-sm leading-5 text-text/70">
+                  El servicio de tarjetas no respondió. Vuelve a intentarlo más tarde; no quiere
+                  decir que no tengas una tarjeta.
+                </Text>
+              </View>
+            </Card>
+          </Section>
         ) : !cardReady ? (
           <Section>
             <Card testID="card-empty">
