@@ -34,10 +34,10 @@ checklist.
     Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
     coordinar (regla de §Colaboración punto 7).
   - Sin pantalla mobile todavía: `calculator`, `collateral`, `business-verification`, `regulatory`,
-    `report`, `notifications`, `privacy` — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a
+    `report`, `privacy` — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a
     pantallas reales 1:1 es el grueso de este bloque. `profile/details`, `profile/fiscal`,
-    `profile/security`, `movements` y `statements` ya no están en esta lista: ver los incrementos
-    de abajo.
+    `profile/security`, `movements`, `statements` y `notifications` ya no están en esta lista: ver
+    los incrementos de abajo.
   - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
     evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
 
@@ -149,6 +149,32 @@ checklist.
   `expo-document-picker` funcione igual en iOS vs. Android (el picker del sistema difiere entre
   plataformas — no hay dispositivo/simulador disponible desde esta sesión para confirmarlo).
   **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Séptimo incremento de la migración: `NotificationsScreen.tsx` nueva, reemplaza
+  el `StubScreen` genérico de "Avisos" (`notifications`).** Puerto real de
+  `creva_finance/frontend/app/notifications/page.tsx`: la lista de "Avisos" se arma con
+  `buildReminders()` de `app/lib/reminders.ts` (ya portado, no se tocó) alimentado por cuatro APIs
+  reales vía `Promise.allSettled` — `score.get()`, `credit.eligibility()`, `statements.list()` y
+  `statements.summary()` de `app/lib/api.ts` (ya existían, no se tocaron). Subtítulo por conteo de
+  pendientes, estado de carga (`ActivityIndicator`), estado vacío y el bloque "Beneficios y
+  recompensas / Próximamente" con los cuatro socios de lealtad, todo con el mismo copy del frontend.
+  `App.tsx`: nueva rama `activeStub === "notifications"` monta `NotificationsScreen` antes del
+  `StubScreen` genérico (mismo patrón que Movimientos y Estados de cuenta); las tres entradas que ya
+  abrían `openStub("notifications", …)` (Dashboard, Perfil, Más) caen en la pantalla real sin más
+  cableado. Sin dependencias nuevas. Test nuevo `app/test/unit/more/notifications.spec.ts` (mismo
+  patrón de aserciones por fuente que `more/movements.spec.ts`). `tsc --noEmit` limpio; `npx jest`
+  47/47 suites, 202/202 tests aislado — en el full-run bajo carga fallan por timeout
+  `auth/auth-gate.spec.ts` y `help/search.spec.ts` (flakiness ya documentada en el sexto
+  incremento, pasan aisladas: 3/3 suites, 11/11 tests). Antes: 46 suites / 196 tests.
+  **Desviación deliberada del "as is":** (1) las tarjetas de recordatorio son de solo lectura — el
+  frontend las envuelve en `<Link href={reminder.href}>`, pero la app no tiene router de deep-link
+  para seguir esas rutas desde una pantalla de stub; se muestra el CTA como texto. (2) los mosaicos
+  de socios usan el token `surface-2`/`crimson` de Creva en vez del hex de marca de cada socio que
+  el frontend incrusta inline — regla dura de "cero hex nuevo" + "no incrustar medios de terceros".
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind ya
+  documentado en los incrementos anteriores), ni el armado de la lista contra datos reales del
+  backend de Creva (sin credenciales de ese backend desde esta sesión). **No autocertificada como
+  cerrada — falta segunda vista.**
 
 - [ ] **2026-09-05 — Primer incremento de la migración: `DeleteAccountScreen.tsx` ganó paridad real
   con `/profile/delete-account`, confirmado visualmente vía sesión autenticada real en el

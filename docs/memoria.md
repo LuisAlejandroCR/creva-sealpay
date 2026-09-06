@@ -1816,3 +1816,45 @@ Sello de tu negocio, Reglas que te afectan, Tu reporte, Avisos, Aviso de privaci
 **Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Sexto incremento de la
 migración..."). Backlog restante: Crédito, Tarjeta, Calculadora, Tu garantía, Sello de tu negocio,
 Reglas que te afectan, Tu reporte, Avisos, Aviso de privacidad, KYC, auth.
+
+## 2026-09-05 — Migración PWA→nativa, séptimo incremento: `NotificationsScreen.tsx` (Solver, cloud)
+
+**Qué se hizo:**
+- Construida `NotificationsScreen.tsx` (`app/features/more/`), puerto de
+  `creva_finance/frontend/app/notifications/page.tsx`: la lista de "Avisos" se arma con
+  `buildReminders()` de `app/lib/reminders.ts` (ya portado en un incremento anterior, sin tocar)
+  alimentado por `score.get()`, `credit.eligibility()`, `statements.list()` y `statements.summary()`
+  vía `Promise.allSettled` — los cuatro clientes ya existían en `app/lib/api.ts`, no se tocó nada.
+- Subtítulo por conteo de pendientes (`pendingCount`), estado de carga, estado vacío y bloque
+  "Beneficios y recompensas / Próximamente" con los cuatro socios de lealtad, con el copy del
+  frontend palabra por palabra.
+- `App.tsx`: rama nueva `activeStub === "notifications"` monta la pantalla real antes del
+  `StubScreen` genérico (mismo patrón que Movimientos/Estados de cuenta). Las tres entradas que ya
+  llamaban `openStub("notifications", …)` (Dashboard, Perfil, Más) no necesitaron más cableado.
+- Test nuevo `app/test/unit/more/notifications.spec.ts` (aserciones por fuente, patrón de
+  `more/movements.spec.ts`), incluida una que verifica el wiring en `App.tsx`.
+- Sin dependencias nuevas.
+
+**Desviaciones deliberadas del "as is":**
+- Tarjetas de recordatorio de solo lectura: el frontend las envuelve en `<Link href>`, pero la app
+  usa una máquina de estados de pasos sin router de deep-link; seguir `reminder.href` desde un stub
+  necesitaría plomería nueva en `App.tsx` fuera del alcance de una pantalla. Se muestra el CTA como
+  texto.
+- Mosaicos de socios con tokens de Creva (`surface-2`/`crimson`) en vez del hex de marca de cada
+  socio que el frontend incrusta inline — regla dura de "cero hex nuevo" y "no incrustar medios de
+  terceros" de `AGENTS.md`.
+
+**Qué NO se verificó, y por qué:**
+- Resultado visual/nativo — mismo bloqueo `react-native-web`/NativeWind de los seis incrementos
+  anteriores, no reintentado.
+- Armado real de la lista contra el backend de Creva — sin credenciales de ese backend desde esta
+  sesión.
+- `tsc --noEmit` limpio. `npx jest` full-run: 45/47 suites, 200/202 tests — los 2 fallos son
+  `auth/auth-gate.spec.ts` y `help/search.spec.ts` por timeout bajo carga (flakiness ya documentada
+  en el sexto incremento), pasan aislados junto al spec nuevo: 3/3 suites, 11/11 tests. Baseline
+  previo: 46 suites / 196 tests.
+- No se cerró como definitiva — falta segunda vista.
+
+**Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Séptimo incremento de la
+migración..."). Backlog restante: Crédito, Tarjeta, Calculadora, Tu garantía, Sello de tu negocio,
+Reglas que te afectan, Tu reporte, Aviso de privacidad, KYC, auth.
