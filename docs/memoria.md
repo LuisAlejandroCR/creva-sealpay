@@ -1932,3 +1932,38 @@ Tu reporte, Aviso de privacidad, KYC, auth.
 **Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Noveno incremento de la
 migración..."). Backlog restante: Crédito, Tarjeta, Calculadora, Tu garantía, Sello de tu negocio,
 Aviso de privacidad, KYC, auth.
+
+## 2026-09-05 — Migración PWA→nativa, décimo incremento: `CollateralScreen.tsx` (Solver, cloud)
+
+**Qué se hizo:**
+- Construida `CollateralScreen.tsx` (`app/features/more/`), puerto de
+  `creva_finance/frontend/app/collateral/page.tsx`: estado de la garantía, monto confirmado/
+  pendiente, capacidad de gasto y la CLABE SPEI de depósito, todo vía `collateral.get()`
+  (`app/lib/api.ts`, ya existía, sin tocar). `STATUS_LABELS` y `formatClabe` idénticos al frontend.
+- Estado de carga, error, y el caso sin `deposit_account` con empty state + `authorization_url`
+  externo (`Linking.openURL`).
+- `App.tsx`: rama nueva `activeStub === "collateral"` monta la pantalla real antes del `StubScreen`
+  genérico.
+- Test nuevo `app/test/unit/more/collateral.spec.ts`. Sin dependencias nuevas.
+
+**Desviaciones deliberadas del "as is":**
+- Sin `KycGate` — ese componente no existe en mobile; la app ya enruta por Clerk/SelfieCheck.
+  Anotado para la segunda vista: confirmar si hace falta un gate equivalente.
+- CLABE entregada por `Share.share({ message })` en vez de `navigator.clipboard.writeText` — sin
+  instalar `expo-clipboard`.
+- "Iniciar verificación" sin `authorization_url` es texto guía en vez de enlace a `/kyc` (cablear
+  esa ruta desde un stub necesita plomería en `App.tsx` fuera de alcance).
+- Avisos con tokens `warning-*`/`danger-*` en vez de `.alert-*`.
+
+**Qué NO se verificó, y por qué:**
+- Resultado visual/nativo — mismo bloqueo `react-native-web`/NativeWind de los incrementos
+  anteriores.
+- `collateral.get()` contra `/collateral` real — sin credenciales del backend de Creva; forma de
+  la respuesta y estados posibles sin confirmar.
+- `tsc --noEmit` limpio. `npx jest` full-run verde: 50/50 suites, 220/220 tests (baseline previo:
+  49 suites / 214 tests).
+- No se cerró como definitiva — falta segunda vista.
+
+**Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Décimo incremento de la
+migración..."). Backlog restante: Crédito, Tarjeta, Calculadora, Sello de tu negocio, Aviso de
+privacidad, KYC, auth.

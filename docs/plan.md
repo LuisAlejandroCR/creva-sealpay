@@ -33,11 +33,11 @@ checklist.
     `HelpScreen.tsx`/`HelpCategoryScreen.tsx`/`HelpArticleScreen.tsx` — cubiertos por los worktrees
     Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
     coordinar (regla de §Colaboración punto 7).
-  - Sin pantalla mobile todavía: `calculator`, `collateral`, `business-verification`,
+  - Sin pantalla mobile todavía: `calculator`, `business-verification`,
     `privacy` — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a
     pantallas reales 1:1 es el grueso de este bloque. `profile/details`, `profile/fiscal`,
-    `profile/security`, `movements`, `statements`, `notifications`, `regulatory` y `report` ya no
-    están en esta lista: ver los incrementos de abajo.
+    `profile/security`, `movements`, `statements`, `notifications`, `regulatory`, `report` y
+    `collateral` ya no están en esta lista: ver los incrementos de abajo.
   - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
     evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
 
@@ -149,6 +149,29 @@ checklist.
   `expo-document-picker` funcione igual en iOS vs. Android (el picker del sistema difiere entre
   plataformas — no hay dispositivo/simulador disponible desde esta sesión para confirmarlo).
   **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Décimo incremento de la migración: `CollateralScreen.tsx` nueva, reemplaza el
+  `StubScreen` genérico de "Tu garantía" (`collateral`).** Puerto real de
+  `creva_finance/frontend/app/collateral/page.tsx`: estado de la garantía, monto confirmado/
+  pendiente, capacidad de gasto y la CLABE SPEI para depósito — todo vía `collateral.get()` de
+  `app/lib/api.ts` (ya existía, no se tocó). Mapa `STATUS_LABELS` y agrupado de CLABE
+  (`formatClabe`) idénticos al frontend. Estado de carga (`ActivityIndicator`), error, y el caso sin
+  `deposit_account` con su empty state y el `authorization_url` externo. `App.tsx`: rama nueva
+  `activeStub === "collateral"` monta `CollateralScreen` antes del `StubScreen` genérico. Sin
+  dependencias nuevas. Test nuevo `app/test/unit/more/collateral.spec.ts`. `tsc --noEmit` limpio;
+  `npx jest` verde (50/50 suites, 220/220 tests — antes 49/214).
+  **Desviaciones deliberadas del "as is":** (1) sin `KycGate` — no existe ese componente en mobile;
+  la app ya enruta por Clerk/SelfieCheck, así que la pantalla se muestra directo (anotado para la
+  segunda vista: confirmar si hace falta un gate equivalente). (2) La CLABE se entrega por
+  `Share.share({ message })` en vez de `navigator.clipboard.writeText` — sin dependencia de
+  portapapeles nueva (no se instaló `expo-clipboard`). (3) "Iniciar verificación" sin
+  `authorization_url` es texto guía en vez de un enlace a `/kyc` — cablear esa ruta desde un stub
+  necesitaría plomería en `App.tsx` fuera del alcance. (4) Avisos con tokens `warning-*`/`danger-*`
+  en vez de `.alert-*`.
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni
+  `collateral.get()` contra `/collateral` real (sin credenciales del backend de Creva — forma de la
+  respuesta y estados posibles sin confirmar). **No autocertificada como cerrada — falta segunda
+  vista.**
 
 - [ ] **2026-09-05 — Noveno incremento de la migración: `ReportScreen.tsx` nueva, reemplaza el
   `StubScreen` genérico de "Tu reporte" (`report`).** Puerto real de
