@@ -9,6 +9,23 @@
 > o `gateway/` se refieren a lo que hoy es `frontend/` / `backend/` (el log histórico no se
 > reescribió). `creva_finance/frontend/app/…` (proyecto hermano) no cambia.
 
+## 2026-09-06 — Pasada visual, segundo lote de 6 pantallas (worktree `feature-ui-parity-pass`)
+
+**Qué se hizo:** se comparó onboarding (rama identity_unavailable), kyc, profile, more,
+delete-account, calculator (Expo web `:3002` vs `:3001`, 375x812, mismo override `?dev=`/`?stub=`
+temporal, revertido antes de commitear). Hallazgos añadidos al catálogo en `docs/plan.md` y un
+consolidado de 8 patrones transversales (A–H) para no repetir por pantalla.
+**Hallazgo nuevo más fuerte:** `DeleteAccountScreen` está reestructurado, no portado — la
+referencia tiene dos secciones con encabezado ("Qué se borra" / "Cómo se pide") y el móvil las
+condensa. Requiere decisión (¿intencional?). También: filas de menú de Perfil sin badge de icono
+(inconsistente con Help), avatar circular vs cuadrado, spinner vs skeleton en carga, celdas de
+MoreSheet sobredimensionadas.
+**Qué NO se verificó:** ~16 pantallas restantes (card, query, verify, profile-details/fiscal/
+security, help-category/article, stubs movements/statements/notifications/regulatory/report/
+collateral/business-verification). El pane del navegador empezó a fallar (ventana oculta →
+render tiled/timeout) al final del lote. Nada autocertificado.
+**Dónde queda:** mismo bloque abierto "segunda vista visual", lista de pendientes actualizada.
+
 ## 2026-09-06 — Pasada visual render-vs-render, primer lote de 6 pantallas (worktree `feature-ui-parity-pass`)
 
 **Qué se hizo:** Expo web en `:3002` (sin `CI=1`, si no Metro no rebundlea) contra

@@ -106,10 +106,48 @@ checklist.
   - **nitpick — bullets de lista.** PrivacyScreen móvil antepone "• " manual con sangría colgante;
     la referencia usa lista CSS sin viñeta visible.
 
-  Pendiente del catálogo: onboarding, kyc, card-info, card-create, query, verify, profile,
-  profile-details/fiscal/security, delete-account, help-category, help-article, more, y los stubs
-  movements/statements/notifications/regulatory/report/collateral/business-verification/calculator
-  (~20 pantallas) — mismo método, `?dev=`/`?stub=`; las de datos requieren backend.
+  **Segundo lote `2026-09-06` (mismo worktree/método): onboarding, kyc, profile, more,
+  delete-account, calculator.** Hallazgos nuevos:
+
+  - **visible — filas de menú sin badge de icono en Perfil.** `ProfileScreen` móvil pinta los
+    iconos (Datos personales / Info fiscal / Seguridad / Avisos / Ayuda) sin fondo; la referencia
+    (`app/profile/page.tsx`) los mete en un badge rosa `rounded-2xl` `bg-crimson/10`. Inconsistente
+    incluso dentro del móvil: `HelpScreen` "Entra por tema" SÍ tiene ese badge.
+  - **visible — avatar circular vs cuadrado redondeado.** Perfil móvil: círculo pleno; referencia:
+    `rounded-2xl`. Mismo criterio que el icon badge.
+  - **visible — DeleteAccount reestructurado, no portado.** La referencia
+    (`app/profile/delete-account/page.tsx`) tiene dos secciones con encabezado —"Qué se borra"
+    (card con 5 items) y "Cómo se pide" (card con pasos numerados en badge rosa)—; el móvil las
+    condensa en una card de intro + una card rosa "TEN EN CUENTA" más corta, sin encabezados de
+    sección y con los pasos como texto "1. / 2. / 3." en línea. Además la referencia nombra
+    `privacidad@finarahub.mx` dentro del paso 1; el móvil solo en el botón. Decidir: condensación
+    intencional (pasada 1 tocó "copy de borrado") o portar las dos secciones.
+  - **visible — estados de carga: spinner (móvil) vs skeleton shimmer (referencia).** Confirmado en
+    home, score, credit, kyc, calculator: el móvil muestra un `ActivityIndicator` centrado; la
+    referencia una barra/tarjeta con shimmer rosa. Transversal.
+  - **visible — MoreSheet: celdas sobredimensionadas.** El `NavCell` de la referencia
+    (`components/BottomNav.tsx`) es fila compacta (`minHeight 56`, `padding 10/12`, `fontSize 13`,
+    icono 20); el móvil usa cards más altas con texto ~15px, y varias etiquetas envuelven a 2
+    líneas ("Estados de cuenta", "Sello de tu negocio", "Reglas que te afectan", "Aviso de
+    privacidad"). Contenido y grupos sí coinciden 1:1.
+  - **visible — títulos de header: la referencia los pinta grandes y tenues** (estilo `ScreenHeader`
+    semitransparente en Perfil, DeleteAccount, Privacy); el móvil los pinta negro sólido. Confirmar
+    cuál es el diseño correcto contra `ScreenHeader.tsx`.
+  - **nitpick — botón "Continuar" de `SelfieCheckScreen` (rama identity_unavailable) es
+    `rounded-full` pill;** el resto de la app usa `rounded-xl`.
+  - **nitpick — `kyc` móvil sin bottom nav; la referencia (`/kyc`) sí lo lleva.**
+
+  Consolidado de patrones transversales (aplican a casi todas las pantallas, no repetir por
+  pantalla): (A) sin fuentes propias [blocker]; (B) falta back en pantallas alcanzables por tab
+  (score, help, profile); (C) badge de icono en filas de menú presente en unas pantallas y no en
+  otras; (D) chevron `›` texto vs `>` icono; (E) spinner vs skeleton en carga; (F) "PRONTO" en la
+  pestaña Tarjeta ausente; (G) títulos de header sólidos vs tenues; (H) el móvil añade `Card`
+  donde la web no la tiene.
+
+  Pendiente del catálogo (segundo pase, ~16 pantallas): card-info, card-create, query, verify,
+  profile-details/fiscal/security, help-category, help-article, y los stubs movements / statements
+  / notifications / regulatory / report / collateral / business-verification. Mismo método
+  (`?dev=`/`?stub=`); las de datos requieren backend para su segunda vista real.
 
 - [ ] **2026-09-06 — AUDIT app↔core de `frontend/lib/api.ts`.** Duplicado del bloque superior,
   conservado como recordatorio compacto: la mayoría de métodos ya apunta a endpoints reales del
