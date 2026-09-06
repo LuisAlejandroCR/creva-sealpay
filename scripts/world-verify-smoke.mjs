@@ -1,5 +1,5 @@
 // world-verify-smoke.mjs: end-to-end smoke test for the World Selfie Check nonce flow against a
-// RUNNING gateway. Run this once the World ID Sandbox is approved and gateway/.env has real
+// RUNNING gateway. Run this once the World ID Sandbox is approved and backend/.env has real
 // WORLD_API_KEY / WORLD_APP_ID / WORLD_RP_ID / WORLD_RP_SIGNING_KEY set.
 //
 //   Terminal 1:  cd gateway && npm install && npm run dev

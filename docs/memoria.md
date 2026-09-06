@@ -4,6 +4,26 @@
 
 # Memoria — ETHOnline 2026
 
+> **Nota histórica (rename 2026-09-06):** las carpetas top-level `app/` y `gateway/` se renombraron
+> a `frontend/` y `backend/`. Las entradas de abajo son un registro cronológico: donde dicen `app/`
+> o `gateway/` se refieren a lo que hoy es `frontend/` / `backend/` (el log histórico no se
+> reescribió). `creva_finance/frontend/app/…` (proyecto hermano) no cambia.
+
+## 2026-09-06 — Rename de carpetas: `app/` → `frontend/`, `gateway/` → `backend/` (Solver, worktree `integration-rename`)
+
+**Qué se hizo:** `git mv app frontend` + `git mv gateway backend` sobre `origin/main` (rename fresco,
+no el merge de la rama vieja `chore-rename-frontend-backend`, basada en un `main` de hace ~20
+commits). Barrido de rutas en `.gitignore`, `frontend/package.json` + `backend/package.json` (campo
+`name`), `README.md`, `AGENTS.md`, `brainstorming.md`, `docs/plan.md`, `scripts/world-verify-smoke.mjs`.
+Protegidas las rutas `creva_finance/frontend/app/…` del proyecto hermano. La palabra "gateway" como
+nombre del servicio x402 se mantuvo (término de producto, no ruta). Comentarios de código con rutas
+viejas (`// app/features/…`) NO se barrieron — ruido, no rompe nada.
+
+**Qué NO se verificó:** deploy / CI (no hay). Comentarios de código con paths viejos siguen.
+
+**Dónde queda el pendiente:** bloque en `docs/plan.md`. Sesión 6 (migración de auth al backend)
+estaba bloqueada esperando esto.
+
 ## 2026-09-06 — The Graph load-bearing: AttestationRegistry + subgraph + trustSignal on-chain (worktree `agent-add968ba3a6440026`)
 
 **Qué se hizo.** Se construyó el mecanismo donde un dato on-chain mueve una salida real de

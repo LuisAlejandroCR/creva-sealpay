@@ -55,7 +55,7 @@ cd app && npm install && cp .env.example .env && npm start         # then scan t
 
 Gateway defaults to `http://localhost:8787`, checks payments against a Hedera testnet facilitator
 (`FACILITATOR_URL`). App env needs `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` and reaches the gateway via
-the base URL in `app/lib/api.ts`. Details: [`app/`](app/), [`gateway/`](gateway/).
+the base URL in `frontend/lib/api.ts`. Details: [`frontend/`](frontend/), [`backend/`](backend/).
 
 ## Status
 

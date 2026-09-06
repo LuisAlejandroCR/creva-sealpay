@@ -9,7 +9,13 @@
 > antes de tocar nada, y cerrar siempre documentando qué se hizo, qué no se verificó y por qué —
 > es el contexto que usan los demás agentes.
 
-**Última actualización:** 2026-09-06 (mecanismo load-bearing de The Graph: contrato AttestationRegistry + subgraph + trustSignal on-chain en `/verify` — código y VERIFY local verdes, deploy a testnet pendiente del humano)
+**Última actualización:** 2026-09-06 (rename de carpetas top-level: `app/` → `frontend/`, `gateway/` → `backend/`)
+
+> **Nota histórica (rename 2026-09-06):** las carpetas top-level `app/` y `gateway/` pasaron a
+> llamarse `frontend/` y `backend/`. Las rutas de este archivo se actualizaron al nombre nuevo;
+> alguna mención suelta de `app/` o `gateway/` en registros de verificación viejos se refiere a lo
+> que hoy es `frontend/` / `backend/`. Las rutas `creva_finance/frontend/app/…` (proyecto hermano,
+> Next.js) NO cambian. La palabra "gateway" como nombre del servicio x402 se mantiene.
 
 Ver [`brainstorming.md`](../brainstorming.md) §8 y §9 para el análisis completo. Detalle de
 qué-se-hizo/qué-no-se-verificó por sesión: [`docs/memoria.md`](memoria.md). Esta tabla es solo el
@@ -18,7 +24,7 @@ checklist.
 ## Abiertos
 
 - [ ] **2026-09-06 — Auditoría app↔core (`feature-app-core-api-wiring`). Un solo gap real de
-  endpoint + 5 métodos muertos en `app/lib/api.ts`.** Toda `app/lib/api.ts` va **directo al core**
+  endpoint + 5 métodos muertos en `frontend/lib/api.ts`.** Toda `frontend/lib/api.ts` va **directo al core**
   (`BASE = EXPO_PUBLIC_API_URL ?? http://localhost:3000`, `api.ts:7`) con el bearer de la sesión
   Clerk (`request()` en `api.ts:80-95` via `session-source`). **Ningún método de `api.ts` pasa por
   el gateway x402** — el gateway solo lo usan `QueryScreen`→`gatewayClient.ts` y
@@ -78,7 +84,7 @@ checklist.
 
 - [ ] **2026-09-06 — Veredicto de auth Clerk↔core (análisis estático de `creva_finance/backend`).
   El core NO aceptaría hoy el token de Clerk que manda la app; el código ya lo soporta, falta
-  config de deploy.** La app manda `Authorization: Bearer <clerk session token>` (`app/lib/api.ts`
+  config de deploy.** La app manda `Authorization: Bearer <clerk session token>` (`frontend/lib/api.ts`
   vía `session-source`). Tres puertas en `jwt.guard.ts`, cada una un bloqueo duro:
   1. `AUTH_PROVIDER` default = `supabase` (`config/configuration.ts:15`). Con `supabase`,
      `jwt.guard.ts:56-59` manda el token a `supabase.admin.auth.getUser` → rechaza un JWT de Clerk
@@ -97,7 +103,7 @@ checklist.
   muestra un estado "backend pendiente" — *"Estás dentro. Tu información de Creva se conecta
   pronto."* — en cada sección que llama al core y recibe un 401 con token adjunto
   (`api.ts` `isBackendUnlinked` / `ApiError.backendUnlinked`; componente
-  `app/features/shared/BackendPendingState.tsx`; wireado en Dashboard/Score/Credit/Card/Statements
+  `frontend/features/shared/BackendPendingState.tsx`; wireado en Dashboard/Score/Credit/Card/Statements
   en la rama `feature-backend-pending-state`). La **confirmación en vivo de la config de auth**
   queda explícitamente diferida — sin token real de Clerk contra el deploy hasta que el humano
   decida. Mientras el deploy siga en `AUTH_PROVIDER=supabase`, todo el wiring directo-al-core está
@@ -114,19 +120,19 @@ checklist.
   (worktree `sponsor-privy-wallet`, rama off `origin/main`, NO pusheada).** Slice C de §10.4.
   Cubre las 2 pistas de Privy ($2.5k B2B financial product + $2.5k best financial flow) con una
   integración. **Hecho y verificado en local:**
-  - `defineChain(296)` con viem (`app/features/wallet/privyChain.ts`) + lectura on-chain real
+  - `defineChain(296)` con viem (`frontend/features/wallet/privyChain.ts`) + lectura on-chain real
     contra el Hedera JSON-RPC Relay (Hashio testnet, `https://testnet.hashio.io/api`). Respuesta
     real: `eth_chainId` = `0x128` (296), `eth_blockNumber` ≈ `40171461`, `eth_getBalance` de
     `0x…0002` = `33896519248405508330000000000` weibar. Script:
-    `node app/features/wallet/smoke-read-chain.mjs`. Test opt-in:
+    `node frontend/features/wallet/smoke-read-chain.mjs`. Test opt-in:
     `RUN_HEDERA_RELAY_TEST=1 npx jest hedera-relay-read`.
-  - `usePaymentWallet()` (`app/features/wallet/PrivyWalletProvider.tsx`) con modos `demo` | `privy`.
+  - `usePaymentWallet()` (`frontend/features/wallet/PrivyWalletProvider.tsx`) con modos `demo` | `privy`.
     `demo` delega **verbatim** en `buildSignedPaymentHeader` / `readDemoCredentialsFromEnv` sin
     tocar `hederaPayment.ts`. `privy` aplica una política de gasto (tope mensual + tope por pago,
     en tinybar) ANTES de construir cualquier header — eso es el "B2B financial product".
   - Selector de wallet en `QueryScreen` y `VerifyScreen` (default `demo`, se oculta si solo hay
     una opción). `PrivyWalletProvider` montado en `App.tsx`.
-  - Tests: 7 suites nuevas en `app/test/{unit,fuzz,invariant}/wallet/**`. 3 invariantes:
+  - Tests: 7 suites nuevas en `frontend/test/{unit,fuzz,invariant}/wallet/**`. 3 invariantes:
     "sin `EXPO_PUBLIC_PRIVY_APP_ID` el modo privy no aparece y el demo es idéntico",
     "signPayment nunca produce header por un monto que exceda la política",
     "`hederaPayment.ts` no cambia (git diff vs origin/main vacío)".
@@ -135,7 +141,7 @@ checklist.
   (`react-native-passkeys`, `permissionless`, `expo-crypto/linking/clipboard/application`,
   `@privy-io/expo-native-extensions`, `react-native-qrcode-styled`) es riesgo real para el
   `npm install` del path congelado de Hedera. Solo entró `viem` (que Privy ya usa). El adaptador
-  del SDK (`app/features/wallet/privyEmbeddedWallet.ts`) hace `require` perezoso y defensivo: hasta
+  del SDK (`frontend/features/wallet/privyEmbeddedWallet.ts`) hace `require` perezoso y defensivo: hasta
   que el humano instale el SDK, `loadPrivyExpo()` devuelve `null` y el modo privy no aparece.
   **Falta (bloqueado sin cuenta Privy real):** crear la app en el dashboard de Privy, instalar el
   SDK, y cablear `makePrivySigner` (provisión de la embedded wallet para chain 296 + firma del
@@ -145,17 +151,17 @@ checklist.
   `EXPO_PUBLIC_HEDERA_JSON_RPC_URL` (opcional, default Hashio). `PRIVY_APP_SECRET` es server-side y
   no se usa en este slice.
 
-- [ ] **2026-09-06 — COORDINACIÓN: `app/features/help/**` reasignado a la sesión "1 UI/UX"
+- [ ] **2026-09-06 — COORDINACIÓN: `frontend/features/help/**` reasignado a la sesión "1 UI/UX"
   (`feature-last-screens-parity`).** El humano lo reasignó el 2026-09-06 tras comparar las
   pantallas de Ayuda nativas contra la web y verlas a medio construir. Sale del área
-  `codex/mobile-parity-help` — ese worktree Codex **no debe editar `app/features/help/**` mientras
+  `codex/mobile-parity-help` — ese worktree Codex **no debe editar `frontend/features/help/**` mientras
   este bloque esté abierto** (regla §Colaboración punto 7). Se avisó al Main orchestrator por
   mensaje. Gap concreto: `HelpArticleScreen.tsx` (50 líneas) vs
   `creva_finance/frontend/app/help/[category]/[article]/page.tsx` (105) — faltan la sección "Cómo
   se hace" con `Steps`, la card "Ten en cuenta" (`surface-2`), el botón CTA `resolvedBy` (va a la
   pantalla que resuelve la duda), la lista "Otras de este tema" (`relatedArticles`), el footer, y
   usa `<View>` en vez de `<ScrollView>`. `HelpScreen`/`HelpCategoryScreen` con huecos análogos
-  (tiles "Lo que más se pregunta", descripciones por tema). `app/lib/help-content.ts` ya está
+  (tiles "Lo que más se pregunta", descripciones por tema). `frontend/lib/help-content.ts` ya está
   portado — es port de contenido, mismo método que las 13.
   - **`HelpArticleScreen` — hecho.** Reconstruida al nivel de
     `help/[category]/[article]/page.tsx`: `<ScrollView>` (antes `<View>`, cortaba artículos
@@ -164,7 +170,7 @@ checklist.
     de este tema" (`relatedArticles`), y el footer de contacto de privacidad. `App.tsx`:
     `openHelpResolve(href)` mapea los 14 `resolvedBy.href` posibles a steps/stubs del router
     nativo; `onOpenArticle` para las relacionadas. Test nuevo
-    `app/test/unit/help/article-parity.spec.ts` (verifica las 6 secciones + que ningún href
+    `frontend/test/unit/help/article-parity.spec.ts` (verifica las 6 secciones + que ningún href
     quede sin ruta). `tsc` limpio; `jest` 58 suites / 256 tests.
   - **`HelpCategoryScreen` + `HelpScreen` — hecho (un commit, cambios acoplados).**
     `HelpCategoryScreen`: `<ScrollView>`, `HelpSearch` del índice completo arriba de la lista
@@ -173,7 +179,7 @@ checklist.
     ruteadas vía `onOpenArticle(articleHref(...))` — mismo handler que el índice.
     `HelpScreen`: tiles "Lo que más se pregunta" a 4-en-fila (`flex-1`, como `<Stack columns={4}>`
     de `help/page.tsx:29`); cada fila de tema con el badge de icono `38px rounded-xl surface-2` de
-    `MenuRow.tsx:33-46`. Test nuevo `app/test/unit/help/index-and-category-parity.spec.ts`.
+    `MenuRow.tsx:33-46`. Test nuevo `frontend/test/unit/help/index-and-category-parity.spec.ts`.
     `tsc` limpio; `jest` 59 suites / 261 tests. **Ayuda: las 3 pantallas al nivel de la web.**
 
 - [ ] **2026-09-06 — Migración: últimas 4 pantallas del inventario (`feature-last-screens-parity`,
@@ -186,18 +192,18 @@ checklist.
     `creva_finance/frontend/app/sign-in/[[...sign-in]]/page.tsx` envuelve el widget hosted `<SignIn>`
     de Clerk, sin build Expo). Delta real = copy del chrome Creva: título/subtítulo por modo
     alineados a `components/auth/AuthHeader.tsx:26-27` ("Iniciar sesión" / "Tu plataforma
-    financiera") y `app/sign-up/[[...sign-up]]/page.tsx:11` ("Crear cuenta" / "Empieza a tomar el
+    financiera") y `frontend/sign-up/[[...sign-up]]/page.tsx:11` ("Crear cuenta" / "Empieza a tomar el
     control"); cross-link del footer a `sign-in/page.tsx:33` ("Crear cuenta" / "Iniciar sesión").
     **Fuera de alcance:** el `DemoOverlay` "Ver el recorrido" (tour grabado, feature aparte) y el
     wordmark a color de Google (media de terceros, prohibido por AGENTS.md — se queda la "G" plana).
-    Test nuevo `app/test/unit/auth/auth-parity.spec.ts`. `tsc` limpio; `jest` 54 suites / 240 tests
+    Test nuevo `frontend/test/unit/auth/auth-parity.spec.ts`. `tsc` limpio; `jest` 54 suites / 240 tests
     (auth-gate.spec.ts es el flake documentado de full-run, pasa aislado). Antes: 53 / 236.
   - **`kyc` — hecho (decisión del humano 2026-09-06: portar el form, NO reemplazar World).**
-    `KycFormScreen.tsx` nuevo (`app/features/onboarding/`), puerto de
+    `KycFormScreen.tsx` nuevo (`frontend/features/onboarding/`), puerto de
     `creva_finance/frontend/app/kyc/page.tsx`: form nombre/apellido/CURP/email/teléfono →
-    `kyc.apply()` de `app/lib/api.ts` (ya existía). Estados loading/form/processing/pending/verified/
+    `kyc.apply()` de `frontend/lib/api.ts` (ya existía). Estados loading/form/processing/pending/verified/
     unavailable con el copy del frontend (`page.tsx:150-236`). Regex CURP y formateo de teléfono en
-    `app/features/onboarding/kyc-format.ts`, portados 1:1 de `page.tsx:80` y `:90-93`.
+    `frontend/features/onboarding/kyc-format.ts`, portados 1:1 de `page.tsx:80` y `:90-93`.
     `authorization_url` → `WebBrowser.openBrowserAsync` (`expo-web-browser`, ya era dependencia),
     luego poll de `kyc.status()`. `App.tsx`: paso `"kyc"` nuevo, **después** de `SelfieCheckScreen`
     (`onVerified`/`onSkipped` → `setStep("kyc")` → `KycFormScreen` → `home`). **World Selfie Check
@@ -208,7 +214,7 @@ checklist.
     **No se verificó:** `kyc.apply`/`kyc.status` contra `/kyc/*` real (sin backend), ni el retorno
     del `WebBrowser` tras completar la verificación externa.
   - **`credit` — hecho.** `CreditScreen.tsx` reconstruida del stub mínimo ("Próximamente") al
-    flujo completo de `app/credit/page.tsx`: gate de contacto (enlace de correo vía
+    flujo completo de `frontend/credit/page.tsx`: gate de contacto (enlace de correo vía
     `auth.forgotPassword` + verificación de teléfono con código vía
     `auth.sendPhoneCode`/`verifyPhoneCode`), la petición de 4 pasos, las opciones con cada
     criterio del match visible (`FactorMark` → círculo ✓/!), y las 4 ramas de resultado
@@ -221,25 +227,25 @@ checklist.
     `ChipRow` local (pressables redondeados en `flex-wrap`); `<Consent>` → checkbox pressable.
     `App.tsx`: `CreditScreen` ahora recibe `onOpenKyc` (→ paso `"kyc"`) y `onOpenStatements`
     (→ `openStub("statements", "credit")`); se conservó `onOpenVerify` (el puente a VerifyScreen).
-    Test nuevo `app/test/unit/credit/structure.spec.ts`. `tsc` limpio; `jest` 60 suites / 270 tests.
+    Test nuevo `frontend/test/unit/credit/structure.spec.ts`. `tsc` limpio; `jest` 60 suites / 270 tests.
     **Fuera de alcance:** el `DemoOverlay`, el header con barra de progreso `step 5/6` visual
     (se puso "Paso N de 6" en texto), y el `RequestForm` no usa `Field`/`FieldGroup`/`ScreenHeader`
     del frontend (no existen en la app). **No se verificó:** ninguno de los endpoints de crédito
     contra el backend real (sin credenciales).
   - **`card` — hecho (revierte la decisión "tab Tarjeta deshabilitado a propósito").**
-    `CardScreen.tsx` del stub "PRONTO" (38 líneas) al puerto de `app/cards/page.tsx` +
-    `app/cards/[id]/page.tsx` (el límite y el freeze se pliegan en la misma pantalla — una sola
+    `CardScreen.tsx` del stub "PRONTO" (38 líneas) al puerto de `frontend/cards/page.tsx` +
+    `frontend/cards/[id]/page.tsx` (el límite y el freeze se pliegan en la misma pantalla — una sola
     tarjeta, sin ruta de detalle aparte): `cards.list()` → tarjeta activa con `VirtualCard`,
     `cards.get(id)` para `spendingLimit`, `cards.freeze/unfreeze`, `transactions.list({limit:20})`,
     y estado vacío que ramifica según `kyc.status()` (→ crear tarjeta o → completar KYC).
-    `CardCreateScreen.tsx` nuevo — puerto de `app/card-create/page.tsx`: emite con `cards.issue({})`
+    `CardCreateScreen.tsx` nuevo — puerto de `frontend/card-create/page.tsx`: emite con `cards.issue({})`
     al montar (tras confirmar KYC), estados checking/kyc-pending/creating/ready/error con las ramas
     409/400. `VirtualCard.tsx` nuevo — cara de tarjeta nativa (el gradiente CSS del web se aplana al
     token `bg-crimson`; overlay "Congelada").
     `App.tsx`: **tab "Tarjeta" habilitado** (`step: "card-info"`, sin `disabled`), paso
     `"card-create"` nuevo, `"card-info"` en `TAB_STEPS` (mantiene el bottom nav visible),
     `isTabActive` cubre `card-info`/`card-create`. `CardScreen` recibe `onOpenCreate`/`onOpenKyc`.
-    Test nuevo `app/test/unit/card/structure.spec.ts`; `app/test/unit/nav/structure.spec.ts`
+    Test nuevo `frontend/test/unit/card/structure.spec.ts`; `frontend/test/unit/nav/structure.spec.ts`
     actualizado (el test "Tarjeta disabled/PRONTO" ahora verifica que es ruta viva).
     `tsc` limpio; `jest` 61 suites / 276 tests. **No se verificó:** endpoints de tarjeta contra el
     backend real; que la emisión real requiera colateral/KYC aprobados (ramas 400/409 portadas de
@@ -255,9 +261,9 @@ checklist.
   Mecanismo: `contracts/AttestationRegistry.sol` (`attest(bytes32 folioHash)` → evento
   `Attested` indexable, sin owner/fondos/upgrade) + `subgraph/` (indexa `Attested` en
   `FolioAttestation { attestationCount, distinctAttesters, first/lastAttestedAt }`) +
-  `gateway/src/creva-proxy.ts` agrega a `/creva-score/verify` un bloque `onchain` con
+  `backend/src/creva-proxy.ts` agrega a `/creva-score/verify` un bloque `onchain` con
   `trustSignal` = `corroborated` (`distinctAttesters >= 2`) / `attested` (`>= 1`) / `unattested`
-  (`0`). `gateway/src/arc-anchor.ts` ahora llama `registry.attest(canonicalHash)` en vez de la tx
+  (`0`). `backend/src/arc-anchor.ts` ahora llama `registry.attest(canonicalHash)` en vez de la tx
   valor-0 sin log; invariante de validación de hash intacta. El veredicto de contenido/firma del
   core sale TAL CUAL al lado; subgraph caído → `onchain: null` + flag, core intacto, proceso vivo.
   Detalle y comandos: [`docs/integrations/onchain-attestation.md`](integrations/onchain-attestation.md).
@@ -269,7 +275,7 @@ checklist.
   prueba 0→`unattested`, 2→`corroborated`.
   **Pendiente del humano (no lo hace un agente local):** (1) `forge script script/Deploy.s.sol`
   a Arc testnet y a Sepolia — anotar direcciones + txs aquí; (2) poblar `REGISTRY_ADDRESS` y
-  `SUBGRAPH_URL` en `gateway/.env`, y `address`/`startBlock` en `subgraph/networks.json`;
+  `SUBGRAPH_URL` en `backend/.env`, y `address`/`startBlock` en `subgraph/networks.json`;
   (3) `graph deploy creva-attestations --network sepolia` con la deploy key del Studio;
   (4) demo real: 2 attests con 2 cuentas + `/verify` antes/después (evidencia a pegar aquí).
   **NO verificado:** deploy real a testnet, indexación real del subgraph, y el ciclo end-to-end
@@ -322,12 +328,12 @@ checklist.
   `@grpc/grpc-js` (arrastrado por `@hashgraph/sdk`) que referencia el módulo `events` de Node y
   truena en el runtime web de Metro. Fix en el worktree (sin commit — regla de agente local):
   - `npx expo install react-native-web react-dom` (el target web nunca se configuró).
-  - `app/web-shims/hashgraph-sdk-web-stub.js` — stub que lanza; las pantallas auditadas nunca llegan
+  - `frontend/web-shims/hashgraph-sdk-web-stub.js` — stub que lanza; las pantallas auditadas nunca llegan
     al path de firma en web.
-  - `app/web-shims/clerk-expo-web-stub.js` — el worktree no trae `app/.env`; sin
+  - `frontend/web-shims/clerk-expo-web-stub.js` — el worktree no trae `frontend/.env`; sin
     `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` real `useAuth().isLoaded` nunca pasa a `true` y la app se
     queda en el loader de `App.tsx`. El stub reporta sesión cargada + sin autenticar.
-  - `app/metro.config.js` — `resolver.resolveRequest` redirige `@hashgraph/sdk` y `@clerk/clerk-expo`
+  - `frontend/metro.config.js` — `resolver.resolveRequest` redirige `@hashgraph/sdk` y `@clerk/clerk-expo`
     a los stubs solo cuando `platform === "web"`; los bundles nativos no se tocan. Arrancar con
     `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=<cualquier pk_test_...>` porque `ClerkAppProvider.tsx` lanza si
     la env var falta.
@@ -341,21 +347,21 @@ checklist.
   certificación pantalla por pantalla hace falta correr el Metro web del worktree solo.
 
   **Hallazgos de la 1ª pasada (contra `8074021`, pre-migración de las 13 pantallas; re-confirmar):**
-  - **Icon set (`app/features/shared/icons/Icon.tsx`) RELLENO NEGRO** en toda la app (nav, MoreSheet,
+  - **Icon set (`frontend/features/shared/icons/Icon.tsx`) RELLENO NEGRO** en toda la app (nav, MoreSheet,
     Profile, Help, Stub). La ref dibuja cada glyph como trazo (`stroke`, `fill="none"`,
     `stroke-width 1.7-1.8`) en `--cr-text-secondary` #6F675C — `components/BottomNav.tsx:24-72`,
-    `components/help/HelpGlyph.tsx:6-8`, `app/profile/page.tsx:23-73`. Sistémico. (blocker)
+    `components/help/HelpGlyph.tsx:6-8`, `frontend/profile/page.tsx:23-73`. Sistémico. (blocker)
   - Nav: glyph `score` es mancha sólida oscura (activa e inactiva); la ref es arco fino + aguja +
     punto — `components/BottomNav.tsx:39-44`. (blocker)
   - `ScoreScreen.tsx` no espeja `/score`: título "Tu score" vs "Score Creva", score hardcodeado
-    `74`/"Bueno" sin sesión (ref: `0 de 100`, `app/score/page.tsx:52`), sin la lista "Sigue por
-    aquí" (`app/score/page.tsx:26-50`), sin back ni botón de ayuda. (blocker)
+    `74`/"Bueno" sin sesión (ref: `0 de 100`, `frontend/score/page.tsx:52`), sin la lista "Sigue por
+    aquí" (`frontend/score/page.tsx:26-50`), sin back ni botón de ayuda. (blocker)
   - `DeleteAccountScreen.tsx` no espeja `/profile/delete-account`: falta `Button href={MAILTO}`
-    "Escribir el correo" (`app/profile/delete-account/page.tsx:63`) — afordancia central no
+    "Escribir el correo" (`frontend/profile/delete-account/page.tsx:63`) — afordancia central no
     accionable; no expone `privacidad@finarahub.mx`; título "mi" vs "tu cuenta" + subtítulo ausente
     (`delete-account/page.tsx:28-31`); paso 1 circular; falta lista "Qué se borra" y aviso
     anti-fraude. (blocker)
-  - `DashboardScreen.tsx`: falta link "Ver por qué" junto a "Tu score" (`app/dashboard/page.tsx:216`);
+  - `DashboardScreen.tsx`: falta link "Ver por qué" junto a "Tu score" (`frontend/dashboard/page.tsx:216`);
     botón principal negro (`bg-text`) + "Ver mis opciones" donde la ref usa `Button` crimson +
     "Ver por qué" / "Mira qué mueve tu score…" (`dashboard/page.tsx:194-200`); tarjeta "Encuentra tu
     mejor opción" negra + link de texto donde la ref usa `ActionCard` con `--cr-gradient` + icono +
@@ -368,7 +374,7 @@ checklist.
     títulos de grupo caja baja grande donde la ref usa versalitas gris; celdas icono-centrado-arriba
     donde la ref es fila (`NavCell`). (visible)
   - HelpScreen: "Lo que más se pregunta" grid 2 col donde la ref es `Stack columns={4}` de `Tile`
-    (`app/help/page.tsx:26`); sin back (ref: `ScreenHeader backHref`). (visible)
+    (`frontend/help/page.tsx:26`); sin back (ref: `ScreenHeader backHref`). (visible)
   - `SelfieCheckScreen.tsx` (`identity_unavailable`/`idle`): CTA `bg-text` negro en vez de crimson
     (`:52`, `:72`); `SafeAreaView` raíz con `justify-center` deja el `BackButton` flotando al centro
     vertical (`:44`, `:63`). (visible)
@@ -384,7 +390,7 @@ checklist.
 
   **No verificado:** las 13 pantallas nuevas + los 4 ajustes de paridad contra su ruta de referencia
   (bloqueo de entorno); Expo Go en dispositivo físico; pantallas que exijan sesión Clerk real o
-  gateway/backend real; rutas de referencia que redirigen a login sin sesión (solo `/dashboard` y
+  backend/backend real; rutas de referencia que redirigen a login sin sesión (solo `/dashboard` y
   `/score` rinden shell). Capturas en el transcript, no en disco.
 
   **Actualización `2026-09-06` (2ª entrada, mismo día) — re-pasada visual contra el main NUEVO
@@ -416,12 +422,12 @@ checklist.
     `KycFormScreen`, `MovementsScreen`); el apretón que vi en el main viejo ya no aparece.
   - Pantallas nuevas revisadas en render y bien construidas / on-brand: `KycFormScreen`
     (CTA crimson "Verificar identidad", form con Nombre/Apellido/CURP/Correo/Teléfono),
-    `MovementsScreen` (segmented Todos/Ingresos/Gastos, empty state, copy = `app/movements/page.tsx:208-230`).
+    `MovementsScreen` (segmented Todos/Ingresos/Gastos, empty state, copy = `frontend/movements/page.tsx:208-230`).
 
   **Sigue abierto tras la re-pasada:**
   - `ScoreScreen.tsx` NO entró en la migración (último commit `4209ea9`, pre-migración): `scoreValue
     = 74` hardcodeado como default prop; título "Tu score" vs "Score Creva"; solo el link "Consultar
-    con pago (SealPay) →", sin la lista "Sigue por aquí" (`app/score/page.tsx:26-50`); sin back ni
+    con pago (SealPay) →", sin la lista "Sigue por aquí" (`frontend/score/page.tsx:26-50`); sin back ni
     botón de ayuda. El gateway aún no expone `/score` — decisión de alcance pendiente con el humano.
     (blocker)
   - `SelfieCheckScreen.tsx`: CTA "Iniciar Selfie Check" / "Continuar sin verificarme" siguen en
@@ -429,14 +435,14 @@ checklist.
     aún deja el `BackButton` flotando al centro vertical. (visible)
   - `DashboardScreen`: score card body sigue "Revisa los productos compatibles con tu perfil…" /
     botón "Ver mis opciones" donde el fallback de la ref es "Mira qué mueve tu score y qué lo
-    mejoraría." / "Ver por qué" (`app/dashboard/page.tsx:194-200`); "Hola" sin coma
+    mejoraría." / "Ver por qué" (`frontend/dashboard/page.tsx:194-200`); "Hola" sin coma
     (`:210`); badge de campana "1" sin sesión (dato inventado). (visible + 2 nitpick)
   - `MoreSheet`: no tiene botón "Cerrar" (la ref sí); el asa es decorativa (no arrastrable). (nitpick)
   - `MovementsScreen`: el segmented "Todos/Ingresos/Gastos" se recorta en el borde derecho a 375px
     ("Gastos" queda cortado). (visible)
   - `DeleteAccountScreen`: título "Eliminar mi cuenta" vs "Eliminar tu cuenta" de la ref + subtítulo
     ausente ("Se puede, y aquí está cómo…"); la CTA de correo es un `Card` con texto crimson, no un
-    `Button` crimson relleno como la ref (`app/profile/delete-account/page.tsx:63`); prop
+    `Button` crimson relleno como la ref (`frontend/profile/delete-account/page.tsx:63`); prop
     `onOpenPrivacy` declarada pero sin uso visible. (nitpick)
   - "SealPay" como marca visible en `ScoreScreen`/`QueryScreen` — sigue sin aparecer en la ref;
     confirmar si es intencional del track x402. (nitpick)
@@ -448,15 +454,15 @@ checklist.
   `credit`/`card` nuevos; `help` x3. `ScoreGauge` como arco/ring web (`4209ea9`) sin comparar pixel
   a pixel contra el de la ref.
 
-- [ ] **2026-09-06 — AUDIT app↔core de `app/lib/api.ts` (worktree `feature-app-core-api-wiring`,
+- [ ] **2026-09-06 — AUDIT app↔core de `frontend/lib/api.ts` (worktree `feature-app-core-api-wiring`,
   off `origin/main` 7638dbb).** Método → endpoint real → auth → ¿existe en el core? → estado en la
   app. `BASE = EXPO_PUBLIC_API_URL` (core NestJS, Cloud Run). Auth "Clerk" = `Authorization:
-  Bearer <token>` del usuario, inyectado por `AuthGuard` vía `setSessionSource` (`app/lib/api.ts:30`);
+  Bearer <token>` del usuario, inyectado por `AuthGuard` vía `setSessionSource` (`frontend/lib/api.ts:30`);
   el `JwtAuthGuard` del core acepta ese token cuando `AUTH_PROVIDER` es `clerk`/`both`
   (`creva_finance/backend/src/modules/auth/guards/jwt.guard.ts:44-60`). Evidencia de rutas: grep de
   decoradores en `creva_finance/backend/src/modules/*/*.controller.ts`.
 
-  | Método (`app/lib/api.ts`) | Endpoint real | Auth | ¿Existe en el core? | Estado en la app |
+  | Método (`frontend/lib/api.ts`) | Endpoint real | Auth | ¿Existe en el core? | Estado en la app |
   |---|---|---|---|---|
   | `score.get` :312 | `GET /score` | Clerk | Sí — `score.controller.ts:13` (`@Get()`), shape ok vs `score.service.ts:67-75` | **Real** — `DashboardScreen.tsx:13,64` (patrón de referencia) |
   | `kyc.status` :171 | `GET /kyc/status` | Clerk | Sí — `kyc.controller.ts:28`, shape ok (`kyc/collateral/availability`) vs `kyc.service.ts` | **Real** — `CardScreen.tsx:36`, `CardCreateScreen.tsx:239`, `KycFormScreen`, `NotificationsScreen` |
@@ -506,7 +512,7 @@ checklist.
 
   **Gaps abiertos por endpoint faltante:**
   - **`GET /cards` (lista) no existe en el core.** `CardsController` sólo expone `issue` / `:id` /
-    `:id/freeze` / `:id/unfreeze`. Tanto `app/lib/api.ts:202` como el frontend de referencia
+    `:id/freeze` / `:id/unfreeze`. Tanto `frontend/lib/api.ts:202` como el frontend de referencia
     (`creva_finance/frontend/lib/api.ts:211`) asumen la ruta. Decisión: **el core debe añadir
     `GET /cards` + `CardsService.list(userId)`** (regla #5: no se implementa aquí). Mientras tanto
     `CardScreen` muestra `card-list-unavailable` en vez de un "sin tarjetas" inventado. `cards.get`
@@ -517,11 +523,11 @@ checklist.
     core con token del usuario (`ReportScreen`) y por el gateway x402 con **identidad de servicio**
     (`QueryScreen` → `gatewayClient.ts`). Ver bloque PASO 3 abajo.
   - **Shapes sin verificar contra el runtime:** `cards.get().spendingLimit`, y en general todo lo
-    marcado "Real" arriba — el tipo de `app/lib/api.ts` es una aserción, no una verificación.
+    marcado "Real" arriba — el tipo de `frontend/lib/api.ts` es una aserción, no una verificación.
 
 - [ ] **2026-09-06 — PASO 3: qué endpoint personal necesitaría un proxy Clerk-passthrough en el
   gateway (diseño, NO implementado en esta pasada).** El `creva-proxy.ts` del gateway
-  (`gateway/src/creva-proxy.ts:18-24`) autentica **como la cuenta de servicio Bazantic**
+  (`backend/src/creva-proxy.ts:18-24`) autentica **como la cuenta de servicio Bazantic**
   (`getCrevaAccessToken()`), no reenvía el `Authorization` del usuario. Correcto para `/creva-score/
   verify` (ruta pública) y aceptable para `/creva-score/report` **cuando el sujeto va explícito en
   el body** (`businessName` + `stateCode`, como en `QueryScreen`). **Problema:** el core
@@ -590,7 +596,7 @@ checklist.
   sesión de agente.
 
 - [ ] **Selfie Check: nonce server-side cerrado en código contra la spec v4; falta ejercer contra
-  sandbox real.** `gateway/src/world-verify.ts` llama a la Developer Portal API de World con
+  sandbox real.** `backend/src/world-verify.ts` llama a la Developer Portal API de World con
   `WORLD_API_KEY`; el WebView ya no decide `verified` por su cuenta.
   **Actualización `2026-09-06` (rama `sponsor-world-nonce`):** el gap del `nonce` se cerró en
   código. **Decisión escogida:** nonce emitido por el gateway (espeja `rp_context.nonce` de World
@@ -622,8 +628,8 @@ checklist.
   real es `toolsforhumanity.com`), reenviado a la dirección correcta. Bloquea el cierre final de
   este bloque y el de "Riesgo Expo Go" de abajo hasta que llegue la aprobación — con el nonce ya
   en código, lo único que falta aquí es correr el script de humo. Vars nuevas para el humano en
-  `gateway/.env`: `WORLD_RP_ID`, `WORLD_RP_SIGNING_KEY`, `WORLD_ENVIRONMENT` (ver
-  `gateway/.env.example`).
+  `backend/.env`: `WORLD_RP_ID`, `WORLD_RP_SIGNING_KEY`, `WORLD_ENVIRONMENT` (ver
+  `backend/.env.example`).
 
 - [ ] **Publicación en App Store / Play Store — después del evento.** Decisión escogida: la
   revisión de iOS consumiría la ventana que queda. Se demuestra con Expo Go + video durante el
@@ -678,7 +684,7 @@ checklist.
   (CLI instalado + rol de firma no-conflictivo definido), no podemos avanzar** con este bloque —
   se descarta antes que forzar una integración pegada que viole el descalificador #2.
   - `2026-09-06` — **Decisión escogida (slice B de §10.4):** `wallet-cli ring` v2.1.0 es el
-    backend de los secretos del gateway vía `gateway/src/key-ring.ts` (`resolveSecret`), con
+    backend de los secretos del gateway vía `backend/src/key-ring.ts` (`resolveSecret`), con
     fallback a `process.env` (cero ruptura con `KEY_RING_ENABLED` ausente). `config.ts` resuelve
     `CREVA_SERVICE_REFRESH_TOKEN`, `FACILITATOR_AUTH_TOKEN`, `HEDERA_PAYER_PRIVATE_KEY`,
     `WORLD_API_KEY`, `ARC_SIGNER_PRIVATE_KEY` por ahí. Rol = custodia de secretos en reposo, NO
@@ -697,19 +703,19 @@ checklist.
 ## Variables de entorno por patrocinador — falta configurar
 
 Checklist de cuentas/API keys que hay que crear y meter en el `.env` correspondiente antes de que
-cualquier bloque de arriba pueda ejecutarse. `gateway/.env.example` y `app/.env.example` ya
+cualquier bloque de arriba pueda ejecutarse. `backend/.env.example` y `frontend/.env.example` ya
 declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 
 | Patrocinador | Variable(s) nuevas | Dónde | Fuente/cómo se obtiene |
 |---|---|---|---|
-| Hedera *(ya existe, confirmar valor real)* | `HEDERA_PAYER_ACCOUNT_ID`, `HEDERA_PAYER_PRIVATE_KEY`, `FACILITATOR_AUTH_TOKEN`, `FACILITATOR_FEE_PAYER`, `PAY_TO_ADDRESS` | `gateway/.env` | Cuenta testnet ya creada en `portal.hedera.com` (`brainstorming.md:396`) — el humano coloca la private key directo, nunca por chat |
-| World *(ya existe, pendiente sandbox)* | `WORLD_API_KEY`, `WORLD_APP_ID`, `EXPO_PUBLIC_WORLD_APP_ID` | `gateway/.env`, `app/.env` | Developer Portal de World — bloqueado por aprobación de Tools for Humanity (ver bloque de arriba) |
-| Arc (Circle) | `ARC_RPC_URL`, `ARC_NETWORK` (testnet/mainnet), `CIRCLE_AGENT_STACK_API_KEY`, cuenta/wallet de firma para el evento de respaldo | por definir (`gateway/.env` o nuevo `arc/.env`) | Cuenta Circle Developer + Arc testnet faucet |
+| Hedera *(ya existe, confirmar valor real)* | `HEDERA_PAYER_ACCOUNT_ID`, `HEDERA_PAYER_PRIVATE_KEY`, `FACILITATOR_AUTH_TOKEN`, `FACILITATOR_FEE_PAYER`, `PAY_TO_ADDRESS` | `backend/.env` | Cuenta testnet ya creada en `portal.hedera.com` (`brainstorming.md:396`) — el humano coloca la private key directo, nunca por chat |
+| World *(ya existe, pendiente sandbox)* | `WORLD_API_KEY`, `WORLD_APP_ID`, `EXPO_PUBLIC_WORLD_APP_ID` | `backend/.env`, `frontend/.env` | Developer Portal de World — bloqueado por aprobación de Tools for Humanity (ver bloque de arriba) |
+| Arc (Circle) | `ARC_RPC_URL`, `ARC_NETWORK` (testnet/mainnet), `CIRCLE_AGENT_STACK_API_KEY`, cuenta/wallet de firma para el evento de respaldo | por definir (`backend/.env` o nuevo `arc/.env`) | Cuenta Circle Developer + Arc testnet faucet |
 | Uniswap Foundation | Ninguna API key — es contribución al stack, no runtime | — | Repo del stack de Uniswap a definir |
-| Bazantic | `BAZANTIC_GATEWAY_URL`, `BAZANTIC_MCP_TOKEN` | `gateway/.env` | Signup en Bazantic — **confirmar que existe**, no está indexado públicamente hoy |
+| Bazantic | `BAZANTIC_GATEWAY_URL`, `BAZANTIC_MCP_TOKEN` | `backend/.env` | Signup en Bazantic — **confirmar que existe**, no está indexado públicamente hoy |
 | Ledger | Config del Key Ring CLI (no es una env var de app, es estado local del CLI: `~/.ledger/` o similar) | Máquina del agente que firma, no `.env` del repo | `wallet-cli ring` del Ledger Agent Stack |
-| Privy | `PRIVY_APP_ID`, `PRIVY_APP_SECRET`, RPC URL de Hedera para `defineChain(296, ...)` | `gateway/.env` o `app/.env` | Dashboard de Privy |
-| Chainlink | `REGULATORY_ALERT_REGISTRY_ADDRESS`, `REGULATORY_REPORTER` (opcional) | `gateway/.env` | `REGULATORY_ALERT_REGISTRY_ADDRESS` sale del deploy de `RegulatoryAlertRegistry`; `REGULATORY_REPORTER` es la dirección del consumer de Chainlink Functions (default: el signer). El Upkeep se registra en automation.chain.link con la cuenta del humano — pasos en `docs/integrations/chainlink-automation.md` |
+| Privy | `PRIVY_APP_ID`, `PRIVY_APP_SECRET`, RPC URL de Hedera para `defineChain(296, ...)` | `backend/.env` o `frontend/.env` | Dashboard de Privy |
+| Chainlink | `REGULATORY_ALERT_REGISTRY_ADDRESS`, `REGULATORY_REPORTER` (opcional) | `backend/.env` | `REGULATORY_ALERT_REGISTRY_ADDRESS` sale del deploy de `RegulatoryAlertRegistry`; `REGULATORY_REPORTER` es la dirección del consumer de Chainlink Functions (default: el signer). El Upkeep se registra en automation.chain.link con la cuenta del humano — pasos en `docs/integrations/chainlink-automation.md` |
 
 **Ninguna de estas API keys/private keys se pega en el chat** — el humano las coloca directo en el
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
@@ -722,11 +728,11 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   con factors + recommendations + `crevaScore.disclosure()`, y `/score` no está expuesto en el
   gateway". **Decisión escogida:** el score se obtiene **core-directo**, no por el gateway — es
   exactamente el patrón que `DashboardScreen.tsx` ya usa. Evidencia archivo:línea:
-  `app/lib/api.ts:7` (`BASE = process.env.EXPO_PUBLIC_API_URL`, el backend Clerk del core),
-  `app/lib/api.ts:312` (`score.get()` = `request<ScoreData>('/score')` → `${BASE}/score`),
-  `app/lib/api.ts:89-96` (adjunta `Authorization: Bearer <clerk token>` de `sessionSource`, la
-  identidad del usuario, nunca una estática), `app/features/dashboard/DashboardScreen.tsx:55-69`
-  (mismo `score.get()` directo con loading/error). `gateway/src/index.ts` solo tiene
+  `frontend/lib/api.ts:7` (`BASE = process.env.EXPO_PUBLIC_API_URL`, el backend Clerk del core),
+  `frontend/lib/api.ts:312` (`score.get()` = `request<ScoreData>('/score')` → `${BASE}/score`),
+  `frontend/lib/api.ts:89-96` (adjunta `Authorization: Bearer <clerk token>` de `sessionSource`, la
+  identidad del usuario, nunca una estática), `frontend/features/dashboard/DashboardScreen.tsx:55-69`
+  (mismo `score.get()` directo con loading/error). `backend/src/index.ts` solo tiene
   `/creva-score/{report,verify,anchor}` (x402 + identidad de servicio) — no hay `/score` ni hace
   falta: el score es por-cuenta y necesita la identidad Clerk del solicitante, que en core-directo
   se conserva. **No se tocó el gateway.** `ScoreScreen.tsx` reconstruida contra
@@ -754,14 +760,14 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   (trim > 1, como `page.tsx:236`); el botón de consulta se deshabilita sin nombre válido.
   `requestSignal({ businessName, stateCode })` recibe lo que escribió el usuario
   (`gatewayClient.ts` `RequestSignalInput` ya lo aceptaba). Módulo puro nuevo
-  `app/features/query/business-input.ts` (`isValidBusinessName`, `toStateCode`, `buildSignalInput`,
+  `frontend/features/query/business-input.ts` (`isValidBusinessName`, `toStateCode`, `buildSignalInput`,
   `STATE_OPTIONS`) para poder testear unit+fuzz+invariant. **El ciclo x402, el `pay-button` y el
   sellado no se tocaron.** Tests: `test/unit/query/business-input.spec.ts`,
   `test/fuzz/query/business-input.fuzz.spec.ts`,
   `test/invariant/query/business-input-only-real-state-codes.invariant.spec.ts` (invariante:
   `requestSignal` nunca recibe un `state_code` fuera del catálogo INEGI). `tsc` limpio; `jest`
   sin regresión. **No se verificó:** el gateway real contra un `businessName`/`stateCode` variable
-  (sin entorno de gateway/facilitador en esta sesión); ni el render nativo (segunda vista visual
+  (sin entorno de backend/facilitador en esta sesión); ni el render nativo (segunda vista visual
   sigue siendo de la sesión 2). **Nota de colisión:** un agente de fondo (`sponsor-privy-wallet`)
   toca el área del `pay-button` de esta misma pantalla — este cambio se mantuvo en la sección de
   inputs para que el Solver reconcilie ambos limpio.
@@ -770,13 +776,13 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   de attestation dejó el contrato + subgraph + enriquecimiento del gateway (`creva-proxy.ts` agrega
   `onchain` a la respuesta de `/creva-score/verify`) y el render en `VerifyReportCard` (ya acepta
   `onchain?`), pero sin cablear la app. Hecho aquí, **solo app**:
-  - `app/lib/api.ts`: nuevos tipos `OnchainTrustSignal` + `OnchainAttestation`;
+  - `frontend/lib/api.ts`: nuevos tipos `OnchainTrustSignal` + `OnchainAttestation`;
     `CertificateVerification` gana `onchain?: OnchainAttestation | null` + `onchainError?`.
-  - `app/features/verify/onchain.ts` (nuevo, módulo puro): `parseOnchain(raw)` normaliza el bloque
+  - `frontend/features/verify/onchain.ts` (nuevo, módulo puro): `parseOnchain(raw)` normaliza el bloque
     — `trustSignal` fuera de los 3 valores, contadores no numéricos, o input no-objeto → `null`, así
     un bloque malformado nunca llega a `VerifyReportCard` (que haría `TRUST_COPY[bad].label` → crash).
-  - `app/features/verify/sealClient.ts`: la rama 200 pasa el body por `parseOnchain(body.onchain)`.
-  - `app/features/verify/VerifyScreen.tsx`: `onchain={result.verification.onchain}` a `VerifyReportCard`.
+  - `frontend/features/verify/sealClient.ts`: la rama 200 pasa el body por `parseOnchain(body.onchain)`.
+  - `frontend/features/verify/VerifyScreen.tsx`: `onchain={result.verification.onchain}` a `VerifyReportCard`.
   - Tests: `test/unit/verify/onchain-wiring.spec.ts`, `test/fuzz/verify/onchain.fuzz.spec.ts`,
     `test/invariant/verify/onchain-never-fabricates-trust.invariant.spec.ts` (invariante espejo del
     `onchain-never-overrides-core-verdict` del gateway: la app nunca sube la confianza desde un
@@ -795,7 +801,7 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   (interfaz Automation) + suite Foundry unit+fuzz+invariant verde (12 tests nuevos, 19 en total, sin
   regresión en `AttestationRegistry`); invariante clave "performUpkeep solo cambia estado si
   checkUpkeep devolvió true con ese mismo payload". Endpoint read-only `GET /regulatory/pending` en
-  `gateway/src/regulatory.ts` (radar del core + folios del subgraph, try/catch total) + tests
+  `backend/src/regulatory.ts` (radar del core + folios del subgraph, try/catch total) + tests
   unit/fuzz/invariant. Demo local anvil del ciclo `reportPending → checkUpkeep → performUpkeep` con
   los eventos `RegulatoryFlag` y `normFlagged=true` verificados on-chain — evidencia en
   `docs/integrations/chainlink-automation.md`. Decisión escogida: **CRE Confidential Workflows ($2k)
@@ -829,12 +835,12 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   por-incremento que vivían en §Abiertos se consolidan en esta entrada (el detalle por pantalla —
   qué NO se verificó de cada una — queda en `docs/memoria.md`).
   **VERIFY (árbol integrado, worktree fresco):**
-  - `app/`: `npm install`; `npx tsc --noEmit` → **0 errores**; `npx jest unit fuzz invariant` →
+  - `frontend/`: `npm install`; `npx tsc --noEmit` → **0 errores**; `npx jest unit fuzz invariant` →
     **51 suites limpias / 236 tests**; 234 pasan en la corrida completa, los 2 restantes
     (`test/unit/auth/auth-gate.spec.ts`, `test/unit/help/search.spec.ts`) hacen timeout solo bajo
     carga full-run y pasan **5/5 aislados** — flake de `act()`/timing ya documentado, reproducido y
     confirmado, no es regresión.
-  - `gateway/` (sin cambios en esta integración, corrido igual): `npx tsc --noEmit` → 0;
+  - `backend/` (sin cambios en esta integración, corrido igual): `npx tsc --noEmit` → 0;
     `npx eslint .` → 0; `npx vitest run --exclude "test/integration/**"` → **17 archivos / 44
     tests** verdes.
   **NO verificado:** render nativo / comparación visual lado a lado de las 13 pantallas + 4 ajustes
@@ -851,7 +857,7 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   `NativeChannel`) — la hipótesis inicial de que el SDK Node-oriented no correría en Expo era
   parcialmente incorrecta para el caso real que hacía falta: **congelar y firmar una
   `TransferTransaction` nunca abre una conexión de red** (`.execute()` sí, `.freeze()`/`.sign()`
-  no), y la liquidación real ya la hace el facilitador vía HTTP (`gateway/src/facilitator.ts`'s
+  no), y la liquidación real ya la hace el facilitador vía HTTP (`backend/src/facilitator.ts`'s
   `/verify`/`/settle`), no la app — así que el riesgo de gRPC/Dev Client que motivó rechazar la
   opción (a) (wallet real por usuario) no aplicaba al alcance real de este bloque, solo a
   `execute()`, que este bloque nunca llama.
@@ -861,8 +867,8 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   razón explícita de que (a) hubiera arriesgado días de trabajo de Dev Client tan cerca del Q&A
   del 09/14, y (b) ya entrega el ciclo x402 real completo con el mismo criterio de disciplina de
   gasto que Arc-anchor y el facilitador de Hedera.
-  **Nuevo `app/features/query/hederaPayment.ts`:** `buildSignedPaymentHeader(requirements,
-  credentials)` espeja `gateway/src/hedera-signer.ts`'s `buildSignedPaymentHeader` pero sin
+  **Nuevo `frontend/features/query/hederaPayment.ts`:** `buildSignedPaymentHeader(requirements,
+  credentials)` espeja `backend/src/hedera-signer.ts`'s `buildSignedPaymentHeader` pero sin
   `Client`/red — construye la `TransferTransaction`, la congela con `setNodeAccountIds([0.0.3])`
   y `TransactionId.generate(payerId)` (sin necesitar un `Client` conectado), la firma, y arma el
   payload x402 v2 (`accepted`/`payload.transaction`) igual que el lado gateway.
@@ -871,17 +877,17 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   `buildSignedPaymentHeader` con `pendingPayment.accepts[0]` y las credenciales del entorno, y
   adjunta el header real a `requestSignal`. Si las credenciales no están configuradas, muestra ese
   gap real ("No hay una billetera Hedera de demo configurada"), nunca un pago simulado.
-  **Polyfills nuevos** (`app/polyfills.ts`, importado primero en `index.ts`): `Buffer` global y
+  **Polyfills nuevos** (`frontend/polyfills.ts`, importado primero en `index.ts`): `Buffer` global y
   `react-native-get-random-values`, ambos ya dependencias transitivas de
   `@hiero-ledger/cryptography` (dependencia real de `@hashgraph/sdk`) — se promovieron a
-  dependencias directas del `app/package.json` en vez de dejarlas implícitas.
+  dependencias directas del `frontend/package.json` en vez de dejarlas implícitas.
   **`jest.config.js`:** `transformIgnorePatterns` extendido (no reemplazado) para incluir
   `@hashgraph`/`@hiero-ledger`, porque su build de React Native se publica como ESM sin
   transformar en `node_modules`, igual que el resto del ecosistema RN que el preset de
   `jest-expo` ya cubre.
   **Verify:** `tsc --noEmit` limpio. `npx jest unit fuzz invariant` → **41 suites/176 tests**
   verdes (antes 37/165; +3 suites nuevas: unit + fuzz + invariant de `hederaPayment`, siguiendo el
-  mismo patrón que `gateway/test/unit/hedera-signer.spec.ts` — keypair generado en el test, nunca
+  mismo patrón que `backend/test/unit/hedera-signer.spec.ts` — keypair generado en el test, nunca
   contra red real). `npx expo export --platform ios` bundló limpio con el SDK real incluido
   (**1764 módulos**, antes 1345–1516 en los cierres previos — el salto viene de
   `@hashgraph/sdk`+`@hiero-ledger/cryptography`), un solo warning benigno de resolución de
@@ -889,11 +895,11 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   borrado tras verificar; sin servidor Metro corriendo al terminar (`netstat` confirma sin puertos
   8081/8098 en `LISTENING`).
   **Actualización `2026-09-05` (segunda pasada) — credenciales colocadas por el humano en
-  `app/.env`, ciclo ejercido contra el gateway real: firma correcta, liquidación bloqueada por un
+  `frontend/.env`, ciclo ejercido contra el gateway real: firma correcta, liquidación bloqueada por un
   gap de configuración pre-existente del gateway, no del signer nuevo.** `jest`/`jest-expo` resultó
   no servir para esta verificación: su `fetch` global (implementación nativa de RN, sin runtime
   nativo real bajo Jest) nunca completa una petición de red real — `.status` vuelve `undefined` —
-  así que `app/test/integration/live-app-payment.spec.ts` se escribió, se confirmó inútil para
+  así que `frontend/test/integration/live-app-payment.spec.ts` se escribió, se confirmó inútil para
   esto, y **se borró** (no se deja un test roto en el repo). En su lugar se ejecutó un script
   suelto con `tsx` (Node real, mismo `hederaPayment.ts` sin modificar) contra el gateway real ya
   corriendo en `192.168.68.52:8787`:
@@ -905,44 +911,44 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
      contra un reto 402 real, no solo contra el fixture del test unitario.
   3. Retry con `X-PAYMENT` → el gateway **crasheó** (`ECONNRESET` del lado del cliente). Log del
      proceso: `TypeError: fetch failed` → `ECONNREFUSED` conectando a `localhost:4020` — el
-     `facilitator.ts` de `gateway/src/config.ts:8` cae a ese default porque **`FACILITATOR_URL` no
-     está seteada en `gateway/.env`** (sí está declarada en `gateway/.env.example` con
+     `facilitator.ts` de `backend/src/config.ts:8` cae a ese default porque **`FACILITATOR_URL` no
+     está seteada en `backend/.env`** (sí está declarada en `backend/.env.example` con
      `https://api.testnet.blocky402.com`, pero el `.env` real no la tiene). El rechazo de red no
-     estaba en un `try/catch` en `gateway/src/facilitator.ts`'s `verifyPayment`, así que se
+     estaba en un `try/catch` en `backend/src/facilitator.ts`'s `verifyPayment`, así que se
      propagó como unhandled rejection y **tumbó el proceso del gateway entero** — no solo esa
      request. Confirmado reproducible: reinicié el gateway (`npx tsx src/index.ts`, capturando
      log) y crasheó exactamente igual en el mismo punto.
   **Diagnóstico, no arreglado:** esto es un gap de configuración/hardening del **gateway
   existente** (`FACILITATOR_URL` sin valor real + falta de manejo de error en
   `facilitator.ts`), no del bloque de signer de esta sesión — el signer cumplió su parte (firma
-  válida, 402→firma correcta). No se tocó `gateway/.env` (el humano coloca esa URL, no un agente)
+  válida, 402→firma correcta). No se tocó `backend/.env` (el humano coloca esa URL, no un agente)
   ni se cambió `facilitator.ts` sin permiso explícito, para no ensanchar el alcance de este bloque.
   **Actualización `2026-09-05` (tercera pasada) — `FACILITATOR_URL`/`FACILITATOR_FEE_PAYER`/
-  `X402_VERSION` colocados por el humano en `gateway/.env`, ciclo completo verificado en vivo con
+  `X402_VERSION` colocados por el humano en `backend/.env`, ciclo completo verificado en vivo con
   liquidación real, más dos bugs reales de `hederaPayment.ts` encontrados y corregidos en el
   camino.** Con `FACILITATOR_URL` real, el `/verify` empezó a devolver errores de validación
   concretos del facilitador en vez de crashear — cada uno diagnosticado con el mismo script suelto
   contra el gateway real más un segundo script que replica `facilitator.ts` directo para aislar
   gateway vs facilitador:
   1. `extra should not be null or undefined` — `hederaPayment.ts`'s `accepted` payload nunca
-     incluía `extra`, a diferencia de `gateway/src/hedera-signer.ts`'s
+     incluía `extra`, a diferencia de `backend/src/hedera-signer.ts`'s
      `toV2PaymentRequirements`, que siempre sintetiza uno. Corregido: `accepted.extra:
      requirements.extra ?? {}`.
   2. Con `FACILITATOR_FEE_PAYER` configurado, `accepted_payment_requirements_mismatch` — el 402
-     real de `gateway/src/index.ts` nunca exponía `extra.feePayer` en el `accepts[]` que el
+     real de `backend/src/index.ts` nunca exponía `extra.feePayer` en el `accepts[]` que el
      cliente recibe, así que la app no tenía forma de saber qué `extra` firmar. **Fix real en el
-     gateway** (`gateway/src/index.ts`, `facilitatorExtra()`): `reportRequirements`/
+     gateway** (`backend/src/index.ts`, `facilitatorExtra()`): `reportRequirements`/
      `verifyRequirements` ahora incluyen `extra: { feePayer }` en el propio reto 402, para que
      cualquier cliente que firma su propio pago pueda leerlo y devolverlo tal cual.
   3. `invalid_exact_hedera_payload_fee_payer_mismatch` — `hederaPayment.ts` generaba el
      `TransactionId` con la cuenta del **pagador** (`payerId`), pero el facilitador exige que sea
-     la cuenta del **fee-payer** (`gateway/src/hedera-signer.ts` ya hacía esto bien con
+     la cuenta del **fee-payer** (`backend/src/hedera-signer.ts` ya hacía esto bien con
      `config.facilitatorFeePayer`). Corregido: `TransactionId.generate(feePayer ?? payerId)`,
      leyendo `feePayer` del `extra` que ahora llega en la requirement (punto 2).
-  4. Faltaban tres variables en `gateway/.env` que sí estaban en `.env.example` pero nunca se
+  4. Faltaban tres variables en `backend/.env` que sí estaban en `.env.example` pero nunca se
      habían poblado: `FACILITATOR_URL`, `FACILITATOR_FEE_PAYER`, `X402_VERSION` (sin la última,
      `facilitatorRequirements()` mandaba forma v1 — `maxAmountRequired` en vez de `amount` — al
-     facilitador, que exige v2). El humano las colocó directamente en `gateway/.env`.
+     facilitador, que exige v2). El humano las colocó directamente en `backend/.env`.
   **Ciclo real confirmado, extremo a extremo:** `POST /creva-score/report` sin pago → 402 real con
   `extra.feePayer` incluido; `hederaPayment.ts` firma con las credenciales de demo reales; retry
   con `X-PAYMENT` → **201 real**, `X-PAYMENT-RESPONSE`:
@@ -956,10 +962,10 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   de Hedera al transferir a una dirección EVM sin cuenta asociada todavía, no un bug), con
   `0.0.7162784` (el fee-payer) pagando el gas por separado. Un solo pago real, no un loop de
   reintentos.
-  **Verify final:** `tsc --noEmit` limpio en `app/` y `gateway/`; `npx jest unit fuzz invariant`
-  en `app/` → 41/176 verdes (sin cambio de conteo, los fixes no agregaron casos nuevos, ya
+  **Verify final:** `tsc --noEmit` limpio en `frontend/` y `backend/`; `npx jest unit fuzz invariant`
+  en `frontend/` → 41/176 verdes (sin cambio de conteo, los fixes no agregaron casos nuevos, ya
   cubiertos por el fixture existente que sí incluye `extra`); `npx vitest run --exclude
-  "test/integration/**"` en `gateway/` → 16 suites/41 tests verdes (una corrida aislada mostró el
+  "test/integration/**"` en `backend/` → 16 suites/41 tests verdes (una corrida aislada mostró el
   flake ya documentado de `tinypool`/Jest — "Worker exited unexpectedly" —, reproducido y
   confirmado no relacionado, igual que en cierres anteriores). Gateway de verificación (`npx tsx
   src/index.ts`) detenido explícitamente al terminar, puerto 8787 confirmado libre con `netstat`.
@@ -1006,21 +1012,21 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   Supabase expiran en menos de una hora. La hipótesis (a) (camelCase vs snake_case) resultó
   irrelevante: el schema real de la Recipe de Bazantic (`mcp__creva-score__creva_report`) usa
   snake_case (`business_name`, `state_code`), no el DTO REST crudo — eso es lo que de verdad se
-  serializa en la llamada. Nuevo `gateway/src/creva-auth.ts` (`getCrevaAccessToken()`): cachea el
+  serializa en la llamada. Nuevo `backend/src/creva-auth.ts` (`getCrevaAccessToken()`): cachea el
   access token en memoria (nunca en disco), decodifica su `exp` para saber cuándo caducó, y lo
   renueva vía `POST /auth/refresh` contra `config.crevaApiUrl` usando `CREVA_SERVICE_REFRESH_TOKEN`
-  (nueva env var, placeholder en `gateway/.env.example`) — rota el refresh token en cada llamada.
-  `gateway/src/creva-proxy.ts` adjunta `Authorization: Bearer <access token>` a toda request
+  (nueva env var, placeholder en `backend/.env.example`) — rota el refresh token en cada llamada.
+  `backend/src/creva-proxy.ts` adjunta `Authorization: Bearer <access token>` a toda request
   reenviada a Creva y responde 502 sin llamar a `fetch` si el token no se puede obtener (nunca
   reenvía sin auth). La cuenta de servicio la registró el humano directamente contra el backend real
   (producción, `https://creva-backend-c7as7id5jq-pv.a.run.app`) — ningún agente creó la cuenta ni la
-  contraseña; solo se manejó el `refreshToken` ya emitido, pegado directo en `gateway/.env`, nunca en
+  contraseña; solo se manejó el `refreshToken` ya emitido, pegado directo en `backend/.env`, nunca en
   el chat. Nota para la próxima sesión: el primer valor pegado en `CREVA_SERVICE_REFRESH_TOKEN` era
   en realidad el `accessToken` (JWT largo, ~826 caracteres) por error de copiado, no el `refreshToken`
   real (opaco, ~12 caracteres) — `/auth/refresh` lo rechazaba con 401 "Invalid or expired refresh
   token"; verificado aislando la llamada fuera de `creva-auth.ts` (curl directo) antes de asumir el
   código propio como culpable. **Verify:** `tsc --noEmit` limpio, `eslint` limpio, 40/41 tests pasan
-  (unit + fuzz + invariant nuevos en `gateway/test/{unit,fuzz,invariant}/creva-auth*` y
+  (unit + fuzz + invariant nuevos en `backend/test/{unit,fuzz,invariant}/creva-auth*` y
   `creva-proxy-always-authenticated.invariant.spec.ts`, más las suites preexistentes actualizadas
   para mockear `creva-auth.js`; el test #41 que falla intermitentemente — "Worker exited unexpectedly"
   de tinypool — ya fallaba igual en `main` sin tocar, confirmado corriendo la suite base). **Llamada
@@ -1031,38 +1037,38 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   `2026-09-05T20:06:51.769Z`, PDF + HTML entregados en Descargas — sin error, sin necesidad de
   reintentos adicionales sobre el crédito de 0.30 USDC.
 
-- [x] `2026-09-05` — **Web/mobile parity, pasada parcial (worktree `feature-web-parity-port`): sesión Clerk real cableada a `app/lib/api.ts`, score y nombre de usuario del dashboard ya no son hardcode. Deja abierto el resto del alcance grande de este bloque — ver detalle abajo.**
-  Hallazgo de auditoría (no reportado en cierres previos): `app/lib/api.ts` exporta
-  `setSessionSource`/`useClerkSessionSource` (`app/features/auth/session-source.ts`) desde el
+- [x] `2026-09-05` — **Web/mobile parity, pasada parcial (worktree `feature-web-parity-port`): sesión Clerk real cableada a `frontend/lib/api.ts`, score y nombre de usuario del dashboard ya no son hardcode. Deja abierto el resto del alcance grande de este bloque — ver detalle abajo.**
+  Hallazgo de auditoría (no reportado en cierres previos): `frontend/lib/api.ts` exporta
+  `setSessionSource`/`useClerkSessionSource` (`frontend/features/auth/session-source.ts`) desde el
   worktree `feature-ui-port-core-screens`, pero **nada en código de producción los llamaba** —
   solo los tests los invocaban directamente. Toda llamada real a `score.get()`/`crevaScore.*`
   habría salido sin `Authorization`, y el backend la habría respondido con 401. Corregido en
-  `app/App.tsx`'s `AppFlow`: nuevo `useEffect` que registra `useClerkSessionSource()` vía
+  `frontend/App.tsx`'s `AppFlow`: nuevo `useEffect` que registra `useClerkSessionSource()` vía
   `setSessionSource()` cuando `isSignedIn` es true, y lo limpia (`null`) en caso contrario —
   corre una sola vez en la raíz, cubre todas las pantallas sin duplicar el wiring por pantalla.
   **Ítem 3 del bloque original (score hardcodeado) resuelto:**
-  `app/features/dashboard/DashboardScreen.tsx` ya no usa `useState(74)`; ahora llama
-  `score.get()` de `app/lib/api.ts` (`GET /score`) en un `useEffect`, con estados reales de
+  `frontend/features/dashboard/DashboardScreen.tsx` ya no usa `useState(74)`; ahora llama
+  `score.get()` de `frontend/lib/api.ts` (`GET /score`) en un `useEffect`, con estados reales de
   `scoreLoading` (spinner, `testID="dashboard-score-loading"`) y `scoreError` (mensaje visible,
   `testID="dashboard-score-error"`, nunca cae a un número inventado) — el `ScoreGauge` solo se
   renderiza con un valor real. **Ítem 4 (username hardcodeado "Ana") resuelto:** ya no recibe
   `userName` por prop con default `"Ana"`; usa `useUser()` de `@clerk/clerk-expo` directo
   (mismo patrón que `ProfileScreen.tsx:53-56`) y el saludo cae a `"Hola"` sin nombre cuando
   `firstName` es null, sin placeholder de persona.
-  **Confirmado, no se encontró (ítem 7):** re-auditado `app/App.tsx` y `app/features/**` con
+  **Confirmado, no se encontró (ítem 7):** re-auditado `frontend/App.tsx` y `frontend/features/**` con
   grep de `gear|FAB|position.*absolute|zIndex` — cero resultados de un botón flotante de
   engranaje. Coincide con lo ya documentado en el cierre `feature-ui-audit-fix` (línea de abajo):
   no vive en este branch. Nada que remover.
   **Ítems 1/2 (iconos, estados de nav) no re-auditados icono-por-icono en esta pasada** — el set
-  de `app/features/shared/icons/Icon.tsx` (21 glyphs) y el nav de 5 pestañas ya cerrados en
+  de `frontend/features/shared/icons/Icon.tsx` (21 glyphs) y el nav de 5 pestañas ya cerrados en
   `feature-nav-icon-fix` (ver más abajo) se dejaron como están; no se verificó de nuevo cada
   `d=` contra `creva_finance/frontend/components/BottomNav.tsx`/`HelpGlyph.tsx` línea por línea
   en esta sesión — pendiente para confirmar la cita exacta de cada glyph, en particular los 9
   ítems del sheet "Más" que el bloque original pedía citar uno por uno.
   **Ítems 5 y 6 NO abordados en esta pasada — quedan abiertos, con alcance real identificado:**
-  `app/features/query/gatewayClient.ts` y `app/features/query/components/ReportPreviewCard.tsx`
+  `frontend/features/query/gatewayClient.ts` y `frontend/features/query/components/ReportPreviewCard.tsx`
   siguen usando datos mock (confirmado por grep), no `crevaScore.report()/.verify()/.radar()/
-  .verification()/.disclosure()` de `app/lib/api.ts`; `app/features/help/HelpScreen.tsx` no tiene
+  .verification()/.disclosure()` de `frontend/lib/api.ts`; `frontend/features/help/HelpScreen.tsx` no tiene
   ningún `onChangeText`/filtro conectado a la caja de búsqueda — sigue inerte. Cablear ambos es
   trabajo real de UI + backend, no una corrección de una línea; no había presupuesto en esta
   sesión para hacerlo con el mismo estándar de "sin mock" que el resto del bloque exige.
@@ -1072,10 +1078,10 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   con "render function has not been called" bajo carga de la suite completa; reproducido dos
   veces más y pasó las dos — flake de act()/timing bajo test-renderer, no relacionado con el
   cambio, coincide con el flake de `tinypool`/Jest ya documentado en el cierre de
-  `feature-creva-service-identity`). `grep -rn "#[0-9A-Fa-f]\{3,6\}" app/features/` vacío.
+  `feature-creva-service-identity`). `grep -rn "#[0-9A-Fa-f]\{3,6\}" frontend/features/` vacío.
   `npx expo export --platform ios` bundleó 1345 módulos sin error (4.2MB); Metro quedó corriendo
   en el puerto 8081 tras el export (proceso PID detectado con `netstat`), matado explícitamente y
-  puerto confirmado libre. **No se corrió lint** — `app/package.json` no define un script `lint`.
+  puerto confirmado libre. **No se corrió lint** — `frontend/package.json` no define un script `lint`.
   **Sin commitear ni pushear todavía la cobertura de tests nueva para este cambio puntual** — los
   36 suites existentes cubren el flujo de auth-gate que ya ejercía `DashboardScreen`, pero no hay
   un test nuevo que aserte específicamente el estado de loading/error del score ni que
@@ -1084,34 +1090,34 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   dispositivo físico real (sin hardware disponible en esta sesión).
 
 - [x] `2026-09-05` — **Comprobar un reporte, cableado real (worktree `feature-report-wiring`):
-  `app/features/query/**` y `app/features/verify/**` ya no usan datos mock — cierra los ítems 5/6
+  `frontend/features/query/**` y `frontend/features/verify/**` ya no usan datos mock — cierra los ítems 5/6
   dejados abiertos en el bloque anterior, con un ajuste de alcance real encontrado en el camino.**
-  **Hallazgo previo a tocar código:** `app/lib/api.ts` ya tenía `crevaScore.{report,verify,
+  **Hallazgo previo a tocar código:** `frontend/lib/api.ts` ya tenía `crevaScore.{report,verify,
   verification,radar,disclosure}` completo y correcto como espejo de
   `creva_finance/frontend/lib/api.ts:726-752` — pero apuntan a `BASE` (`EXPO_PUBLIC_API_URL`, el
   backend principal con auth Clerk), y en este repo `/creva-score/report` y `/creva-score/verify`
-  **no viven ahí**: viven en el gateway (`gateway/src/index.ts:66-82`), gateados por x402
-  (`gateway/src/x402-gate.ts`), sin Clerk. `/creva-score/verification`, `/creva-score/radar` y
+  **no viven ahí**: viven en el gateway (`backend/src/index.ts:66-82`), gateados por x402
+  (`backend/src/x402-gate.ts`), sin Clerk. `/creva-score/verification`, `/creva-score/radar` y
   `/creva-score/disclosure` **no existen en el gateway en absoluto** — solo report/verify están
-  proxied (`gateway/src/creva-proxy.ts`, autenticado server-side vía `getCrevaAccessToken()`, nunca
-  un JWT estático). Cablear "Comprobar un reporte" contra `crevaScore.*` de `app/lib/api.ts` habría
+  proxied (`backend/src/creva-proxy.ts`, autenticado server-side vía `getCrevaAccessToken()`, nunca
+  un JWT estático). Cablear "Comprobar un reporte" contra `crevaScore.*` de `frontend/lib/api.ts` habría
   llamado un endpoint que no existe en este backend real; se optó por el mismo patrón ya usado por
-  `app/features/onboarding/world-verify-client.ts` (cliente feature-local que habla directo con
+  `frontend/features/onboarding/world-verify-client.ts` (cliente feature-local que habla directo con
   `EXPO_PUBLIC_GATEWAY_URL`, sin pasar por `request()` de `lib/api.ts`) en vez de forzar el atajo
-  de Clerk sobre un endpoint x402. `app/lib/api.ts` no se tocó — sus tipos (`SealedReport`,
+  de Clerk sobre un endpoint x402. `frontend/lib/api.ts` no se tocó — sus tipos (`SealedReport`,
   `CertificateVerification`, etc.) sí se reutilizan desde los nuevos clientes.
-  **`app/features/query/gatewayClient.ts` reescrito:** `requestSignal(input, paymentHeader?)`
+  **`frontend/features/query/gatewayClient.ts` reescrito:** `requestSignal(input, paymentHeader?)`
   hace `POST ${EXPO_PUBLIC_GATEWAY_URL}/creva-score/report` real; sin `paymentHeader` el gateway
-  real siempre responde 402 con `accepts` real (`gateway/src/x402-gate.ts:16-27`); con un
+  real siempre responde 402 con `accepts` real (`backend/src/x402-gate.ts:16-27`); con un
   `X-PAYMENT` responde el `SealedReport` real y el settlement de `X-PAYMENT-RESPONSE` si viene.
-  **`app/features/query/components/ReportPreviewCard.tsx` reescrito** para el `SealedReport` real
+  **`frontend/features/query/components/ReportPreviewCard.tsx` reescrito** para el `SealedReport` real
   en vez del mock `{businessName, signalsFound, sources}`: layout calca
   `frontend/components/report/ReportPaper.tsx:35-51` (fila de KPIs: señales / señales propias del
   negocio / fuentes), `ReportPaper.tsx:62-79` (chip de tono por señal) y
   `ReportPaper.tsx:108-115` (bloque "qué NO acredita" = `certificate.does_not_prove` +
   `disclosure.does_not_estimate`) — condensado para tarjeta de teléfono, no la hoja completa de
   impresión.
-  **`app/features/verify/sealClient.ts` reescrito por completo:** el mock anterior simulaba un
+  **`frontend/features/verify/sealClient.ts` reescrito por completo:** el mock anterior simulaba un
   "fetch por folio" que **no existe en la API real** — el único endpoint real
   (`POST /creva-score/verify`, también x402-gated) recibe el `{report, certificate}` que ya tienes
   y devuelve `CertificateVerification` (`frontend/lib/api.ts:711-718`: un veredicto de contenido +
@@ -1122,7 +1128,7 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   `App.tsx`: nuevo estado `sealedReport` en `AppFlow` que `QueryScreen` llena al pagar y
   `VerifyScreen` consume; ruta `"verify"` ya no hardcodea `folio="mock-folio"`.
   **Gap real, documentado en vez de inventado:** ni `gatewayClient.ts` ni `sealClient.ts` pueden
-  producir un `X-PAYMENT` real — eso requiere una billetera Hedera firmando (`gateway/src/
+  producir un `X-PAYMENT` real — eso requiere una billetera Hedera firmando (`backend/src/
   facilitator.ts`), y no hay ningún signer client-side en este repo (confirmado por grep). El
   botón "Pagar y continuar" de `QueryScreen` y el paso de verificación de `VerifyScreen` golpean el
   gateway real y, contra un gateway real, legítimamente vuelven a responder 402 hasta que exista
@@ -1153,14 +1159,14 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   `feature-arc-anchor`): reporte sellado ancla su hash canónico on-chain en Arc testnet.**
   Prerrequisito confirmado antes de tocar código: `ARC_RPC_URL`, `ARC_NETWORK`,
   `ARC_SIGNER_ADDRESS`, `ARC_SIGNER_PRIVATE_KEY`, `CIRCLE_AGENT_STACK_API_KEY` ya poblados en
-  `gateway/.env`. Nuevo `gateway/src/arc-anchor.ts`: `anchorReportHash(canonicalHash, signer, rpcUrl,
+  `backend/.env`. Nuevo `backend/src/arc-anchor.ts`: `anchorReportHash(canonicalHash, signer, rpcUrl,
   network)` valida el hash contra `/^0x[0-9a-fA-F]{64}$/` (nunca construye wallet/provider si es
   inválido — esa es la invariante dura) y envía una transacción de valor cero, auto-dirigida, con
   el hash como `data`, firmada con `ARC_SIGNER_PRIVATE_KEY` (el mismo rol de "quien paga el gas" que
-  el facilitador de Hedera). Nueva ruta `POST /creva-score/anchor` en `gateway/src/index.ts`
+  el facilitador de Hedera). Nueva ruta `POST /creva-score/anchor` en `backend/src/index.ts`
   (`{ canonicalHash }` → `{ anchored, txHash, explorerUrl, network }`, 400 si el hash es inválido,
   503 si el signer no está configurado). **Verify:** `tsc --noEmit` limpio; 34/34 tests pasan
-  (unit + fuzz + invariant nuevos en `gateway/test/{unit,fuzz,invariant}/arc-anchor*`, más las 11
+  (unit + fuzz + invariant nuevos en `backend/test/{unit,fuzz,invariant}/arc-anchor*`, más las 11
   suites preexistentes sin regresión); **una acción real on-chain confirmada** —
   tx `0x285ea670c9fe31f06d90daeed15b3ec76b0253ca22783b6cfcff1756e15e6014`, `chainId 5042002`,
   `status: 1`, bloque `60605019` (confirmado vía `eth_getTransactionReceipt` contra el RPC real de
@@ -1173,22 +1179,22 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   ya satisface el criterio de aceptación (evento on-chain real atado al hash canónico).
 
 - [x] `2026-09-05` — **Nav de 5 pestañas + sheet "Más" + set de iconos SVG (worktree
-  `feature-nav-icon-fix`): 15 hallazgos de la auditoría UI cerrados.** `app/App.tsx`'s `TabBar`
+  `feature-nav-icon-fix`): 15 hallazgos de la auditoría UI cerrados.** `frontend/App.tsx`'s `TabBar`
   pasó de 2 pestañas (Inicio/Perfil) a las 5 del objetivo (Inicio, Score, Tarjeta, Crédito, Más).
   **Actualización — decisión escogida 2026-09-06 con el humano tras ver el render
   (`feature-last-screens-parity`):** la pestaña Tarjeta es tocable y abre el flujo de tarjeta
   completo (`CardScreen`: estado vacío + emisión + freeze + movimientos, gateado por KYC;
   `CardCreateScreen`; `VirtualCard`). Ya no hay badge "PRONTO" ni pestaña deshabilitada. "Más" abre
-  `app/features/more/MoreSheet.tsx` ("Todo lo
+  `frontend/features/more/MoreSheet.tsx` ("Todo lo
   demás"), 11 ítems: Mi perfil/Ayuda navegan a `ProfileScreen`/`HelpScreen` existentes sin
   duplicarlas, los otros 9 (Movimientos, Calculadora, Estados de cuenta, Tu garantía, Sello de tu
   negocio, Reglas que te afectan, Tu reporte, Avisos, Aviso de privacidad) van a `StubScreen.tsx`
-  genérico con copy tomado de `app/lib/help-content.ts` donde existe artículo. Set de iconos SVG
-  compartido en `app/features/shared/icons/Icon.tsx` (21 glyphs, `react-native-svg` recién
+  genérico con copy tomado de `frontend/lib/help-content.ts` donde existe artículo. Set de iconos SVG
+  compartido en `frontend/features/shared/icons/Icon.tsx` (21 glyphs, `react-native-svg` recién
   instalado vía `npx expo install`), paths copiados de
   `creva_finance/frontend/components/BottomNav.tsx`/`components/help/HelpGlyph.tsx` donde existían;
   colores resueltos desde `tailwind.config.js` (`theme-colors.ts`), cero hex nuevo en
-  `app/features/`. **Decisión escogida:** Score y Crédito son pantallas mínimas reales nuevas
+  `frontend/features/`. **Decisión escogida:** Score y Crédito son pantallas mínimas reales nuevas
   (`ScoreScreen.tsx`/`CreditScreen.tsx`) que enlazan a `QueryScreen`/`VerifyScreen` respectivamente
   sin repurposearlas — ambas mantienen su identidad y entradas actuales. Los 9 callbacks no-op que
   la auditoría encontró (Dashboard: notificaciones/crédito/tarjeta; Profile: 5 filas de menú; Help:
@@ -1197,7 +1203,7 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   `help-content.ts`). **Verify:** `tsc --noEmit` limpio; `jest unit+fuzz+invariant` → 36 suites/157
   tests verdes (antes 33/147, +10 tests nuevos: `test/unit/nav/structure.spec.ts`,
   `test/unit/more/structure.spec.ts`, `test/unit/shared/no-emoji.spec.ts`); `grep` de hex y de
-  emoji sobre `app/features/` ambos vacíos; `npx expo start` bundleó `ios` sin error (CI mode,
+  emoji sobre `frontend/features/` ambos vacíos; `npx expo start` bundleó `ios` sin error (CI mode,
   HTTP 200, ~9.7MB), servidor detenido y puerto confirmado libre con `netstat`. **Falta:** Expo Go
   en dispositivo físico real, mismo motivo que el resto del repo (sin hardware disponible). Detalle
   completo, incluida la lista de los 15 hallazgos y su resolución uno a uno: `docs/memoria.md`.
@@ -1206,25 +1212,25 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   cerrados en el mismo lote.** (1) Bug de auth en reload corregido: `App.tsx`'s `AppFlow` ahora
   gatea la pantalla inicial en `useAuth()` real de Clerk (`isLoaded`/`isSignedIn`) en vez de
   `useState<Step>("sign-in")` fijo — una sesión activa + reload va directo a `home`, nunca vuelve a
-  mostrar sign-in. (2) Paleta unificada: `app/tailwind.config.js` gana los 10 grupos de color
+  mostrar sign-in. (2) Paleta unificada: `frontend/tailwind.config.js` gana los 10 grupos de color
   `--cr-*` de `creva_finance/frontend/app/globals.css` (valores del `:root` claro, hardcodeados
   porque NativeWind no soporta custom properties CSS); los ~168 literales hex que había en
-  `app/features/**` quedaron reemplazados 1:1 por esos tokens — `grep -rn
-  "#[0-9A-Fa-f]\{3,6\}" app/features/` da vacío, sin excepciones. (3) Back button: `app/features/
+  `frontend/features/**` quedaron reemplazados 1:1 por esos tokens — `grep -rn
+  "#[0-9A-Fa-f]\{3,6\}" frontend/features/` da vacío, sin excepciones. (3) Back button: `frontend/features/
   shared/BackButton.tsx` (nuevo, recreando `components/BackControl.tsx` de creva_finance) agregado
   a `SelfieCheckScreen`, `QueryScreen` y `VerifyScreen` — las tres pantallas sin tab bar; `SignInScreen`
   se deja sin back a propósito (pantalla de entrada, sin "antes" al que volver). (4) **Decisión
   bottom-nav-scope, reafirmada:** onboarding/query/verify se quedan de pantalla completa sin tab
   bar (flujos secuenciales de una sola tarea, no se quiere permitir saltar a Perfil a medio Selfie
   Check o a medio pago x402); dashboard/profile/help mantienen la tab bar mínima que ya tenían.
-  (5) Afordancia "(?)": auditoría completa con `grep -rn "❓" app/features/` — un solo resultado
+  (5) Afordancia "(?)": auditoría completa con `grep -rn "❓" frontend/features/` — un solo resultado
   (`ProfileScreen.tsx:68`), ya cableado a `onOpenHelp`/`setStep("help")`, confirmado funcionando,
   no se tocó. Ningún otro hallazgo. (6) Español: único archivo con copy en inglés real era
   `SelfieCheckScreen.tsx` (estados `identity_unavailable`/`idle`/`failed`/`verifying`) — traducido;
-  sanity-check final con grep de palabras inglesas comunes sobre todo `app/features/**/*.tsx` no
+  sanity-check final con grep de palabras inglesas comunes sobre todo `frontend/features/**/*.tsx` no
   encontró copy visible restante (solo identificadores de código). Test de regresión real
   (no source-regex, a diferencia del resto de `test/unit/**`) en
-  `app/test/unit/auth/auth-gate.spec.ts`: renderiza `App.tsx` completo con Clerk mockeado en sesión
+  `frontend/test/unit/auth/auth-gate.spec.ts`: renderiza `App.tsx` completo con Clerk mockeado en sesión
   activa, confirma que `SignInScreen` nunca se monta. **Verify:** `tsc --noEmit` limpio;
   `jest unit fuzz invariant` → 33 suites/147 tests (antes 32/146) verdes; `grep` de hex vacío;
   `npx expo start` bundleó `ios` sin error (1332 módulos, HTTP 200), servidor detenido y puerto
@@ -1234,24 +1240,24 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   incidente de git ajeno a este bloque (resuelto sin dejar rastro): `docs/memoria.md`.
 
 - [x] `2026-09-05` — **Dashboard/Profile/Help Center screens ported, real Clerk sign-in screen
-  added (worktree `feature-ui-port-core-screens`).** `app/features/dashboard/DashboardScreen.tsx`,
-  `app/features/profile/ProfileScreen.tsx` y `app/features/help/HelpScreen.tsx` portan la
+  added (worktree `feature-ui-port-core-screens`).** `frontend/features/dashboard/DashboardScreen.tsx`,
+  `frontend/features/profile/ProfileScreen.tsx` y `frontend/features/help/HelpScreen.tsx` portan la
   estructura visual NativeWind de `creva_finance/frontend/app/{dashboard,profile,help}/page.tsx`
   (score primero + una sola acción siguiente en dashboard, menú de configuración en profile,
-  buscador + más-preguntado + temas en help), reusando `app/features/query/components/
-  VisualPrimitives.tsx` y `ScoreGauge.tsx` en vez de duplicarlos, y `app/lib/{help-content,
-  reminders,format-money,score-display}.ts` ya portados. `app/features/help/components/
+  buscador + más-preguntado + temas en help), reusando `frontend/features/query/components/
+  VisualPrimitives.tsx` y `ScoreGauge.tsx` en vez de duplicarlos, y `frontend/lib/{help-content,
+  reminders,format-money,score-display}.ts` ya portados. `frontend/features/help/components/
   {HelpGlyph,HelpSearch}.tsx` recrean los equivalentes de `components/help/*` con emoji en vez de
   SVG (mismo criterio que `ScoreGauge` de no añadir dependencia SVG nueva). Dashboard y Profile
-  usan datos mock/estado local (igual que `QueryScreen`), no llaman a `app/lib/api.ts` — cablear
-  datos reales queda fuera de este bloque. `app/features/auth/SignInScreen.tsx` es construcción
+  usan datos mock/estado local (igual que `QueryScreen`), no llaman a `frontend/lib/api.ts` — cablear
+  datos reales queda fuera de este bloque. `frontend/features/auth/SignInScreen.tsx` es construcción
   nueva (no un port 1:1, porque `/login` de creva_finance solo redirige al formulario alojado por
   Clerk en web, sin equivalente en Expo): usa `useSignIn`/`useSignUp`/`useSSO` reales de
   `@clerk/clerk-expo` contra el contexto que ya monta `ClerkAppProvider.tsx` (no tocado), con
   estilo NativeWind recreando el lenguaje visual de `components/auth/*` (marca, GoogleButton,
-  AuthDivider, campo de contraseña con ojo). Tests nuevos en `app/test/unit/{dashboard,profile,
+  AuthDivider, campo de contraseña con ojo). Tests nuevos en `frontend/test/unit/{dashboard,profile,
   help,auth}/**` (10 specs, 146 tests totales en el repo tras el cambio) — mismo patrón de
-  inspección de fuente por regex que `app/test/unit/query/safe-area.spec.ts`, porque
+  inspección de fuente por regex que `frontend/test/unit/query/safe-area.spec.ts`, porque
   `jest.config.js` solo matchea `*.spec.ts` y JSX en un test requeriría `.tsx`. **`tsc --noEmit`**
   y **`jest` (unit+fuzz+invariant)** verdes: 32 suites / 146 tests. `npx expo start` verificado
   bundleando para `ios` (CI mode, 1321 módulos, HTTP 200 en `/index.bundle`) — el bundle `web`
@@ -1296,18 +1302,18 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   Detalle completo (incluidos dos intentos previos que fallaron por bitmaps de rol incompletos, ya
   corregidos): `docs/memoria.md`.
 
-- [x] `2026-09-04` — **Scaffold monorepo + 4 ramas feature + integración + roles v2.** `app/`
-  (Expo/NativeWind) y `gateway/` (Node/Express) creados, mergeados a `main`; las 4 ramas
+- [x] `2026-09-04` — **Scaffold monorepo + 4 ramas feature + integración + roles v2.** `frontend/`
+  (Expo/NativeWind) y `backend/` (Node/Express) creados, mergeados a `main`; las 4 ramas
   (`feature-gateway-x402`, `feature-selfie-check`, `feature-agent-loop`, `feature-logic-port`)
   reconciliadas por el Solver en `integration-solver` y mergeadas a `main`. Modelo de roles
   actualizado a v2 (Main instruye, Solver mergea/pushea él mismo, Auditor revisa después) —
   `AGENTS.md` §Colaboración. Detalle completo: `docs/memoria.md`.
 
-- [x] `2026-09-04` — **Estructura de tests `unit`+`fuzz`+`invariant` en `app/` y `gateway/`.**
+- [x] `2026-09-04` — **Estructura de tests `unit`+`fuzz`+`invariant` en `frontend/` y `backend/`.**
   Aplicada a las 4 ramas y a `feature-agent-loop`'s tests movidos de `__tests__/` legacy. Estado
-  final: `app/` 20 suites/104 tests, `gateway/` 7 suites/18 tests.
+  final: `frontend/` 20 suites/104 tests, `backend/` 7 suites/18 tests.
 
-- [x] `2026-09-04` — **Puerto de la capa de lógica de `creva_finance` a `app/lib/`.** 9 archivos
+- [x] `2026-09-04` — **Puerto de la capa de lógica de `creva_finance` a `frontend/lib/`.** 9 archivos
   puros portados byte a byte, `lib/api.ts` adaptado a Expo. Un `TypeError` real encontrado por
   fuzz y corregido. 88/85 tests verdes.
 
@@ -1330,7 +1336,7 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   confirmada en el propio código de `@x402/hedera`: el autopago cancela a neto 0, matemáticamente
   incompatible con el chequeo `netToPayTo`, no un bug nuestro; (4) creada una segunda cuenta real
   de testnet (`0.0.10374017`) fondeada por el payer vía `AccountCreateTransaction`
-  (`gateway/test/integration/create-payto-account.spec.ts`), usada como `PAY_TO_ADDRESS` —
+  (`backend/test/integration/create-payto-account.spec.ts`), usada como `PAY_TO_ADDRESS` —
   **liquidación real exitosa**. Tx: `0.0.7162784-1788585962-768194628`, `result: SUCCESS`
   confirmado en el mirror node de Hedera testnet, transferencia exacta
   `0.0.10119469 → 0.0.10374017` por `10000000` tinybars (`REPORT_PRICE_ATOMIC`). HashScan:
@@ -1371,17 +1377,17 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   commitear (worktree `feature-help-search`, murió a mitad de trabajo por rate limit): añadía
   navegación al tocar un resultado (`onOpenArticle`) y un live-region de accesibilidad anunciando
   el conteo de resultados — se conservó porque es trabajo correcto y completo, no a medias. El
-  filtrado en sí (`searchHelp` en `app/lib/help-content.ts:490-504`) ya existía y ya estaba
-  probado a nivel de contenido (`app/test/unit/help-content.spec.ts`); lo que faltaba era prueba
+  filtrado en sí (`searchHelp` en `frontend/lib/help-content.ts:490-504`) ya existía y ya estaba
+  probado a nivel de contenido (`frontend/test/unit/help-content.spec.ts`); lo que faltaba era prueba
   de que el componente `HelpSearch`/`HelpScreen` realmente lo conecta al input. Coincidencia con
   la referencia: `creva_finance/frontend/components/help/HelpSearch.tsx` filtra en cada
   `onChangeText` (sin debounce) contra `title + question + answer + keywords`, resultado como
   `MenuRow href=...` (líneas 83-88); el puerto usa la misma función `searchHelp` (AND de términos,
   normaliza acentos/mayúsculas con `fold()`) y ahora los resultados son `Pressable` que navegan
   con `onOpenArticle`, igual que el `href` de la referencia. Estado vacío ya existía
-  ("No encontramos nada con esas palabras."). Se corrigió `app/test/unit/help/structure.spec.ts`
+  ("No encontramos nada con esas palabras."). Se corrigió `frontend/test/unit/help/structure.spec.ts`
   (buscaba el string literal `<HelpSearch>`, que dejó de existir al agregarse la prop
-  `onOpenArticle`) y se agregó `app/test/unit/help/search.spec.ts` con render real de `HelpScreen`
+  `onOpenArticle`) y se agregó `frontend/test/unit/help/search.spec.ts` con render real de `HelpScreen`
   (palabra conocida filtra, gibberish muestra vacío, borrar restaura la lista, tocar un resultado
   llama a `onOpenArticle`). Se descubrió en el camino que `@testing-library/react-native@14` volvió
   `render` async — no documentado en ningún test existente del repo, ahora sí en este. Verify:
@@ -1390,7 +1396,7 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
   arranque en frío. `npx expo export --platform ios` empaqueta limpio (1345 módulos, 4.2MB);
   dispositivo físico sigue pendiente por lo ya documentado (Expo Go no probado en hardware real).
 
-- [x] `2026-09-05` — **Auditoría de citación del set de iconos (`app/features/shared/icons/Icon.tsx`)
+- [x] `2026-09-05` — **Auditoría de citación del set de iconos (`frontend/features/shared/icons/Icon.tsx`)
   y corrección de estado activo del nav.** Worktree `feature-icon-audit`. Un intento previo (con
   rate limit) ya había confirmado que la señal de estado activo del nav en creva_finance vive en
   `frontend/app/globals.css:176-199` (`.cr-nav-item` → `[aria-current='page']`): borde superior
@@ -1416,10 +1422,10 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
     `BottomNav.tsx:90`) — se separaron en dos casos: `shield` (check) y `privacy` (candado,
     `BottomNav.tsx:97`).
   - `ProfileScreen.tsx` fila "Seguridad": usaba `shield` (candado) pero
-    `app/profile/page.tsx:43-49` tiene su propio escudo-outline sin check ni candado → nuevo icono
+    `frontend/profile/page.tsx:43-49` tiene su propio escudo-outline sin check ni candado → nuevo icono
     `security` con ese path exacto.
   - `ProfileScreen.tsx` fila "Información fiscal": usaba `statement` (documento con líneas) pero
-    `app/profile/page.tsx:33-40` usa un documento de esquina doblada sin líneas → nuevo icono
+    `frontend/profile/page.tsx:33-40` usa un documento de esquina doblada sin líneas → nuevo icono
     `fiscal` con ese path exacto.
 
   **Sin cambio (ya citaban exacto):** `home`, `score`, `card`, `credit`, `more`, `bell` (todos
@@ -1430,10 +1436,10 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 
   **Sin referencia en creva_finance (documentado, no inventado):** `logout` en
   `ProfileScreen.tsx:107` sí tiene contraparte — el botón "Cerrar sesión" de
-  `app/profile/page.tsx:123-132` (path+polyline+line consolidados en un solo `<Path>` equivalente,
+  `frontend/profile/page.tsx:123-132` (path+polyline+line consolidados en un solo `<Path>` equivalente,
   ya coincidía). Ningún icono del set quedó sin cita tras esta pasada.
 
-  **Fix de estado activo del nav** (`app/App.tsx`, `TabBar`): antes solo cambiaba el color del
+  **Fix de estado activo del nav** (`frontend/App.tsx`, `TabBar`): antes solo cambiaba el color del
   texto/icono. Ahora reproduce las tres señales de `globals.css:176-199`: `filled={active}` en el
   `<Icon>` (fill/stroke, igual que las funciones `icon(active)` de `BottomNav.tsx`), peso de texto
   `font-semibold → font-extrabold` (600→800), y borde superior `border-t-[3px]`
@@ -1448,15 +1454,15 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
     junto a `nav/structure.spec.ts` antes del fix de ese archivo — confirmado no relacionado
     (pasa solo, y sigue pasando en la corrida completa post-fix): flake de orden/act(), no
     regresión de este cambio.
-  - `grep -rn "#[0-9A-Fa-f]\{3,6\}" app/features/` — vacío.
+  - `grep -rn "#[0-9A-Fa-f]\{3,6\}" frontend/features/` — vacío.
   - `npx expo start --port 8098` + `curl .../index.bundle?platform=ios&dev=true` → HTTP 200,
     log del bundler: `iOS Bundled 16192ms index.ts (1516 modules)`, `hasError: false`. Sin
     dispositivo físico disponible (pendiente, igual que el resto del port — ver `docs/memoria.md`).
     Puerto 8098 liberado y confirmado con `netstat` tras `taskkill` tras la verificación.
 
-  Archivos tocados: `app/features/shared/icons/Icon.tsx`, `app/features/more/stub-topics.ts`,
-  `app/features/profile/ProfileScreen.tsx`, `app/App.tsx`, `app/test/unit/nav/structure.spec.ts`,
-  `app/test/unit/icons/citation.spec.ts` (nuevo).
+  Archivos tocados: `frontend/features/shared/icons/Icon.tsx`, `frontend/features/more/stub-topics.ts`,
+  `frontend/features/profile/ProfileScreen.tsx`, `frontend/App.tsx`, `frontend/test/unit/nav/structure.spec.ts`,
+  `frontend/test/unit/icons/citation.spec.ts` (nuevo).
 
 ## Verify
 

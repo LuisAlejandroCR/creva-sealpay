@@ -210,8 +210,8 @@ AGENTS.md".
 [WORKTREE] feature-x402-gateway · base: main
 
 [POSEES] Only touch:
-  - src/gateway/**
-  - test/unit/gateway/**
+  - src/backend/**
+  - test/unit/backend/**
   Do not touch: src/selfie-check/** (otro agente), docs/estado.lifecycle.json (coordinar antes)
 
 [ACEPTACIÓN]
@@ -220,7 +220,7 @@ AGENTS.md".
   3. docs/plan.md: bloque movido a Cerrados; docs/memoria.md: entrada con qué no se verificó
 
 [VERIFY]
-  npm run typecheck && npm run lint && npm test -- gateway
+  npm run typecheck && npm run lint && npm test -- backend
 
 [REPORT] archivos tocados, docs actualizados, qué no se verificó (ej.: no se probó contra
   testnet real de Hedera, solo mock), git log --oneline -1, comando de commit listo.
@@ -238,11 +238,11 @@ cambio a Jest solo por igualar a `creva_finance` es scope creep no pedido. Aclar
 después de que el agente del gateway preguntara.
 
 ```text
-gateway/test/unit/<nombre>.spec.ts             — Jest, comportamiento normal
-gateway/test/fuzz/<nombre>.fuzz.spec.ts        — Jest + fast-check, entradas hostiles/aleatorias
-gateway/test/invariant/<propiedad>.invariant.spec.ts — Jest + fast-check, una propiedad que
+backend/test/unit/<nombre>.spec.ts             — Jest, comportamiento normal
+backend/test/fuzz/<nombre>.fuzz.spec.ts        — Jest + fast-check, entradas hostiles/aleatorias
+backend/test/invariant/<propiedad>.invariant.spec.ts — Jest + fast-check, una propiedad que
                                                         NUNCA puede romperse, sea cual sea la entrada
-app/test/unit/…      · app/test/fuzz/….fuzz.spec.ts      · app/test/invariant/….invariant.spec.ts
+frontend/test/unit/…      · frontend/test/fuzz/….fuzz.spec.ts      · frontend/test/invariant/….invariant.spec.ts
 ```
 
 * **unit** — el camino feliz y los bordes conocidos. Nada nuevo respecto al resto del proyecto.

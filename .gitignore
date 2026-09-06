@@ -1,9 +1,9 @@
 .env
 node_modules/
 .claude/worktrees/
-app/.expo/
-app/dist/
-app/.env
-gateway/dist/
-gateway/.env
+frontend/.expo/
+frontend/dist/
+frontend/.env
+backend/dist/
+backend/.env
 .codegraph/
