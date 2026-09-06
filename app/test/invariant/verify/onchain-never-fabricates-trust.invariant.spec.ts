@@ -13,7 +13,10 @@ describe("invariant: on-chain trust is never fabricated by the client", () => {
           {
             attestationCount: fc.integer({ min: 0, max: 1000 }),
             distinctAttesters: fc.integer({ min: 0, max: 1000 }),
-            lastAttestedAt: fc.oneof(fc.constant(null), fc.date().map((d) => d.toISOString())),
+            lastAttestedAt: fc.oneof(
+              fc.constant(null),
+              fc.integer({ min: 0, max: 4102444800000 }).map((ms) => new Date(ms).toISOString()),
+            ),
             trustSignal: fc.string().filter((s) => !["unattested", "attested", "corroborated"].includes(s)),
           },
           { requiredKeys: ["attestationCount", "distinctAttesters"] },
