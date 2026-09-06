@@ -677,9 +677,12 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 
 - [x] `2026-09-05` — **Nav de 5 pestañas + sheet "Más" + set de iconos SVG (worktree
   `feature-nav-icon-fix`): 15 hallazgos de la auditoría UI cerrados.** `app/App.tsx`'s `TabBar`
-  pasó de 2 pestañas (Inicio/Perfil) a las 5 del objetivo (Inicio, Score, Tarjeta, Crédito, Más);
-  Tarjeta queda visiblemente deshabilitada con badge "PRONTO", no tocable
-  (`disabled`/`accessibilityState`). "Más" abre `app/features/more/MoreSheet.tsx` ("Todo lo
+  pasó de 2 pestañas (Inicio/Perfil) a las 5 del objetivo (Inicio, Score, Tarjeta, Crédito, Más).
+  **Actualización — decisión escogida 2026-09-06 con el humano tras ver el render
+  (`feature-last-screens-parity`):** la pestaña Tarjeta es tocable y abre el flujo de tarjeta
+  completo (`CardScreen`: estado vacío + emisión + freeze + movimientos, gateado por KYC;
+  `CardCreateScreen`; `VirtualCard`). Ya no hay badge "PRONTO" ni pestaña deshabilitada. "Más" abre
+  `app/features/more/MoreSheet.tsx` ("Todo lo
   demás"), 11 ítems: Mi perfil/Ayuda navegan a `ProfileScreen`/`HelpScreen` existentes sin
   duplicarlas, los otros 9 (Movimientos, Calculadora, Estados de cuenta, Tu garantía, Sello de tu
   negocio, Reglas que te afectan, Tu reporte, Avisos, Aviso de privacidad) van a `StubScreen.tsx`
