@@ -33,11 +33,11 @@ checklist.
     `HelpScreen.tsx`/`HelpCategoryScreen.tsx`/`HelpArticleScreen.tsx` — cubiertos por los worktrees
     Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
     coordinar (regla de §Colaboración punto 7).
-  - Sin pantalla mobile todavía: `calculator`, `statements`, `collateral`,
-    `business-verification`, `regulatory`, `report`, `notifications`, `privacy` — hoy son
-    `StubScreen.tsx` genéricos en mobile; migrarlos a pantallas reales 1:1 es el grueso de este
-    bloque. `profile/details`, `profile/fiscal`, `profile/security` y `movements` ya no están en
-    esta lista: ver los incrementos de abajo.
+  - Sin pantalla mobile todavía: `calculator`, `collateral`, `business-verification`, `regulatory`,
+    `report`, `notifications`, `privacy` — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a
+    pantallas reales 1:1 es el grueso de este bloque. `profile/details`, `profile/fiscal`,
+    `profile/security`, `movements` y `statements` ya no están en esta lista: ver los incrementos
+    de abajo.
   - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
     evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
 
@@ -118,6 +118,37 @@ checklist.
   sesión). El modal usa `rounded-t-3xl` con `bg-bg` — no se confirmó que el contraste sobre
   `bg-black/40` de fondo se vea bien en modo oscuro, si el proyecto llegara a soportarlo (hoy no lo
   soporta, ver tema de esta app). **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Sexto incremento de la migración: `StatementsScreen.tsx` nueva, reemplaza el
+  stub genérico de "Estados de cuenta" en "Más". Primera pantalla de esta migración que necesitó
+  dependencias nativas nuevas — confirmado con el humano antes de instalar.** Puerto real de
+  `creva_finance/frontend/app/statements/page.tsx`: gate de términos (una vez, persistido),
+  selector de archivos CSV/Excel/PDF, subida, resultado por archivo, historial con
+  revisar/quitar-con-confirmación, y corrección de categoría por movimiento — todo vía
+  `statements.list()/summary()/entries()/reclassify()/remove()` (`app/lib/api.ts`, ya existían).
+  **Dependencias nuevas instaladas** (`npx expo install`, aprobadas explícitamente en el chat antes
+  de tocar `package.json`): `expo-document-picker` (reemplaza el `<input type="file">` del
+  frontend — no hay equivalente nativo) y `@react-native-async-storage/async-storage` (reemplaza
+  `localStorage` para el flag de términos aceptados).
+  **Nuevo en `app/lib/api.ts`:** `statements.uploadNative()` — variante de `statements.upload()`
+  para el objeto `{uri, name, mimeType}` que devuelve `expo-document-picker`, ya que React Native no
+  tiene `File`/`Blob` de un picker; reusa el mismo `requestMultipart` interno, no se duplicó lógica
+  HTTP. `statements.upload()` original queda intacto para no romper el frontend.
+  **Infraestructura de test nueva:** `app/jest.config.js` ganó `setupFiles`, y `app/jest.setup.js`
+  (nuevo) mockea `@react-native-async-storage/async-storage` con su propio mock oficial de Jest —
+  sin esto, cualquier test que importe algo que toque `AsyncStorage` truena con
+  `NativeModule: AsyncStorage is null` (Jest corre en Node, no en un dispositivo). Esto beneficia a
+  cualquier pantalla futura que use `AsyncStorage`, no solo esta.
+  `StackedBar` del frontend (SVG/CSS) se tradujo a una barra simple con `flex` proporcional — sin
+  librería de gráficos nueva. Test nuevo `app/test/unit/more/statements.spec.ts`. `tsc --noEmit`
+  limpio, `npx jest` verde (46/46 suites, 196/196 tests — un fallo de timeout intermitente en
+  `auth-gate.spec.ts`/`help/search.spec.ts` bajo carga completa, confirmado no relacionado: pasa
+  aislado y en un segundo full-run).
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), la
+  subida real de un archivo contra el backend de Creva (sin credenciales de ese backend), ni que
+  `expo-document-picker` funcione igual en iOS vs. Android (el picker del sistema difiere entre
+  plataformas — no hay dispositivo/simulador disponible desde esta sesión para confirmarlo).
+  **No autocertificada como cerrada.**
 
 - [ ] **2026-09-05 — Primer incremento de la migración: `DeleteAccountScreen.tsx` ganó paridad real
   con `/profile/delete-account`, confirmado visualmente vía sesión autenticada real en el

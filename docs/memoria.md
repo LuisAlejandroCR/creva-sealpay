@@ -1783,3 +1783,36 @@ quedan con pantalla propia en vez de `StubScreen`.
 **Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Quinto incremento de la
 migración..."). Backlog restante: Crédito, Tarjeta, Calculadora, Estados de cuenta, Tu garantía,
 Sello de tu negocio, Reglas que te afectan, Tu reporte, Avisos, Aviso de privacidad, KYC, auth.
+
+## 2026-09-05 — Migración PWA→nativa, sexto incremento: `StatementsScreen.tsx` (Solver, local)
+
+**Qué se hizo:**
+- Confirmado con el humano antes de tocar `package.json` (primera vez en esta migración que hacía
+  falta): se instalaron `expo-document-picker` y `@react-native-async-storage/async-storage`.
+- Construida `StatementsScreen.tsx`, puerto de `creva_finance/frontend/app/statements/page.tsx`:
+  gate de términos persistido, selector/subida de archivos, resultado por archivo, historial con
+  revisar/quitar-con-confirmación, corrección de categoría por movimiento — vía
+  `statements.list()/summary()/entries()/reclassify()/remove()`, ya existían en `app/lib/api.ts`.
+- `app/lib/api.ts`: nuevo `statements.uploadNative()` para el objeto `{uri, name, mimeType}` de
+  `expo-document-picker` (React Native no tiene `File`/`Blob` de un picker); reusa el mismo
+  `requestMultipart` interno. `statements.upload()` original intacto, sin romper el frontend.
+- `app/jest.config.js` + `app/jest.setup.js` (nuevo): mock oficial de `AsyncStorage` para Jest —
+  sin esto cualquier test que toque ese módulo truena (`NativeModule: AsyncStorage is null`),
+  beneficia a cualquier pantalla futura que lo use, no solo esta.
+- `StackedBar` del frontend (SVG) se tradujo a una barra simple con `flex` proporcional al valor de
+  cada segmento — sin librería de gráficos nueva.
+- Test nuevo `app/test/unit/more/statements.spec.ts`.
+
+**Qué NO se verificó, y por qué:**
+- Resultado visual/nativo — mismo bloqueo `react-native-web`/NativeWind ya diagnosticado.
+- Subida real contra el backend de Creva — sin credenciales de ese backend.
+- Comportamiento de `expo-document-picker` en iOS vs. Android — el picker del sistema difiere entre
+  plataformas y no hay dispositivo/simulador disponible desde esta sesión.
+- Un fallo de timeout intermitente en `auth-gate.spec.ts`/`help/search.spec.ts` bajo el full-run
+  completo — confirmado no relacionado con este cambio (pasa aislado y en un segundo full-run,
+  patrón de flakiness bajo carga ya anotado en el propio archivo de test).
+- No se cerró como definitiva — falta segunda vista.
+
+**Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Sexto incremento de la
+migración..."). Backlog restante: Crédito, Tarjeta, Calculadora, Tu garantía, Sello de tu negocio,
+Reglas que te afectan, Tu reporte, Avisos, Aviso de privacidad, KYC, auth.
