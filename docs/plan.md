@@ -9,7 +9,7 @@
 > antes de tocar nada, y cerrar siempre documentando qué se hizo, qué no se verificó y por qué —
 > es el contexto que usan los demás agentes.
 
-**Última actualización:** 2026-09-04
+**Última actualización:** 2026-09-06
 
 Ver [`brainstorming.md`](../brainstorming.md) §8 y §9 para el análisis completo detrás de cada
 bloque. Esta tabla es solo el checklist.
@@ -28,21 +28,6 @@ bloque. Esta tabla es solo el checklist.
   Criterio de aceptación: una request real liquidada contra Hedera testnet (vía facilitador
   BlockyDevs o Bazantic), grabada como evidencia.
 
-- [ ] **Repo público creado, pero no cumple el criterio de aceptación todavía.**
-  `2026-09-04` — repo creado en https://github.com/LuisAlejandroCR/creva-sealpay, pero con **todo**
-  el contenido de esta carpeta privada pusheado tal cual (`AGENTS.md`, `docs/` completo,
-  `brainstorming.md`, `LEARNINGS.md`), no solo `docs/plan.md`. Decisión escogida el
-  mismo día: exposición intencional, "para dar contexto a los agentes" — no es un accidente a
-  revertir. Revisado por secretos: limpio, ningún valor de key/token expuesto (ver
-  `docs/memoria.md`). Pendiente real: `README.md` público sigue siendo el README de esta carpeta
-  privada (habla de "Preparation lives here", termina con un encabezado `# creva-sealpay` suelto) —
-  no cumple la mezcla 70/30 cara al usuario / cara al desarrollador que pide `AGENTS.md` §Idioma.
-  Criterio de aceptación pendiente: `README.md` público reescrito para describir el producto de
-  submission, no esta carpeta de preparación.
-- [ ] **Decidir qué parte de `docs/` se vuelve pública por la regla de SDD.** Superado en la
-  práctica — ya se pusheó `docs/` completo el `2026-09-04` (ver bloque de arriba), no solo
-  `docs/plan.md` como preveía este ítem. Queda abierto para decidir si eso se mantiene así o se
-  poda luego; no hay decisión formal todavía, solo el hecho consumado.
 - [ ] **Responder los dos check-ins de la semana del 09/07** en el hacker dashboard. Criterio de
   aceptación: ambos respondidos — el stake en ETH solo se devuelve si se responde y se entrega
   proyecto (`brainstorming.md` §9.4).
@@ -55,18 +40,6 @@ bloque. Esta tabla es solo el checklist.
 - [ ] **Confirmar en el dashboard de ETHGlobal quién entra al equipo, con stake propio cada
   quien.** Decisión de "equipo vs. solo" ya tomada (ver arriba); falta el trámite. Criterio de
   aceptación: cada integrante aparece en el dashboard con su stake pagado.
-- [ ] **Reutilizar la capa de lógica de `creva_finance`, no la de UI.** `2026-09-04` — inventario
-  hecho leyendo `creva_finance/frontend/`. Reutilizable casi tal cual (TS puro, sin DOM, ~1,100
-  líneas): `lib/format-money.ts`, `format-date.ts`, `format-percent.ts`, `mx-states.ts`,
-  `report-verdicts.ts`, `report-display.ts`, `score-display.ts`, `reminders.ts`, `help-content.ts`.
-  Se porta con dos cambios: `lib/api.ts` (752 líneas, ya tipa las 46 rutas) — `NEXT_PUBLIC_API_URL`
-  → `EXPO_PUBLIC_API_URL`, y el acceso al global `window.Clerk` → `@clerk/clerk-expo`. Se reescribe:
-  todo `components/` y `app/` (JSX de Next con `div` + Tailwind → `View`/`StyleSheet`), mitigado con
-  **NativeWind** para conservar los nombres de clase de Tailwind. Criterio de aceptación: los
-  archivos de la lista viven en el repo nuevo y su suite de tests pasa ahí. **Actualización
-  `2026-09-04`: puerto commiteado (`feature-logic-port`, `8e48bb0`), mergeado en
-  `integration-solver` — `app/lib/**` completo, tests en verde. Ver `docs/memoria.md` 2026-09-04
-  (entrada del Solver) para el detalle de integración.**
 - [ ] **Haptics con `expo-haptics`.** `2026-09-04` — decisión escogida. Tres puntos:
   `ImpactFeedbackStyle.Medium` en el botón de pago, `NotificationFeedbackType.Success` cuando el 402
   liquida y llega el reporte firmado, `NotificationFeedbackType.Error` en verificación de sello
@@ -77,41 +50,17 @@ bloque. Esta tabla es solo el checklist.
   `app/features/verify/VerifyScreen.tsx`), `tsc --noEmit` y `jest` pasan. **⏳ pendiente real:**
   sentirlos en un dispositivo físico vía Expo Go — sin dispositivo disponible en esa sesión, no
   se cierra el bloque todavía. Ver `docs/memoria.md` 2026-09-04.
-- [ ] **Pantalla de query pagada + reporte sellado (bloque 4, worktree `feature-agent-loop`).**
+- [ ] **Pantalla de query pagada + reporte sellado: falta prueba contra gateway/facilitador real.**
   `2026-09-04` — `app/features/query/**` y `app/features/verify/**` construidos: ciclo
-  402→pago→200 contra un cliente de gateway mockeado (tipado, no el gateway real todavía — bloque
-  1 sigue sin terminar), pantalla de reporte sellado con los cinco veredictos y qué NO certifica
-  (`brainstorming.md` §0.2). Tests unitarios de ambos mocks pasan. Criterio de aceptación
-  pendiente: reconciliar el shape del mock contra el gateway real cuando el bloque 1 termine (rol
-  Solver), y probar los haptics en dispositivo físico. Detalle en `docs/memoria.md` 2026-09-04.
+  402→pago→200 contra un cliente de gateway mockeado, pantalla de reporte sellado con los cinco
+  veredictos y qué NO certifica (`brainstorming.md` §0.2). **Actualización 2026-09-06:** el shape
+  del mock ya fue reconciliado por el Solver contra los tipos reales del gateway y vive en `main`.
+  Pendiente real: ejercerlo contra un gateway corriendo con facilitador vivo y probar haptics en
+  dispositivo físico. Detalle en `docs/memoria.md` 2026-09-04 y 2026-09-06.
 - [ ] **Publicación en App Store / Play Store — después del evento, no durante.** `2026-09-04`
   Decisión escogida, respaldada: la revisión de iOS puede consumir sola la ventana que queda
   (judging el 09/14, corte el 09/16). Durante el evento se demuestra con Expo Go + el video.
   Criterio de aceptación: `eas submit` corrido después del 2026-09-16; no bloquea la entrega.
-- [ ] **Dos roles nuevos definidos: Auditor y Solver.** `2026-09-04` — `AGENTS.md` §Roles
-  especiales. Solver reconcilia las 4 ramas paralelas (worktree `integration-solver`), corre
-  primero. Auditor —**siempre agente en la nube, nunca local**— es la única excepción a "nadie
-  pushea a `main`" de todo el documento: verifica 4 condiciones él mismo (VERIFY real, `POSEES`
-  respetado, docs actualizados, sin `Co-Authored-By:`) y solo mergea/pushea si las cuatro se
-  cumplen; si alguna falla, no mergea y reporta. **Actualización `2026-09-04`: Solver corrido,
-  las 4 ramas mergeadas.** `feature-gateway-x402`, `feature-selfie-check`, `feature-agent-loop`
-  y (después de que se pusheó, `8e48bb0`) `feature-logic-port` — todas mergeadas en
-  `integration-solver`. 6 gaps de integración encontrados y fijados (shape del mock de gateway,
-  `SessionSource` verificado sin cambios, dependencias de `app/package.json` en conflicto entre
-  ramas, dependencias nativas de Clerk sin declarar, `tsconfig.json` unido, **dos configuraciones
-  de Jest en conflicto** — `package.json` inline vs. `jest.config.js` de `feature-logic-port`,
-  unificadas en un solo `jest.config.js`) — detalle completo en `docs/memoria.md` 2026-09-04
-  (dos entradas, una por tanda de merges). `App.tsx` ensamblado con las 3 pantallas.
-  `tsc`/`jest` (16 suites, 100 tests) / `vitest` en verde; `expo export` bundlea sin error.
-  Sigue bloqueado: prueba en Expo Go real (sin dispositivo ni credenciales de Clerk/World en
-  esta sesión). **Actualización `2026-09-04` (roles v2):** gap 7 cerrado —
-  `gateway/test/` no tenía la estructura `unit`/`fuzz`/`invariant`, movido y completado (ver
-  bloque "Estructura de tests obligatoria" abajo, cerrado para `gateway/`). VERIFY final:
-  `app/` 16 suites/100 tests, `gateway/` 3 suites/9 tests, ambos `tsc`+`lint` limpios, `expo
-  export` bundlea. **Mergeado y pusheado a `main` por el Solver mismo**, bajo el modelo de roles
-  v2 (`AGENTS.md` §Colaboración) — sin esperar Auditor. El Auditor revisa después, no antes; ver
-  `docs/memoria.md` 2026-09-04 (entrada "Solver (roles v2)") para el detalle completo y para la
-  nota sobre los `git commit` que el Solver corrió para completar merges con conflicto real.
 - [ ] **Tests de `feature-agent-loop` sin mover a la convención `test/{unit,fuzz,invariant}`.**
   `2026-09-04` — quedaron en `app/features/query/__tests__/` y `app/features/verify/__tests__/`
   en vez de `app/test/unit/**`, a diferencia de `feature-selfie-check` y `feature-logic-port` que
@@ -120,49 +69,6 @@ bloque. Esta tabla es solo el checklist.
   bloquea nada hoy — pero es deuda de convención, no de funcionalidad. Criterio de aceptación:
   movidos a `app/test/{unit,fuzz,invariant}/query|verify/` y `testMatch` recortado de vuelta a
   solo esa carpeta.
-- [ ] **Corrección de orden de dispatch — los 6 prompts se lanzaron casi a la vez, no en
-  cascada.** `2026-09-04` — el plan original decía "0 corre y mergea a `main`, después 1-4 en
-  paralelo, después 5, después 6". En la práctica se dispararon casi todos juntos:
-  `scaffold-monorepo` existe en `origin` pero **no mergeado a `main`** (`git branch -r` confirma
-  solo `origin/main` y `origin/scaffold-monorepo`, ningún `feature-*` todavía). Consecuencia
-  observada:
-  - Agente 3 (`feature-logic-port`) preguntó su base al no encontrar `app/` en `main` — se
-    confirmó basar en `scaffold-monorepo`, no en `main` (correcto: `main` no tiene código todavía).
-  - Agente 5 (Solver) arrancó sin que existiera ninguna de las 4 ramas `feature-*` — se le indicó
-    **detenerse y esperar** a que existan y estén pusheadas antes de reconciliar nada.
-  **Corrección para el resto de la tanda:** cualquier `feature-*` que arranque ahora debe basarse
-  en `origin/scaffold-monorepo`, no en `main`. El Solver (prompt 5) y el Auditor (prompt 6) no
-  arrancan hasta que las 4 ramas `feature-*` existan en `origin` con su `[REPORT]` completo.
-  Criterio de aceptación: `scaffold-monorepo` mergeado a `main` (vía Auditor o humano) antes de
-  que el Auditor mergee cualquier `feature-*`.
-- [ ] **Estructura de tests obligatoria: `unit` + `fuzz` + `invariant`.** `2026-09-04` — decisión
-  escogida, aplicada en `AGENTS.md` §Tests. Convención heredada de
-  `creva_finance/backend/test/{unit,fuzz,invariant}` (Jest + `fast-check`), replicada en
-  `gateway/test/` y `app/test/`. Relayado a los 4 agentes de worktree activos (1-4) con un target
-  concreto de fuzz/invariant por área. Pendiente: agentes 1 y 2 ya habían pusheado antes de este
-  mensaje — necesitan un commit de seguimiento, no reescribir el suyo. Criterio de aceptación:
-  cada rama `feature-*` tiene las tres carpetas con al menos un archivo antes de que el Auditor
-  la mergee. **`feature-logic-port` cumplido** — `app/test/{unit,fuzz,invariant}` con 11 suites,
-  `npm test -- unit fuzz invariant` verde (detalle en el bloque cerrado de arriba y en
-  `docs/memoria.md`). **`gateway/` (rama 1) cumplido por el Solver `2026-09-04`** — no lo tenía
-  al pushear, cerrado en el merge a `integration-solver`/`main`:
-  `gateway/test/{unit,fuzz,invariant}`, 3 suites / 9 tests, `fast-check` agregado. `feature-selfie-
-  check` (rama 2) y `feature-agent-loop` (rama 4) sin verificar desde esta sesión — ver bloque
-  siguiente para el caso puntual de `feature-agent-loop`.
-- [ ] **`feature-agent-loop` con base rota — necesita rebase.** `2026-09-04` — su worktree local
-  quedó en el commit `b70dace` (uno de docs, previo a que el scaffold real `f8b751d` existiera),
-  con un `app/` propio sin trackear en vez del scaffold real. Diverge de `feature-gateway-x402` y
-  `feature-selfie-check`, que sí parten de `f8b751d` — riesgo de conflicto grande al integrar.
-  Corrección: `git status --short` primero para ver qué hay en ese `app/` sin trackear (no
-  descartarlo a ciegas), `git stash -u` si hay algo que vale la pena conservar, después
-  `git rebase scaffold-monorepo`, reaplicar el stash y resolver a mano. Criterio de aceptación:
-  `feature-agent-loop` contiene el commit `f8b751d` en su historia antes de seguir trabajando ahí.
-- [ ] **5 prompts de subagente redactados y listos para dispatch.** `2026-09-04` — 0)
-  scaffold monorepo (secuencial, bloqueante), 1) gateway x402+Hedera, 2) Selfie Check onboarding,
-  3) port de lógica de `creva_finance`, 4) loop del agente + haptics. Los 4 últimos son worktrees
-  paralelos, dentro del máximo de `AGENTS.md` §Colaboración punto 5. Prompts completos en la
-  bitácora de conversación — pendiente: nadie los ha ejecutado todavía. Criterio de aceptación:
-  bloque 0 corrido y mergeado a `main` antes de dispatch de 1-4.
 - [ ] **Selfie Check en el alta (rebanada §6, paso 1) — implementado, falta probar en
   dispositivo real.** `2026-09-04` — worktree `feature-selfie-check`. `app/features/onboarding/`
   (flujo `WebView` contra `id.worldcoin.org/verify`, degrada a `identity_unavailable` sin
@@ -185,10 +91,10 @@ bloque. Esta tabla es solo el checklist.
   (`brainstorming.md` §9.6). Criterio de aceptación: guion escrito, cronometrado, y video grabado
   antes del corte del evento (16 sep 2026).
 
-- [ ] **`codegraph` no instalado — no aplica todavía.** No hay Go ni un repo de código real que
-  indexar (esta carpeta tiene 6 `.md`, sin repo público). Su propia regla ("Cuándo no",
-  `procedures/00_Files/codegraph.md`) dice que un repo de menos de ~20 archivos no compensa
-  indexarlo. Revisar `codegraph init` recién exista el repo público con código.
+- [ ] **Evaluar `codegraph` para el repo público.** Ya hay repo de código real con `app/` y
+  `gateway/`, así que la razón anterior para no indexar dejó de aplicar. Criterio de aceptación:
+  decidir si se instala/indexa para esta fase del hackathon o marcarlo como no necesario con el
+  repo actual.
 - [ ] **Instalar el CLI de Codex, si se va a usar.** No está instalado en esta máquina. `engram
   setup codex` ya dejó la config MCP y los archivos de instrucciones listos en
   `%APPDATA%\codex\` — falta el plugin/hooks, que requiere el CLI real. Comando de instalación
@@ -214,6 +120,12 @@ bloque. Esta tabla es solo el checklist.
 - [x] `2026-09-04` — `engram` wireado para **opencode** (plugin instalado, listo). Wireado para
   **Codex** solo en config MCP + instrucciones — el plugin/hooks queda como bloque abierto porque
   el CLI de Codex no está instalado aquí.
+- [x] `2026-09-06` — **README público reescrito para Creva SealPay.** Ya no describe la carpeta de
+  preparación privada: explica `app/`, `gateway/`, verificación actual y pendientes reales. Inglés
+  solo aquí; el resto de `.md` sigue en español.
+- [x] `2026-09-06` — **Decisión pública de docs mantenida.** El repo ya publica `AGENTS.md`,
+  `docs/`, `brainstorming.md` y `LEARNINGS.md` como artefacto SDD. Límite: lógica privada de Creva,
+  fórmulas, credenciales e infraestructura interna siguen fuera del repo público.
 - [x] `2026-09-04` — **Scaffold del repo público (bloque 0), rama `scaffold-monorepo`, agente
   local, sin commitear.** `app/` (Expo SDK 57 + TypeScript + NativeWind 4, `App.tsx` con clases
   Tailwind probadas) y `gateway/` (Node + TypeScript + Express, `GET /health`) creados. Ambos con
@@ -238,9 +150,20 @@ bloque. Esta tabla es solo el checklist.
   el fuzz encontró y se corrigió un `TypeError` real en `lib/api.ts` (`body.message` sobre un
   cuerpo JSON `null`), detalle en `docs/memoria.md`. `npm test -- unit fuzz invariant` verde:
   11 suites, 88 tests. Comando de commit dejado listo para el humano, no ejecutado.
-  **⏳ pendiente:** integración real de `@clerk/clerk-expo` (paquete + `AuthGuard` +
-  `setSessionSource`) es de `app/features/**`, no de este bloque; merge de `scaffold-monorepo` a
-  `main` sigue sin ocurrir, este branch se basó directo en `scaffold-monorepo`.
+  **Actualización 2026-09-06:** la integración de `@clerk/clerk-expo` y el merge a `main` ya viven
+  en el árbol integrado. Pendiente real: prueba con credenciales y dispositivo.
+- [x] `2026-09-04` — **Roles Solver/Auditor definidos y primera tanda reconciliada.** El Solver
+  integró las cuatro ramas `feature-*`, corrigió 7 gaps, ensambló `App.tsx`, unificó Jest y pusheó
+  a `main`. VERIFY documentado: `app/` 16 suites/100 tests; `gateway/` 3 suites/9 tests.
+- [x] `2026-09-04` — **Dispatch paralelo corregido por integración.** El problema de haber lanzado
+  prompts casi a la vez quedó absorbido por el Solver: `scaffold-monorepo` y las ramas `feature-*`
+  relevantes ya están integradas en `main`.
+- [x] `2026-09-04` — **Estructura `unit` + `fuzz` + `invariant` aplicada al árbol integrado.**
+  `app/test/` y `gateway/test/` existen con los tres tipos. La deuda de convención de
+  `features/**/__tests__` queda en su bloque abierto.
+- [x] `2026-09-04` — **Prompts de subagente ejecutados y absorbidos.** Los bloques de scaffold,
+  gateway, Selfie Check, lógica de cliente, loop del agente y Solver ya produjeron código en
+  `main`; los pendientes se rastrean por capacidad no verificada.
 
 ## Verify
 
