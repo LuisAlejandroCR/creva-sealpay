@@ -2350,3 +2350,26 @@ Siguientes: `credit`, `card`.
 **Dónde queda el pendiente:** bloque abierto "COORDINACIÓN: `app/features/help/**`" en
 `docs/plan.md`. Siguientes: `HelpCategoryScreen`, `HelpScreen`, luego `credit`, `card`, business
 form.
+
+## 2026-09-06 — Migración: `HelpCategoryScreen` + `HelpScreen` a paridad web (Solver, cloud)
+
+**Qué se hizo (un commit, cambios acoplados — ambos dependen de `HelpSearch` y del ruteo por href):**
+- `HelpCategoryScreen.tsx`: `<View>` → `<ScrollView>`; se agregó el `HelpSearch` del índice completo
+  arriba de la lista (search nunca se limita a una categoría, `help/[category]/page.tsx` lo hace
+  igual); cada fila ahora muestra `article.answer` como descripción, no solo la pregunta. Prop
+  `onOpenArticle` cambiado de `(article) => void` a `(href) => void` para unificar con el índice —
+  `App.tsx` le pasa `openHelpArticle`.
+- `HelpScreen.tsx`: tiles "Lo que más se pregunta" de `w-[47%]` (2-col) a `flex-1` 4-en-fila, como
+  `<Stack columns={4}>` del frontend; cada fila de "Entra por tema" con el badge de icono
+  `38px rounded-xl bg-surface-2` de `MenuRow.tsx:33-46`.
+- Test nuevo `app/test/unit/help/index-and-category-parity.spec.ts`.
+
+**Qué NO se verificó, y por qué:**
+- Render nativo/visual — el humano lo puede ver en el simulador; certificación pantalla-por-pantalla
+  es de la sesión 2.
+- `tsc --noEmit` limpio. `jest` full-run: 59 suites / 261 tests. Baseline tras `HelpArticleScreen`:
+  58 / 256.
+
+**Dónde queda el pendiente:** las 3 pantallas de Ayuda quedan al nivel de la web. Siguientes:
+`credit`, `card`, business form. El bloque de coordinación de `app/features/help/**` sigue abierto
+hasta la segunda vista visual.

@@ -312,10 +312,7 @@ function AppFlow() {
     screen = (
       <HelpCategoryScreen
         category={activeCategory}
-        onOpenArticle={(article) => {
-          setActiveArticle(article);
-          setStep("help-article");
-        }}
+        onOpenArticle={openHelpArticle}
         onBack={() => setStep("help")}
       />
     );

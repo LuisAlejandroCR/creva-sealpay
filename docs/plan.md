@@ -38,8 +38,15 @@ checklist.
     nativo; `onOpenArticle` para las relacionadas. Test nuevo
     `app/test/unit/help/article-parity.spec.ts` (verifica las 6 secciones + que ningún href
     quede sin ruta). `tsc` limpio; `jest` 58 suites / 256 tests.
-  - `HelpCategoryScreen` — pendiente.
-  - `HelpScreen` (índice) — pendiente (revisar tiles "Lo que más se pregunta" 4-en-fila vs 2-col).
+  - **`HelpCategoryScreen` + `HelpScreen` — hecho (un commit, cambios acoplados).**
+    `HelpCategoryScreen`: `<ScrollView>`, `HelpSearch` del índice completo arriba de la lista
+    (search nunca se limita a una categoría, como el frontend), y cada fila muestra
+    `article.question` + `article.answer` como descripción (antes solo la pregunta). Todas las filas
+    ruteadas vía `onOpenArticle(articleHref(...))` — mismo handler que el índice.
+    `HelpScreen`: tiles "Lo que más se pregunta" a 4-en-fila (`flex-1`, como `<Stack columns={4}>`
+    de `help/page.tsx:29`); cada fila de tema con el badge de icono `38px rounded-xl surface-2` de
+    `MenuRow.tsx:33-46`. Test nuevo `app/test/unit/help/index-and-category-parity.spec.ts`.
+    `tsc` limpio; `jest` 59 suites / 261 tests. **Ayuda: las 3 pantallas al nivel de la web.**
 
 - [ ] **2026-09-06 — `QueryScreen` no tiene form de datos del negocio: el flujo "Comprobar
   un reporte" manda un `BUSINESS_NAME` hardcodeado a `/creva-score/report`.**
