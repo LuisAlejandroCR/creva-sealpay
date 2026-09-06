@@ -59,7 +59,7 @@ se generó fuera de este track (bloque Arc). Aquí **no se crea** ninguna cuenta
 se toma la private key existente y se guarda cifrada en el Key Ring. El humano nunca
 pega la key en el chat ni en este repo en claro.
 
-## Comando exacto que corre el humano para poblar el Key Ring
+## Comando exacto para poblar el Key Ring
 
 En la máquina del agente que firma (requiere el dispositivo Ledger físico):
 

@@ -165,7 +165,7 @@ gastó crédito de prueba.
   tools.** Las tres rutas (`radar`, `verification`, `report`) están detrás de `JwtAuthGuard` —
   Bazantic necesita algo más que su propia API key para llamarlas: un JWT válido de una cuenta de
   Creva, o un mecanismo de servicio que emule uno. Sin resolver esto, las Recipes existen pero
-  fallan con 401 en la primera llamada real. Requiere decisión del humano: qué cuenta de Creva
+  fallan con 401 en la primera llamada real. Requiere decisión tomada: qué cuenta de Creva
   presta su JWT (o si se crea una cuenta de servicio dedicada) — no es una decisión técnica que un
   agente pueda tomar sola.
 - **Una llamada real pagada, confirmada** — igual de bloqueada: depende de que las Recipes existan

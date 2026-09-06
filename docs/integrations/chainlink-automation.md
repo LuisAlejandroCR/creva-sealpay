@@ -111,9 +111,9 @@ checkUpkeep  AFTER            → false
 replay del mismo performData  → revert  NothingPending() (0x175c1aea)   ← no re-dispara
 ```
 
-## Registro del Upkeep en Chainlink — pasos para el humano
+## Registro del Upkeep en Chainlink — pasos externos
 
-El humano lo hace con su cuenta; el agente no crea cuenta Chainlink.
+Se hace con su cuenta; el agente no crea cuenta Chainlink.
 
 1. **Desplegar el contrato** a una red que Chainlink Automation soporte (Sepolia recomendado, es la
    que ya indexa el subgraph):
