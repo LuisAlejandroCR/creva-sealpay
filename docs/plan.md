@@ -34,10 +34,10 @@ checklist.
     Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
     coordinar (regla de §Colaboración punto 7).
   - Sin pantalla mobile todavía: `movements`, `calculator`, `statements`, `collateral`,
-    `business-verification`, `regulatory`, `report`, `notifications`, `privacy`, `profile/fiscal`,
-    `profile/security` — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a pantallas reales
-    1:1 es el grueso de este bloque. `profile/details` ya no está en esta lista: ver el incremento
-    de abajo (`PersonalDataScreen.tsx`, 2026-09-05).
+    `business-verification`, `regulatory`, `report`, `notifications`, `privacy`, `profile/security`
+    — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a pantallas reales 1:1 es el grueso de
+    este bloque. `profile/details` y `profile/fiscal` ya no están en esta lista: ver los incrementos
+    de abajo (`PersonalDataScreen.tsx`/`FiscalInfoScreen.tsx`, 2026-09-05).
   - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
     evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
 
@@ -59,6 +59,26 @@ checklist.
   (no hay credenciales/entorno de backend de Creva disponibles desde esta sesión de agente, distinto
   del frontend Next.js que sí se pudo autenticar). **No autocertificada como cerrada** — falta
   segunda vista.
+
+- [ ] **2026-09-05 — Tercer incremento de la migración: `FiscalInfoScreen.tsx` nueva, reemplaza el
+  `StubScreen` genérico de "Información fiscal" (`profile/fiscal`).** Puerto real de
+  `creva_finance/frontend/app/profile/fiscal/page.tsx`: tipo de persona (Física/Moral), RFC, razón
+  social, régimen fiscal, estado (catálogo INEGI, `app/lib/mx-states.ts`, ya portado, no se tocó),
+  código postal y dirección — todo vía `profiles.getFiscal()`/`profiles.updateFiscal()` de
+  `app/lib/api.ts` (ya existía, no se tocó). Mismo disclosure "no es asesoría fiscal" que el
+  frontend. **Nuevo:** `app/features/profile/components/FormField.tsx` — `TextField`,
+  `SelectField` y `SegmentedField` compartidos, extraídos porque ya son 2 pantallas (Datos
+  personales y esta) usando el mismo patrón de campo; `PersonalDataScreen.tsx` se refactorizó para
+  reusar `TextField` en vez de mantener su copia local. React Native no tiene `<select>` nativo:
+  `SelectField` es un `Pressable` que expande una lista de opciones en línea — no se agregó ninguna
+  dependencia de picker. `App.tsx`: `step === "profile-fiscal"` ahora monta `FiscalInfoScreen` en
+  vez de `StubScreen`. Test nuevo `app/test/unit/profile/fiscal-info.spec.ts` (mismo patrón de
+  aserciones por fuente). `tsc --noEmit` limpio, `npx jest` verde (43/43 suites, 183/183 tests).
+  **No se verificó:** el resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind) ni
+  el guardado contra el backend real de Creva (sin credenciales de ese backend). El `SelectField`
+  en particular no se probó interactivamente — es una lista expandible simple, no se descarta que
+  necesite ajuste de UX una vez visible (scroll dentro de la lista si el catálogo de estados es
+  largo, por ejemplo) — anotado para la segunda vista. **No autocertificada como cerrada.**
 
 - [ ] **2026-09-05 — Primer incremento de la migración: `DeleteAccountScreen.tsx` ganó paridad real
   con `/profile/delete-account`, confirmado visualmente vía sesión autenticada real en el

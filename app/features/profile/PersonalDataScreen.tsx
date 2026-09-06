@@ -3,51 +3,17 @@
 // stays read-only from the Clerk session (same reasoning as the reference: the backend still
 // answers a pre-Clerk token that could hand back a different account's address).
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUser } from "@clerk/clerk-expo";
 
 import { profiles } from "../../lib/api";
 import { BackButton } from "../shared/BackButton";
 import { Section } from "../query/components/VisualPrimitives";
+import { TextField as Field } from "./components/FormField";
 
 export interface PersonalDataScreenProps {
   onBack: () => void;
-}
-
-function Field({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  editable = true,
-  note,
-  testID,
-}: {
-  label: string;
-  value: string;
-  onChangeText?: (text: string) => void;
-  placeholder?: string;
-  editable?: boolean;
-  note?: string;
-  testID?: string;
-}) {
-  return (
-    <View className="mb-4">
-      <Text className="mb-2 text-xs text-text/60">{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        editable={editable}
-        className={`rounded-xl border border-text/10 bg-surface-1 px-4 py-3 text-base text-text ${
-          editable ? "" : "text-text/50"
-        }`}
-        testID={testID}
-      />
-      {note ? <Text className="mt-1.5 text-xs leading-4 text-text/50">{note}</Text> : null}
-    </View>
-  );
 }
 
 export function PersonalDataScreen({ onBack }: PersonalDataScreenProps) {

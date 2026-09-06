@@ -1693,3 +1693,33 @@ con evidencia verificable on-chain. Pendiente cosmético: la aserción del test 
 **Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Segundo incremento de la
 migración..."), backlog restante sin tocar: Crédito, Tarjeta, 9 stubs de "Más" (menos "Datos
 personales", ya resuelto), KYC, auth.
+
+## 2026-09-05 — Migración PWA→nativa, tercer incremento: `FiscalInfoScreen.tsx` (Solver, local)
+
+**Qué se hizo:**
+- Construida `FiscalInfoScreen.tsx` (nueva), puerto real de
+  `creva_finance/frontend/app/profile/fiscal/page.tsx`: tipo de persona, RFC, razón social, régimen
+  fiscal, estado (catálogo INEGI ya portado en `app/lib/mx-states.ts`, sin tocar), código postal y
+  dirección, vía `profiles.getFiscal()`/`profiles.updateFiscal()` (`app/lib/api.ts`, ya existía).
+- Extraídos `TextField`/`SelectField`/`SegmentedField` a
+  `app/features/profile/components/FormField.tsx` — ya eran dos pantallas (Datos personales y esta)
+  con el mismo patrón de campo, así que se refactorizó `PersonalDataScreen.tsx` para reusar
+  `TextField` en vez de mantener su copia local. `SelectField` es un `Pressable` que expande una
+  lista de opciones en línea, porque React Native no tiene `<select>` nativo — no se agregó ninguna
+  dependencia de picker para esto.
+- `App.tsx`: `step === "profile-fiscal"` pasó de `StubScreen` genérico a `FiscalInfoScreen` real.
+- Test nuevo `app/test/unit/profile/fiscal-info.spec.ts`, mismo patrón de aserciones por fuente.
+
+**Qué NO se verificó, y por qué:**
+- Resultado visual/nativo — mismo bloqueo de `react-native-web`/NativeWind ya diagnosticado, no
+  reintentado.
+- Guardado real contra el backend de Creva — sin credenciales de ese backend disponibles.
+- Interacción real del `SelectField` (scroll con el catálogo de 32 estados, comportamiento táctil)
+  — construido por lectura de código, no se pudo tocar en un dispositivo/simulador real. Anotado en
+  `docs/plan.md` como algo a revisar en la segunda vista.
+- No se cerró como definitiva — falta segunda vista antes de mover a Cerrados.
+
+**Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Tercer incremento de la
+migración..."). Backlog restante: Crédito, Tarjeta, 8 stubs de "Más" (Movimientos, Calculadora,
+Estados de cuenta, Tu garantía, Sello de tu negocio, Reglas que te afectan, Tu reporte, Avisos),
+Seguridad, Aviso de privacidad, KYC, auth.

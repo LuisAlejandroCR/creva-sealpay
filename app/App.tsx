@@ -22,6 +22,7 @@ import { DashboardScreen } from "./features/dashboard/DashboardScreen";
 import { ProfileScreen } from "./features/profile/ProfileScreen";
 import { DeleteAccountScreen } from "./features/profile/DeleteAccountScreen";
 import { PersonalDataScreen } from "./features/profile/PersonalDataScreen";
+import { FiscalInfoScreen } from "./features/profile/FiscalInfoScreen";
 import { HelpScreen } from "./features/help/HelpScreen";
 import { HelpCategoryScreen } from "./features/help/HelpCategoryScreen";
 import { HelpArticleScreen } from "./features/help/HelpArticleScreen";
@@ -251,7 +252,7 @@ function AppFlow() {
   } else if (step === "profile-details") {
     screen = <PersonalDataScreen onBack={() => setStep("profile")} />;
   } else if (step === "profile-fiscal") {
-    screen = <StubScreen title="Información fiscal" icon="fiscal" onBack={() => setStep("profile")} />;
+    screen = <FiscalInfoScreen onBack={() => setStep("profile")} />;
   } else if (step === "profile-security") {
     screen = (
       <StubScreen
