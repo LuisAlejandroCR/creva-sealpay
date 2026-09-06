@@ -1967,3 +1967,37 @@ Aviso de privacidad, KYC, auth.
 **Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Décimo incremento de la
 migración..."). Backlog restante: Crédito, Tarjeta, Calculadora, Sello de tu negocio, Aviso de
 privacidad, KYC, auth.
+
+## 2026-09-05 — Migración PWA→nativa, undécimo incremento: `BusinessVerificationScreen.tsx` (Solver, cloud)
+
+**Qué se hizo:**
+- Construida `BusinessVerificationScreen.tsx` (`app/features/more/`), puerto de
+  `creva_finance/frontend/app/business-verification/page.tsx`: busca el negocio en el directorio
+  oficial vía `crevaScore.verify()` (`app/lib/api.ts`, ya existía, sin tocar). Es un POST que gasta
+  cuota; como el frontend, **busca al abrir cuando `profiles.getFiscal()` ya trae nombre + estado**,
+  y solo muestra los campos cuando no.
+- `STATUS_COPY` completo, la frase "Tu puntaje no depende de esto", filas de procedencia del `badge`,
+  y las notas `matchedBy`/`searchedAs`/`rfcNote`. Campos con `TextField`/`SelectField` compartidos
+  de `FormField.tsx` (estado = `MX_STATES`, ya portado).
+- `App.tsx`: rama nueva `activeStub === "business-verification"` monta la pantalla real antes del
+  `StubScreen` genérico.
+- Test nuevo `app/test/unit/more/business-verification.spec.ts`. Sin dependencias nuevas.
+
+**Desviación deliberada del "as is":**
+- Avisos de estado con tokens `success-*`/`info-*`/`warning-*`/`danger-*` en vez de `.alert-*` del
+  frontend (no existen en la app).
+- El enlace final "Ver reglas que te afectan" no se portó — navegación cruzada desde un stub
+  necesita plomería en `App.tsx` fuera de alcance.
+
+**Qué NO se verificó, y por qué:**
+- Resultado visual/nativo — mismo bloqueo `react-native-web`/NativeWind de los incrementos
+  anteriores.
+- `crevaScore.verify()` / `profiles.getFiscal()` contra el backend real de Creva — sin credenciales;
+  forma de la respuesta y ramas de estado sin confirmar.
+- `tsc --noEmit` limpio. `npx jest` full-run verde: 51/51 suites, 226/226 tests (baseline previo:
+  50 suites / 220 tests).
+- No se cerró como definitiva — falta segunda vista.
+
+**Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Undécimo incremento de la
+migración..."). Backlog restante de stubs: Calculadora, Aviso de privacidad. Fuera de stubs:
+Crédito, Tarjeta, KYC, auth (requieren reconfirmar alcance con el humano).

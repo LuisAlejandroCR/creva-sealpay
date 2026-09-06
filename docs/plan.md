@@ -33,11 +33,11 @@ checklist.
     `HelpScreen.tsx`/`HelpCategoryScreen.tsx`/`HelpArticleScreen.tsx` — cubiertos por los worktrees
     Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
     coordinar (regla de §Colaboración punto 7).
-  - Sin pantalla mobile todavía: `calculator`, `business-verification`,
-    `privacy` — hoy son `StubScreen.tsx` genéricos en mobile; migrarlos a
-    pantallas reales 1:1 es el grueso de este bloque. `profile/details`, `profile/fiscal`,
-    `profile/security`, `movements`, `statements`, `notifications`, `regulatory`, `report` y
-    `collateral` ya no están en esta lista: ver los incrementos de abajo.
+  - Sin pantalla mobile todavía: `calculator`, `privacy` — hoy son `StubScreen.tsx` genéricos en
+    mobile; migrarlos a pantallas reales 1:1 es el grueso de este bloque. `profile/details`,
+    `profile/fiscal`, `profile/security`, `movements`, `statements`, `notifications`, `regulatory`,
+    `report`, `collateral` y `business-verification` ya no están en esta lista: ver los incrementos
+    de abajo.
   - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
     evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
 
@@ -149,6 +149,28 @@ checklist.
   `expo-document-picker` funcione igual en iOS vs. Android (el picker del sistema difiere entre
   plataformas — no hay dispositivo/simulador disponible desde esta sesión para confirmarlo).
   **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Undécimo incremento de la migración: `BusinessVerificationScreen.tsx` nueva,
+  reemplaza el `StubScreen` genérico de "Sello de tu negocio" (`business-verification`).** Puerto
+  real de `creva_finance/frontend/app/business-verification/page.tsx`: busca el negocio en el
+  directorio oficial vía `crevaScore.verify()` de `app/lib/api.ts` (ya existía, no se tocó) — es un
+  POST que gasta cuota, y **como el frontend, busca al abrir cuando el perfil fiscal
+  (`profiles.getFiscal()`) ya tiene nombre + estado**; si no, muestra los campos. `STATUS_COPY`
+  completo (verified/not_listed/ambiguous/unavailable), la frase "Tu puntaje no depende de esto",
+  las filas de procedencia del sello (`badge`), y las notas `matchedBy`/`searchedAs`/`rfcNote`.
+  Campos con `TextField`/`SelectField` compartidos de `app/features/profile/components/FormField.tsx`
+  (estado = catálogo `MX_STATES` ya portado). `App.tsx`: rama nueva
+  `activeStub === "business-verification"` monta la pantalla real antes del `StubScreen` genérico.
+  Sin dependencias nuevas. Test nuevo `app/test/unit/more/business-verification.spec.ts`.
+  `tsc --noEmit` limpio; `npx jest` verde (51/51 suites, 226/226 tests — antes 50/220).
+  **Desviación deliberada del "as is":** los avisos de estado usan tokens `success-*`/`info-*`/
+  `warning-*`/`danger-*` de `tailwind.config.js` en vez de las clases `.alert-*` del frontend (no
+  existen en la app). El enlace final "Ver reglas que te afectan" no se portó — cablear esa
+  navegación cruzada desde un stub necesita plomería en `App.tsx` fuera del alcance de una pantalla.
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni
+  `crevaScore.verify()` / `profiles.getFiscal()` contra el backend real de Creva (sin credenciales —
+  forma de la respuesta y ramas de estado sin confirmar). **No autocertificada como cerrada — falta
+  segunda vista.**
 
 - [ ] **2026-09-05 — Décimo incremento de la migración: `CollateralScreen.tsx` nueva, reemplaza el
   `StubScreen` genérico de "Tu garantía" (`collateral`).** Puerto real de
