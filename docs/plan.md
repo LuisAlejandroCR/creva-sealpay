@@ -185,16 +185,6 @@ checklist.
   296 custom no queda configurado y probado contra el Hedera JSON-RPC Relay real, no podemos
   avanzar** con este bloque.
 
-- [ ] **Chainlink — $3,000, 2 pistas (Confidential Workflows CRE $2k + Upgrade $500).** Encaje
-  débil, solo vigilar (`brainstorming.md` líneas 113-116): la pista de $500 exige que la
-  integración **produzca un cambio de estado onchain** — *"simply displaying Chainlink data in a
-  frontend is not sufficient"* — y Creva hoy no tiene contratos propios (el bloque Arc de arriba
-  cambiaría eso). La de $2k (Confidential Workflows, CRE) todavía no publica requisitos.
-  Prerrequisito antes de comprometer: (1) que el bloque Arc cierre y deje un contrato/evento
-  onchain real que Chainlink pueda leer o disparar, y (2) que CRE publique los requisitos de
-  Confidential Workflows y se confirmen compatibles con la tesis de privacidad de Creva. **Si
-  ninguno de los dos prerrequisitos se cumple para el 09/14 (ver Q&A del dashboard), no podemos
-  avanzar** con Chainlink y el bloque se descarta sin penalidad — es el fit más débil del lote.
 
 ## Variables de entorno por patrocinador — falta configurar
 
@@ -211,12 +201,31 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 | Bazantic | `BAZANTIC_GATEWAY_URL`, `BAZANTIC_MCP_TOKEN` | `gateway/.env` | Signup en Bazantic — **confirmar que existe**, no está indexado públicamente hoy |
 | Ledger | Config del Key Ring CLI (no es una env var de app, es estado local del CLI: `~/.ledger/` o similar) | Máquina del agente que firma, no `.env` del repo | `wallet-cli ring` del Ledger Agent Stack |
 | Privy | `PRIVY_APP_ID`, `PRIVY_APP_SECRET`, RPC URL de Hedera para `defineChain(296, ...)` | `gateway/.env` o `app/.env` | Dashboard de Privy |
-| Chainlink | Por definir — CRE aún no publica requisitos de Confidential Workflows | — | Vigilar publicación, no crear cuenta todavía |
+| Chainlink | `REGULATORY_ALERT_REGISTRY_ADDRESS`, `REGULATORY_REPORTER` (opcional) | `gateway/.env` | `REGULATORY_ALERT_REGISTRY_ADDRESS` sale del deploy de `RegulatoryAlertRegistry`; `REGULATORY_REPORTER` es la dirección del consumer de Chainlink Functions (default: el signer). El Upkeep se registra en automation.chain.link con la cuenta del humano — pasos en `docs/integrations/chainlink-automation.md` |
 
 **Ninguna de estas API keys/private keys se pega en el chat** — el humano las coloca directo en el
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
 
 ## Cerrados
+
+- [x] `2026-09-06` — **Chainlink — GO. `RegulatoryAlertRegistry` + `/regulatory/pending` + workflow
+  CRE que produce cambio de estado on-chain (pista Upgrade $500).** El prerrequisito ("un contrato
+  on-chain real de Creva") lo resolvió el bloque de attestation (`AttestationRegistry`, `f9457c8`).
+  Entregado: contrato `contracts/src/RegulatoryAlertRegistry.sol` con `checkUpkeep`/`performUpkeep`
+  (interfaz Automation) + suite Foundry unit+fuzz+invariant verde (12 tests nuevos, 19 en total, sin
+  regresión en `AttestationRegistry`); invariante clave "performUpkeep solo cambia estado si
+  checkUpkeep devolvió true con ese mismo payload". Endpoint read-only `GET /regulatory/pending` en
+  `gateway/src/regulatory.ts` (radar del core + folios del subgraph, try/catch total) + tests
+  unit/fuzz/invariant. Demo local anvil del ciclo `reportPending → checkUpkeep → performUpkeep` con
+  los eventos `RegulatoryFlag` y `normFlagged=true` verificados on-chain — evidencia en
+  `docs/integrations/chainlink-automation.md`. Decisión escogida: **CRE Confidential Workflows ($2k)
+  evaluado y descartado sin forzar** — el path de datos radar→folios es deliberadamente no sensible
+  (invariante `radar-carries-no-personal-data` en el core), un TEE handler ahí sería teatro.
+  Pendiente para el humano: desplegar a Sepolia, registrar el Upkeep en automation.chain.link,
+  fijar el forwarder (pasos exactos en el doc de integración). NO verificado: el workflow CRE real
+  contra Chainlink (necesita cuenta del humano); el endpoint contra el `/creva-score/radar` real
+  (probado solo con radar mockeado — el token de servicio puede no satisfacer el `JwtAuthGuard` del
+  core, degradaría a `radarError` sin tumbar nada).
 
 - [x] `2026-09-06` — **Integración de la familia de paridad móvil a `main` (Solver, worktree
   `integration-mobile-parity`): 5 ramas mergeadas `--no-ff`, VERIFY completo verde. Verificado por
