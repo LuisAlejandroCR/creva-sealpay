@@ -8,6 +8,7 @@ import * as DocumentPicker from "expo-document-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
+  isBackendUnlinked,
   statements,
   type BusinessClassification,
   type IdentityMatchStatus,
@@ -18,6 +19,7 @@ import {
 } from "../../lib/api";
 import { formatDayWithYear } from "../../lib/format-date";
 import { formatMoney } from "../../lib/format-money";
+import { BackendPendingState } from "../shared/BackendPendingState";
 import { formatPercent } from "../../lib/format-percent";
 import { BackButton } from "../shared/BackButton";
 import { Card, Section } from "../query/components/VisualPrimitives";
@@ -246,6 +248,7 @@ export function StatementsScreen({ onBack }: StatementsScreenProps) {
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [summary, setSummary] = useState<StatementClassificationSummary | null>(null);
   const [error, setError] = useState("");
+  const [backendPending, setBackendPending] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(TERMS_ACCEPTED_KEY).then((value) => setTermsAccepted(value === "1"));
@@ -260,14 +263,20 @@ export function StatementsScreen({ onBack }: StatementsScreenProps) {
     statements
       .list()
       .then(setHistory)
-      .catch(() => setHistory([]));
+      .catch((err) => {
+        if (isBackendUnlinked(err)) setBackendPending(true);
+        setHistory([]);
+      });
   }
 
   function loadSummary() {
     statements
       .summary()
       .then(setSummary)
-      .catch(() => setSummary(null));
+      .catch((err) => {
+        if (isBackendUnlinked(err)) setBackendPending(true);
+        setSummary(null);
+      });
   }
 
   useEffect(() => {
@@ -334,6 +343,8 @@ export function StatementsScreen({ onBack }: StatementsScreenProps) {
           <View className="items-center py-6" testID="statements-loading">
             <ActivityIndicator />
           </View>
+        ) : backendPending ? (
+          <BackendPendingState />
         ) : !termsAccepted ? (
           <TermsGate onAccept={acceptTerms} />
         ) : (

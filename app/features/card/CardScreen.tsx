@@ -5,10 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { cards, kyc, transactions, type Transaction } from "../../lib/api";
+import { cards, isBackendUnlinked, kyc, transactions, type Transaction } from "../../lib/api";
 import { formatDayWithYear } from "../../lib/format-date";
 import { formatMoney } from "../../lib/format-money";
 import { BackButton } from "../shared/BackButton";
+import { BackendPendingState } from "../shared/BackendPendingState";
 import { Card, Section } from "../query/components/VisualPrimitives";
 import { VirtualCard } from "./VirtualCard";
 
@@ -30,12 +31,16 @@ export function CardScreen({ onBack, onOpenCreate, onOpenKyc }: CardScreenProps)
   const [isFrozen, setIsFrozen] = useState(false);
   const [freezeLoading, setFreezeLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [backendPending, setBackendPending] = useState(false);
 
   useEffect(() => {
     kyc
       .status()
       .then((result) => setKycDone(result.kyc?.status === "approved"))
-      .catch(() => setKycDone(false));
+      .catch((err) => {
+        if (isBackendUnlinked(err)) setBackendPending(true);
+        setKycDone(false);
+      });
 
     cards
       .list()
@@ -54,7 +59,10 @@ export function CardScreen({ onBack, onOpenCreate, onOpenKyc }: CardScreenProps)
           setCardReady(false);
         }
       })
-      .catch(() => setCardReady(false));
+      .catch((err) => {
+        if (isBackendUnlinked(err)) setBackendPending(true);
+        setCardReady(false);
+      });
   }, []);
 
   const loadTransactions = useCallback(() => {
@@ -90,7 +98,9 @@ export function CardScreen({ onBack, onOpenCreate, onOpenKyc }: CardScreenProps)
         <BackButton onPress={onBack} />
         <Text className="text-3xl font-bold text-text">Mis tarjetas</Text>
 
-        {cardReady === null || kycDone === null ? (
+        {backendPending ? (
+          <BackendPendingState />
+        ) : cardReady === null || kycDone === null ? (
           <View className="items-center py-10" testID="card-loading">
             <ActivityIndicator />
           </View>

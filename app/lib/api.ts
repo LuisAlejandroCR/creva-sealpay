@@ -75,6 +75,29 @@ export function clearApiCache(): void {
   cache.clear()
 }
 
+// ── Errors ──────────────────────────────────────────────────────────────────
+// `backendUnlinked` is the "signed in with Clerk, but the core does not accept the token yet"
+// case: a 401 on a request that DID carry a session token. The core's JwtAuthGuard needs
+// AUTH_PROVIDER=both + Clerk keys + an identity-map row (see docs/plan.md) — none of that is the
+// user's fault, so the screen shows a calm "connecting soon" state, not a red error or a re-login.
+export class ApiError extends Error {
+  readonly status: number
+  readonly body: unknown
+  readonly backendUnlinked: boolean
+
+  constructor(message: string, status: number, body: unknown, tokenAttached: boolean) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.body = body
+    this.backendUnlinked = status === 401 && tokenAttached
+  }
+}
+
+export function isBackendUnlinked(err: unknown): boolean {
+  return err instanceof ApiError && err.backendUnlinked
+}
+
 // ── Request helpers ─────────────────────────────────────────────────────────
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -99,7 +122,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const body = await res.json().catch(() => ({}))
     // A body that parses to `null` (a legal JSON value) is not a parse failure, so `.catch` above
     // never sees it — `body?.message` is what keeps that case from throwing a raw TypeError.
-    throw Object.assign(new Error(body?.message ?? 'Error'), { status: res.status, body })
+    throw new ApiError(body?.message ?? 'Error', res.status, body, token !== null)
   }
 
   const data = await res.json() as T
@@ -119,7 +142,7 @@ async function requestMultipart<T>(path: string, body: FormData): Promise<T> {
   })
   if (!res.ok) {
     const errorBody = await res.json().catch(() => ({}))
-    throw Object.assign(new Error(errorBody?.message ?? 'Error'), { status: res.status, body: errorBody })
+    throw new ApiError(errorBody?.message ?? 'Error', res.status, errorBody, token !== null)
   }
   return res.json() as Promise<T>
 }

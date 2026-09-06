@@ -8,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   auth,
   credit,
+  isBackendUnlinked,
   profiles,
   type CreditEligibility,
   type CreditMatch,
@@ -18,6 +19,7 @@ import {
 import { formatMoneyRounded } from "../../lib/format-money";
 import { formatPercent } from "../../lib/format-percent";
 import { BackButton } from "../shared/BackButton";
+import { BackendPendingState } from "../shared/BackendPendingState";
 import { Card, Section } from "../query/components/VisualPrimitives";
 import { TextField } from "../profile/components/FormField";
 import { CreditRequestForm } from "./CreditRequestForm";
@@ -28,7 +30,7 @@ export interface CreditScreenProps {
   onOpenStatements: () => void;
 }
 
-type Step = "loading" | "blocked" | "form" | "submitting" | "results";
+type Step = "loading" | "backend_pending" | "blocked" | "form" | "submitting" | "results";
 
 const FACTOR_LABELS: Record<string, string> = {
   score: "Score Creva",
@@ -298,7 +300,11 @@ export function CreditScreen({ onOpenVerify, onOpenKyc, onOpenStatements }: Cred
         setEligibility(data);
         setStep(data.eligible ? "form" : "blocked");
       })
-      .catch(() => {
+      .catch((err) => {
+        if (isBackendUnlinked(err)) {
+          setStep("backend_pending");
+          return;
+        }
         setErrorMsg("No pudimos verificar tus datos de contacto. Intenta de nuevo en un minuto.");
         setStep("blocked");
       });
@@ -402,6 +408,8 @@ export function CreditScreen({ onOpenVerify, onOpenKyc, onOpenStatements }: Cred
             <ActivityIndicator />
           </View>
         ) : null}
+
+        {step === "backend_pending" ? <BackendPendingState /> : null}
 
         {step === "blocked" ? (
           <View className="gap-3.5" testID="credit-blocked">
