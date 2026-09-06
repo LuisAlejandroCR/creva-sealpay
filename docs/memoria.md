@@ -9,6 +9,24 @@
 > o `gateway/` se refieren a lo que hoy es `frontend/` / `backend/` (el log histórico no se
 > reescribió). `creva_finance/frontend/app/…` (proyecto hermano) no cambia.
 
+## 2026-09-06 — Paridad de Ayuda: cierre funcional + arranque de la pasada visual (worktree `feature-ui-parity-pass`)
+
+**Qué se hizo:** se auditó `frontend/features/help/**` contra `creva_finance/frontend/app/help/**`
+(read-only). Las 3 pantallas ya estaban portadas fieles y en `main`, con 5 specs
+(`test/unit/help/*`); los ~14 `resolvedBy.href` distintos ya están mapeados en `App.tsx`. Único gap
+real: el footer "Busca en toda la ayuda" de `HelpArticleScreen` no navegaba (era `Text` sin
+`onPress`) — se agregó prop `onOpenIndex`, cableado a `setStep("help")` en `App.tsx`, espejo del
+`<Link href="/help">` de la referencia. Spec ampliada en `article-parity.spec.ts`.
+**Qué NO se verificó:** render nativo / comparación visual lado a lado de Ayuda (bloqueo
+`react-native-web`/NativeWind del repo); Expo web propio en `:3002` aún no levantado.
+**Pendiente:** bloque abierto "Paridad móvil: segunda vista visual pendiente" — arrancar el walk
+render-vs-render de ~30 pantallas a 375x812 contra `localhost:3001` (server de la sesión 2).
+**Entorno:** `frontend/.env.local` dummy creado (`EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxx`,
+gitignored, nunca commiteado). VERIFY: `tsc` limpio; `jest --runInBand` 85 suites / 387 tests
+(1 flake `auth/auth-gate` documentado, 5/5 aislado).
+**Nota de integración (Modelo B):** branch off `833e568`; `origin/main` ya está en `292625c`
+(merge de backend sesión 6). Main reconcilia `docs/plan.md` + `docs/memoria.md` al mergear.
+
 ## 2026-09-06 — Limpieza de estilo en Markdown
 
 **Qué se hizo:** se compactaron bloques largos de `docs/plan.md` y sesiones recientes de `docs/memoria.md`.

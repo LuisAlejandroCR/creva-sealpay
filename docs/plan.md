@@ -43,13 +43,6 @@ checklist.
   Pendiente: crear app Privy, instalar SDK, configurar env vars y cablear `makePrivySigner`.
   VERIFY registrado: `tsc` limpio; Jest 68 suites / 300 tests.
 
-- [ ] **2026-09-06 — Coordinación de Ayuda (`frontend/features/help/**`).** Decisión tomada:
-  Ayuda sale del worktree `codex/mobile-parity-help` y queda en la sesión UI/UX.
-  Hecho: `HelpArticleScreen`, `HelpCategoryScreen` y `HelpScreen` reconstruidas al nivel web con
-  búsqueda, pasos, CTA, relacionadas y rutas nativas.
-  Pendiente: cerrar el bloque cuando la rama UI/UX se integre o se descarte.
-  VERIFY registrado: `tsc` limpio; Jest 59 suites / 261 tests.
-
 - [ ] **2026-09-06 — Migración: últimas 4 pantallas (`feature-last-screens-parity`).** Decisión
   tomada: portar `auth`, `kyc`, `credit` y `card` completos, no mantener stubs mínimos.
   Hecho: `SignInScreen`, `KycFormScreen`, flujo completo de crédito, tarjeta virtual/creación y
@@ -261,6 +254,17 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
 
 ## Cerrados
+
+- [x] `2026-09-06` — **Coordinación de Ayuda: paridad funcional cerrada (`feature-ui-parity-pass`,
+  off `origin/main` `833e568`).** `HelpScreen` / `HelpCategoryScreen` / `HelpArticleScreen` ya
+  estaban portadas al nivel web y en `main`; los ~14 `resolvedBy.href` distintos están todos
+  mapeados en `App.tsx` (`HELP_RESOLVE_STUBS` + `HELP_RESOLVE_STEPS`). Único gap cerrado en esta
+  pasada: el footer "Busca en toda la ayuda" de `HelpArticleScreen` era `Text` muerto; ahora
+  navega al índice (`onOpenIndex`), espejo del `<Link href="/help">` de la referencia
+  (`help/[category]/[article]/page.tsx:93`). Spec nueva en `test/unit/help/article-parity.spec.ts`.
+  VERIFY: `tsc` limpio; Jest 85 suites / 387 tests (1 flake documentado `auth/auth-gate`, pasa
+  aislado 5/5). NO verificado: render nativo lado a lado — cae en el bloque abierto "segunda vista
+  visual", no autocertificado aquí.
 
 - [x] `2026-09-06` — **`ScoreScreen` deja de ser el stub mínimo: muestra el score real, no un
   `74` hardcodeado (`feature-scorescreen-real`, off `origin/main` `29b635f`).** El blocker

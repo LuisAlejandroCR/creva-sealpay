@@ -357,6 +357,7 @@ function AppFlow() {
           setStep("help-article");
         }}
         onResolve={openHelpResolve}
+        onOpenIndex={() => setStep("help")}
       />
     );
   } else if (step === "more") {
