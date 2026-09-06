@@ -10,6 +10,97 @@
 > reescribió). `creva_finance/frontend/app/…` (proyecto hermano) no cambia.
 
 ## 2026-09-06 — Limpieza de estilo en Markdown
+## 2026-09-06 — Auth Clerk + infra segura del core a `backend/`, proxy de scoring al servicio privado (worktree `feature-backend-core-infra`, agente local)
+
+**Decisiones escogidas (respaldadas por `docs/migration/creva-core-migration-plan.md` y por lo que la
+sesión 5 construyó):**
+
+1. **`backend/` se queda en Express** (no NestJS). El plan §2 Opción B ya lo dice: se traen las
+   versiones framework-agnósticas (`clerk-token-verifier`, `signature`, `report-digest`, `redact-pii`
+   no importan Nest) y los ~5 guards/filtros/interceptores Nest se reescriben como middleware Express
+   chico. El verificador de token Clerk se copió **verbatim**.
+2. **`backend/` posee la identidad.** Verifica el token Clerk del móvil él mismo, resuelve
+   Clerk-sub → UUID de `auth.users` contra su propia tabla `clerk_identities`, y llama al servicio
+   privado con `Authorization: Bearer <CORE_SERVICE_TOKEN>` + `X-User-Id: <uuid>`. El webhook
+   `/webhooks/clerk` puebla `clerk_identities`. "Nunca identidad de servicio para datos personales"
+   se cumple: el token de servicio solo autentica el salto S2S, el `X-User-Id` lleva el contexto.
+3. **`creva-business-logic` (repo privado, servicio NestJS desplegable de la sesión 5) ES el core.**
+   Reemplaza el proxy viejo a `creva_finance`/Cloud Run para score, calculadora, recomendaciones,
+   colateral, declaraciones y transacciones (read-only). `BUSINESS_LOGIC_URL` apunta ahí. Esto ajusta
+   el plan §2 (Opción B decía `packages/core-safe` como paquete de workspace; la lógica de negocio
+   nunca se copió — se consume por HTTP).
+4. **Mismo proyecto Supabase que `creva_finance`.** `clerk_identities`, `clerk_webhook_events` y las
+   RPC `claim/release_clerk_webhook_event` ya existen ahí — **no se portó SQL**.
+5. **Contrato `X-User-Id` de la sesión 5 (core-service.guard.ts, commit 447f08e):** header `X-User-Id`
+   = UUID de `auth.users` (no el sub de Clerk); ausente/vacío → 401 duro en toda ruta guardada;
+   `Authorization` se chequea antes con `timingSafeEqual`; única ruta pública `POST /creva-score/verify`.
+   El cliente lo empareja: nunca manda `X-User-Id` en blanco (degrada antes del fetch).
+
+**Qué se portó** (desde `creva_finance/backend/src`, commit `1c7c399`, solo lectura — ver
+`backend/src/core-safe/PROVENANCE.md`):
+- `core-safe/clerk/clerk-token-verifier.ts` (verbatim), `clerk-user-mapping.port.ts`, `unlinked-clerk-account.ts`
+- `core-safe/integrity/{report-digest,signature,signing-key}.ts` (verbatim)
+- `core-safe/logging/{redact-pii (verbatim),source-logger (adaptador consola en vez de Nest)}.ts`
+- `core-safe/types/{source-result (verbatim),auth-user}.ts`
+- `auth/identity-store.ts` (de `clerk-identity.service.ts`, de-Nested; impl Supabase + impl en memoria)
+- `auth/clerk-auth.ts` — middleware `requireClerkAuth` nuevo (equivalente Express de `jwt.guard.ts`)
+- `webhooks/clerk-webhook.ts` — de `clerk-webhook.{controller,service}.ts`, de-Nested, cuerpo crudo
+
+**Qué se construyó nuevo:**
+- `backend/src/business-logic-client.ts` — cliente HTTP al servicio privado. Invariantes con test:
+  (1) nunca hace fetch sin `CORE_SERVICE_TOKEN` (degrada a `SourceResult` no disponible antes de la
+  red); (2) un 5xx/timeout/error de red del servicio privado nunca tira `backend/` (valor tipado,
+  nunca excepción).
+- `backend/src/routes/personal.ts` — rutas Clerk-gateadas: `/score /calculator /recommendations
+  /collateral /declarations /transactions` → `business-logic-client`; `/profiles /kyc /cards
+  /statements` → `creva-user-proxy.ts` (reenvía el token Clerk **del usuario** al core viejo, no el
+  token de servicio Bazantic).
+- `backend/src/creva-user-proxy.ts` — proxy al core viejo con identidad del usuario final.
+- `backend/src/db/supabase.ts` — wrapper admin, lazy.
+- `backend/src/config.ts` — nuevas env: `BUSINESS_LOGIC_URL`, `CORE_SERVICE_TOKEN`, `CLERK_JWKS_URL`,
+  `CLERK_ISSUER`, `CLERK_AUTHORIZED_PARTY`, `CLERK_WEBHOOK_SECRET`, `SUPABASE_URL/ANON_KEY/SERVICE_ROLE_KEY`
+  (las coloca el humano). Los 3 secretos se enrutan por el Key Ring.
+- `backend/.env.example` actualizado.
+- `backend/vitest.config.ts` — cap de 2 forks (estabiliza el race de workers de Windows ya documentado).
+- `frontend/lib/api.ts` — `BACKEND = process.env.EXPO_PUBLIC_BACKEND_URL ?? BASE`; los grupos KYC…
+  Calculator (28 llamadas + 2 multipart) pasan por `BACKEND` vía los wrappers `b`/`bMultipart`.
+  `auth/*` y `crevaScore/*` (x402) siguen en `BASE`. Test `score-real-only.invariant.spec.ts`
+  actualizado al nuevo ruteo (mismo invariante de fondo: token de sesión del usuario, nunca de servicio).
+
+**Árbol final `backend/src/`:** `arc-anchor.ts config.ts creva-auth.ts creva-proxy.ts creva-user-proxy.ts
+business-logic-client.ts facilitator.ts hedera-signer.ts index.ts key-ring.ts regulatory.ts types.ts
+world-verify.ts x402-gate.ts` · `auth/{clerk-auth,identity-store}.ts` · `core-safe/{PROVENANCE.md,
+clerk/*,integrity/*,logging/*,types/*}` · `db/supabase.ts` · `routes/personal.ts` · `webhooks/clerk-webhook.ts`.
+Congelados sin tocar: `x402-gate.ts`, `hedera-signer.ts`, `facilitator.ts`.
+
+**VERIFY (worktree fresco):**
+- `backend/`: `npm install`; `npx tsc --noEmit` → 0; `npx eslint .` → 0; `npx vitest run --exclude
+  "test/integration/**"` → **35 archivos / 122 tests** verdes (antes 29/96; +6 archivos, +26 tests).
+- `frontend/`: `npx tsc --noEmit` → 0; `npx jest unit fuzz invariant` → **86 suites / 387 tests**, 1
+  skip, 0 fail.
+- E2E real (`backend/test/integration/clerk-personal-route.e2e.mjs`, requiere `npm run build`):
+  levanta mock JWKS + mock del servicio privado + `personalRouter` real; `GET /score` sin token → 401,
+  token malo → 401, token Clerk válido firmado → 200 con el payload del servicio; verificado que llega
+  `X-User-Id: <uuid>` + `Authorization: Bearer <CORE_SERVICE_TOKEN>` y que el token Clerk **no** se
+  reenvía. Servidores detenidos, puertos 8790-8792 en TIME_WAIT (sin LISTEN).
+- Grep de términos de negocio sobre `backend/` → **vacío**. Sobre `frontend/` quedan hits
+  **preexistentes** (nombres de factor como claves de display en `lib/score-display.ts`,
+  `CreditScreen.tsx:206`, 2 tests) — no los introdujo este slice y no son fórmula/peso/umbral.
+
+**Qué NO se verificó:**
+- El servicio `creva-business-logic` **real** desplegado (solo mock local). El contrato se emparejó
+  contra las notas de la sesión 5, no contra una instancia corriendo.
+- Sesión Clerk **real** desde Expo Go / instancia Clerk real (solo JWKS mock + JWT de prueba firmado).
+- Supabase **real**: `SupabaseClerkIdentityStore` y el claim idempotente del webhook se ejercen solo
+  vía la impl en memoria / mocks; las RPC `claim_clerk_webhook_event` etc. se asumen presentes en el
+  proyecto compartido (dicho por el Main orchestrator, no comprobado por esta sesión).
+- Rutas `/profiles /kyc /cards /statements` contra el core viejo con `AUTH_PROVIDER=both` — depende
+  de config de deploy del core, no ejercida.
+
+**Rama `feature-backend-core-infra` off `origin/main` 1ec1dbd, commit en worktree, NO pusheada**
+(agente local). Modelo B: el Main orchestrator mergea+pushea.
+
+## 2026-09-06 — Rename de carpetas: `app/` → `frontend/`, `gateway/` → `backend/` (Solver, worktree `integration-rename`)
 
 **Qué se hizo:** se compactaron bloques largos de `docs/plan.md` y sesiones recientes de `docs/memoria.md`.
 **Qué NO se verificó:** no se corrieron builds ni tests; fue sólo documentación.

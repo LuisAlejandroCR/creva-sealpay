@@ -6,6 +6,14 @@
 // sends the whole app to a previous deployment. Missing means local development.
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000'
 
+// The Express backend (ex-gateway) is now the single door for personal data: it validates the
+// Clerk token itself, resolves the auth.users id, and forwards to the private business-logic
+// service (score/calculator/recommendations/collateral/declarations/transactions) or the old core
+// (profiles/kyc/cards/statements) with the user's identity — never a service token. Only auth/* and
+// the x402 creva-score/* flow still talk to BASE directly. Falls back to BASE when unset so a
+// single-origin local/dev setup keeps working.
+const BACKEND = process.env.EXPO_PUBLIC_BACKEND_URL ?? BASE
+
 // ── Session token ───────────────────────────────────────────────────────────
 // Clerk owns the session and this file runs outside React, so it cannot call useAuth():
 // AuthGuard hands its own getToken over here. @clerk/clerk-expo exposes no global
@@ -100,9 +108,9 @@ export function isBackendUnlinked(err: unknown): boolean {
 
 // ── Request helpers ─────────────────────────────────────────────────────────
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function request<T>(path: string, init: RequestInit = {}, base: string = BASE): Promise<T> {
   const isRead = !init.method || init.method === 'GET'
-  const key = cacheKey(path)
+  const key = cacheKey(`${base}${path}`)
 
   if (isRead) {
     const cached = cacheGet<T>(key)
@@ -110,7 +118,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   const token = await getToken()
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${base}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -132,10 +140,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return data
 }
 
-async function requestMultipart<T>(path: string, body: FormData): Promise<T> {
+async function requestMultipart<T>(path: string, body: FormData, base: string = BASE): Promise<T> {
   const token = await getToken()
   // Content-Type is left unset on purpose: the browser adds the multipart boundary.
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${base}${path}`, {
     method: 'POST',
     body,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -146,6 +154,12 @@ async function requestMultipart<T>(path: string, body: FormData): Promise<T> {
   }
   return res.json() as Promise<T>
 }
+
+// Personal-data groups (KYC through Calculator, below) go through the Express backend, which
+// validates the Clerk token and forwards with the user's identity. auth/* and crevaScore/* keep
+// talking to BASE (Supabase-backed auth; the x402 seal flow).
+const b = <T>(path: string, init?: RequestInit) => request<T>(path, init, BACKEND)
+const bMultipart = <T>(path: string, body: FormData) => requestMultipart<T>(path, body, BACKEND)
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export const auth = {
@@ -192,14 +206,14 @@ export const auth = {
 // ── KYC ──────────────────────────────────────────────────────────────────────
 export const kyc = {
   status: () =>
-    request<{
+    b<{
       kyc: { status: string } | null
       collateral: { status: string; authorization_url: string | null } | null
       availability?: { identity: boolean; onramp: boolean }
     }>('/kyc/status'),
 
   apply: (data: Record<string, string | undefined>) =>
-    request<{ authorization_url: string; route_id: string; kyc_status: string }>('/kyc/apply', {
+    b<{ authorization_url: string; route_id: string; kyc_status: string }>('/kyc/apply', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -208,7 +222,7 @@ export const kyc = {
 // ── Collateral ────────────────────────────────────────────────────────────────
 export const collateral = {
   get: () =>
-    request<{
+    b<{
       status: string
       confirmed_amount: string
       pending_amount: string
@@ -223,16 +237,16 @@ export const collateral = {
 // ── Cards ─────────────────────────────────────────────────────────────────────
 export const cards = {
   list: () =>
-    request<{ id: string; maskedIdentifier: string; status: string; currency: string }[]>('/cards'),
+    b<{ id: string; maskedIdentifier: string; status: string; currency: string }[]>('/cards'),
 
   issue: (data: Record<string, unknown>) =>
-    request<{ id: string; maskedIdentifier: string; status: string }>('/cards/issue', {
+    b<{ id: string; maskedIdentifier: string; status: string }>('/cards/issue', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
   get: (id: string) =>
-    request<{
+    b<{
       id: string
       maskedIdentifier: string
       status: string
@@ -240,15 +254,15 @@ export const cards = {
       spendingLimit: string
     }>(`/cards/${id}`),
 
-  freeze: (id: string) => request<void>(`/cards/${id}/freeze`, { method: 'PATCH' }),
+  freeze: (id: string) => b<void>(`/cards/${id}/freeze`, { method: 'PATCH' }),
 
-  unfreeze: (id: string) => request<void>(`/cards/${id}/unfreeze`, { method: 'PATCH' }),
+  unfreeze: (id: string) => b<void>(`/cards/${id}/unfreeze`, { method: 'PATCH' }),
 }
 
 // ── Profiles ──────────────────────────────────────────────────────────────────
 export const profiles = {
   get: () =>
-    request<{
+    b<{
       firstName: string | null
       lastName: string | null
       phone: string | null
@@ -257,13 +271,13 @@ export const profiles = {
     }>('/profiles'),
 
   update: (data: { firstName?: string; lastName?: string; phone?: string }) =>
-    request<{ success: boolean }>('/profiles', {
+    b<{ success: boolean }>('/profiles', {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
 
   getFiscal: () =>
-    request<{
+    b<{
       rfc: string | null
       taxRegime: string | null
       businessName: string | null
@@ -282,7 +296,7 @@ export const profiles = {
     fiscalAddress?: string
     stateCode?: number
   }) =>
-    request<{ success: boolean }>('/profiles/fiscal', {
+    b<{ success: boolean }>('/profiles/fiscal', {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
@@ -303,7 +317,7 @@ export interface Transaction {
 export const transactions = {
   list: (params?: { page?: number; limit?: number }) => {
     const query = new URLSearchParams(params as Record<string, string>).toString()
-    return request<Transaction[]>(`/transactions${query ? `?${query}` : ''}`)
+    return b<Transaction[]>(`/transactions${query ? `?${query}` : ''}`)
   },
 }
 
@@ -332,7 +346,7 @@ export interface ScoreData {
 }
 
 export const score = {
-  get: () => request<ScoreData>('/score'),
+  get: () => b<ScoreData>('/score'),
 }
 
 // ── Recommendations ───────────────────────────────────────────────────────────
@@ -345,7 +359,7 @@ export interface Recommendation {
 
 export const recommendations = {
   get: () =>
-    request<{ status: string; recommendations: Recommendation[] }>('/recommendations'),
+    b<{ status: string; recommendations: Recommendation[] }>('/recommendations'),
 }
 
 // ── Credit recommendations ────────────────────────────────────────────────────
@@ -467,7 +481,7 @@ export interface FinancialDeclaration {
 }
 
 export const declarations = {
-  latest: () => request<FinancialDeclaration | null>('/declarations'),
+  latest: () => b<FinancialDeclaration | null>('/declarations'),
 
   create: (body: {
     yearsOperating: YearsOperating
@@ -476,31 +490,31 @@ export const declarations = {
     financingPurpose?: FinancingPurpose
     acceptedTerms: true
   }) =>
-    request<FinancialDeclaration>('/declarations', {
+    b<FinancialDeclaration>('/declarations', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
 }
 
 export const credit = {
-  eligibility: () => request<CreditEligibility>('/recommendations/credit/eligibility'),
+  eligibility: () => b<CreditEligibility>('/recommendations/credit/eligibility'),
 
   recommend: (body: CreditRequest) =>
-    request<CreditRecommendationResult>('/recommendations/credit', {
+    b<CreditRecommendationResult>('/recommendations/credit', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
 
   select: (body: CreditRequest & { productId: string; startKyc?: boolean }) =>
-    request<CreditSelection>('/recommendations/credit/select', {
+    b<CreditSelection>('/recommendations/credit/select', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
 
-  selections: () => request<CreditSelection[]>('/recommendations/credit/selections'),
+  selections: () => b<CreditSelection[]>('/recommendations/credit/selections'),
 
   updateSelection: (id: string, status: 'kyc_started' | 'abandoned') =>
-    request<CreditSelection>(`/recommendations/credit/selections/${id}`, {
+    b<CreditSelection>(`/recommendations/credit/selections/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }),
@@ -555,15 +569,15 @@ export interface StatementClassificationSummary {
 }
 
 export const statements = {
-  list: () => request<StatementSummary[]>('/statements'),
+  list: () => b<StatementSummary[]>('/statements'),
 
-  summary: () => request<StatementClassificationSummary>('/statements/summary'),
+  summary: () => b<StatementClassificationSummary>('/statements/summary'),
 
   entries: (statementId: string) =>
-    request<StatementEntry[]>(`/statements/${statementId}/entries`),
+    b<StatementEntry[]>(`/statements/${statementId}/entries`),
 
   reclassify: (entryId: string, businessClassification: BusinessClassification) =>
-    request<{ success: boolean }>(`/statements/entries/${entryId}`, {
+    b<{ success: boolean }>(`/statements/entries/${entryId}`, {
       method: 'PATCH',
       body: JSON.stringify({ businessClassification }),
     }),
@@ -571,7 +585,7 @@ export const statements = {
   upload: (files: File[]) => {
     const form = new FormData()
     files.forEach(file => form.append('files', file))
-    return requestMultipart<{ uploaded: number; failed: number; results: StatementUploadResult[] }>(
+    return bMultipart<{ uploaded: number; failed: number; results: StatementUploadResult[] }>(
       '/statements/upload',
       form,
     )
@@ -584,13 +598,13 @@ export const statements = {
     files.forEach((file) =>
       form.append('files', { uri: file.uri, name: file.name, type: file.mimeType } as unknown as Blob),
     )
-    return requestMultipart<{ uploaded: number; failed: number; results: StatementUploadResult[] }>(
+    return bMultipart<{ uploaded: number; failed: number; results: StatementUploadResult[] }>(
       '/statements/upload',
       form,
     )
   },
 
-  remove: (id: string) => request<{ success: boolean }>(`/statements/${id}`, { method: 'DELETE' }),
+  remove: (id: string) => b<{ success: boolean }>(`/statements/${id}`, { method: 'DELETE' }),
 }
 
 // ── Calculator ────────────────────────────────────────────────────────────────
@@ -610,7 +624,7 @@ export interface CalculatorData {
 export const calculator = {
   get: (income?: string) => {
     const query = income ? `?income=${income}` : ''
-    return request<CalculatorData>(`/calculator${query}`)
+    return b<CalculatorData>(`/calculator${query}`)
   },
 }
 

@@ -6,6 +6,8 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ["dist/**"],
+    // dist/ is build output. The .mjs files under test/integration are manual runners that import
+    // from dist/ and run outside vitest (like the live-* specs) — not part of the typed lint pass.
+    ignores: ["dist/**", "test/integration/**/*.mjs"],
   },
 );

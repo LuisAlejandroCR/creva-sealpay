@@ -17,10 +17,31 @@ import {
   readArcSignerCredentialsFromEnv,
 } from "./arc-anchor.js";
 import { handleRegulatoryPending } from "./regulatory.js";
+import { handleClerkWebhook } from "./webhooks/clerk-webhook.js";
+import { personalRouter } from "./routes/personal.js";
 
 export const app = express();
 app.use(helmet());
+
+// The Clerk webhook is registered before the JSON body parser on purpose: Svix signs the raw
+// bytes, so the handler needs them unparsed. Every other route gets parsed JSON below.
+app.post(
+  "/webhooks/clerk",
+  express.raw({ type: "*/*", limit: "512kb" }),
+  (req, res) => {
+    void handleClerkWebhook(req, res);
+  },
+);
+app.get("/webhooks/clerk", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
 app.use(express.json({ limit: "100kb" }));
+
+// Clerk-gated personal routes (score, calculator, recommendations, collateral, declarations,
+// transactions, profiles, kyc, cards, statements). Each validates the mobile app's Clerk token,
+// resolves the auth.users UUID, and forwards with user identity — never service identity.
+app.use(personalRouter());
 
 const gatedRouteLimiter = rateLimit({
   windowMs: 60_000,

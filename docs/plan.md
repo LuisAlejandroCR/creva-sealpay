@@ -9,7 +9,7 @@
 > antes de tocar nada, y cerrar siempre documentando qué se hizo, qué no se verificó y por qué —
 > es el contexto que usan los demás agentes.
 
-**Última actualización:** 2026-09-06 (rename de carpetas top-level: `app/` → `frontend/`, `gateway/` → `backend/`)
+**Última actualización:** 2026-09-06 (auth Clerk + infra segura del core en `backend/`, proxy de scoring al servicio privado — `feature-backend-core-infra`, VERIFY verde, en worktree sin pushear)
 
 > **Nota histórica (rename 2026-09-06):** las carpetas top-level `app/` y `gateway/` pasaron a
 > llamarse `frontend/` y `backend/`. Las rutas de este archivo se actualizaron al nombre nuevo;
@@ -261,6 +261,22 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
 
 ## Cerrados
+
+- [x] `2026-09-06` — **Slice 1 de la migración del core: auth Clerk + infra segura en `backend/`,
+  scoring por proxy al servicio privado (`feature-backend-core-infra`, off `origin/main` `1ec1dbd`,
+  agente local, NO pusheada — Modelo B, mergea el Main).** `backend/` (Express) ahora valida el token
+  Clerk del móvil él mismo (`core-safe/clerk/clerk-token-verifier.ts`, verbatim del core), resuelve
+  Clerk-sub → UUID de `auth.users` contra su propia `clerk_identities`, y llama a `creva-business-logic`
+  (servicio privado de la sesión 5, reemplaza `creva_finance`/Cloud Run para score/calculadora/
+  recomendaciones/colateral/declaraciones/transacciones) con `Bearer CORE_SERVICE_TOKEN` + `X-User-Id`.
+  Nuevo `business-logic-client.ts` con invariantes (nunca llama sin token; un 5xx del servicio nunca
+  tumba `backend/`). `/webhooks/clerk` puebla `clerk_identities`. `frontend/lib/api.ts`: los grupos
+  KYC…Calculator pasan por `EXPO_PUBLIC_BACKEND_URL`; `auth/*` y `crevaScore/*` siguen directos.
+  Congelados intactos (`x402-gate`, `hedera-signer`, `facilitator`). Detalle completo + qué NO se
+  verificó (servicio privado real, sesión Clerk real, Supabase real): `docs/memoria.md` 2026-09-06.
+  **VERIFY:** `backend/` tsc 0 · eslint 0 · vitest 122/122 · `frontend/` tsc 0 · jest 387/387 (1 skip)
+  · E2E real con mocks (401 sin token / 200 con token Clerk firmado, `X-User-Id` llega, token Clerk no
+  se filtra) · grep de negocio sobre `backend/` vacío.
 
 - [x] `2026-09-06` — **`ScoreScreen` deja de ser el stub mínimo: muestra el score real, no un
   `74` hardcodeado (`feature-scorescreen-real`, off `origin/main` `29b635f`).** El blocker

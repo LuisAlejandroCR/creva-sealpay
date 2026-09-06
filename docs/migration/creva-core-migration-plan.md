@@ -21,6 +21,24 @@ archivos, 16 módulos). `creva_finance/AGENTS.md` reglas críticas #1, #7, #8 y 
 
 ---
 
+## 0. Estado post-migración (2026-09-06) — ajuste a la Opción B
+
+El **slice 1 aterrizó** en la rama `feature-backend-core-infra` (VERIFY verde, en worktree). Ajustes
+a la §2:
+
+- Lo REUTILIZABLE-SEGURO vive en `backend/src/core-safe/`, no en `packages/core-safe/` — mismo
+  contenido y misma regla de procedencia (`backend/src/core-safe/PROVENANCE.md`), sin paquete aparte.
+- El core desplegado para lo que extrajo la sesión 5 ya **no** es `creva_finance`/Cloud Run: es
+  `creva-business-logic` (servicio NestJS privado). `backend/` le hace proxy con
+  `business-logic-client.ts` (`BUSINESS_LOGIC_URL` + `Bearer CORE_SERVICE_TOKEN` + `X-User-Id`).
+  `creva-proxy.ts` queda solo para el flujo x402; `creva-user-proxy.ts` (token del usuario) cubre
+  `profiles/kyc/cards/statements` en el core viejo.
+- Identidad Clerk: la posee `backend/` (`clerk_identities` en el Supabase compartido, sin portar SQL).
+- Los slices 2/3 (middleware Clerk delante de rutas de identidad) ya están incluidos: las rutas
+  personales nacen gateadas. Slices 4 (logging) y 5 (folio del sello, path congelado) siguen aparte.
+
+---
+
 ## 1. Clasificación módulo por módulo
 
 Tres categorías:

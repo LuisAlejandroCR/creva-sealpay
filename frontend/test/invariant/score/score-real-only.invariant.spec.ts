@@ -1,6 +1,8 @@
 // score-real-only.invariant.spec.ts: two invariants for the score screen.
-//  1. The score is fetched core-direct with the caller's Clerk session (api.ts's score.get()
-//     against BASE = EXPO_PUBLIC_API_URL), never through the gateway or a service identity.
+//  1. The score is fetched with the caller's own Clerk session — never a static or service
+//     identity. It now goes through the Express backend (api.ts's score.get() via the `b` helper
+//     against BACKEND = EXPO_PUBLIC_BACKEND_URL), which validates the Clerk token itself and
+//     forwards the resolved auth.users id; it is still not the gateway's x402 path.
 //  2. ScoreScreen has no numeric fallback: on any non-success path it renders the error state,
 //     and the only value ever handed to the gauge is the one from score.get().
 import { readFileSync } from 'fs'
@@ -24,10 +26,12 @@ jest.mock('../../../lib/api', () => ({
 
 import { ScoreScreen } from '../../../features/score/ScoreScreen'
 
-describe('score is core-direct, not gateway / service identity', () => {
-  it('api.ts routes GET /score to BASE (the Clerk backend), keyed only by EXPO_PUBLIC_API_URL', () => {
-    expect(apiSrc).toMatch(/const BASE = process\.env\.EXPO_PUBLIC_API_URL/)
-    expect(apiSrc).toMatch(/get:\s*\(\)\s*=>\s*request<ScoreData>\('\/score'\)/)
+describe('score uses the caller Clerk session, not gateway / service identity', () => {
+  it('api.ts routes GET /score through the backend base (EXPO_PUBLIC_BACKEND_URL)', () => {
+    expect(apiSrc).toMatch(/const BACKEND = process\.env\.EXPO_PUBLIC_BACKEND_URL/)
+    expect(apiSrc).toMatch(/get:\s*\(\)\s*=>\s*b<ScoreData>\('\/score'\)/)
+    // `b` is the backend-based wrapper around request()
+    expect(apiSrc).toMatch(/const b = <T>\(path: string, init\?: RequestInit\) => request<T>\(path, init, BACKEND\)/)
   })
 
   it('the request helper only ever attaches the session-source Clerk token, never a static one', () => {
