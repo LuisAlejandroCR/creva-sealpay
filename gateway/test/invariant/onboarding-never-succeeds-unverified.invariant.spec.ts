@@ -31,6 +31,7 @@ describe("invariant: onboarding never reports success without a verified World A
   });
 
   const validProofShape = fc.record({
+    nonce: fc.string({ minLength: 1 }),
     merkle_root: fc.string({ minLength: 1 }),
     nullifier_hash: fc.string({ minLength: 1 }),
     proof: fc.string({ minLength: 1 }),
