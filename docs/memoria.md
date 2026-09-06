@@ -4,6 +4,43 @@
 
 # Memoria — ETHOnline 2026
 
+## 2026-09-06 — Privy: wallet aditiva para el pago x402 + `defineChain(296)` (worktree `sponsor-privy-wallet`)
+
+**Qué se hizo:**
+- Slice C de §10.4. Todo el código nuevo en `app/features/wallet/**`; puntos de contacto mínimos
+  en `QueryScreen.tsx`, `VerifyScreen.tsx` (solo el selector de wallet + `wallet.signPayment`) y
+  `App.tsx` (montar `PrivyWalletProvider`). `hederaPayment.ts` intacto (invariante con git diff).
+- `privyChain.ts`: `defineChain({ id: 296, … rpcUrls: [Hashio testnet] })` con viem. Lectura
+  on-chain real por esa config vía `smoke-read-chain.mjs`: chainId `0x128`, block `~40171461`,
+  balance de `0x…0002` `33896519248405508330000000000` weibar. `onchainRead.ts` expone la misma
+  lectura con `createPublicClient` para el test opt-in.
+- `spendingPolicy.ts` (puro): tope mensual + tope por pago en tinybar, `assertWithinPolicy` corre
+  antes de firmar. `walletCore.ts`: `resolveAvailableModes` / `createPaymentWallet` con inyección
+  de deps (demo = `buildSignedPaymentHeader`, privy = signer + política). `PrivyWalletProvider.tsx`
+  + `usePaymentWallet()` cablean las fuentes reales; hook con fallback demo-only sin provider.
+- `privyEmbeddedWallet.ts`: único punto que toca el SDK de Privy, con `require` perezoso. `viem`
+  agregado a `package.json` (lo usa Privy igual). `@privy-io/expo` NO agregado — ver decisión.
+- Tests: 7 suites (`unit/wallet/{spendingPolicy,walletCore,privyChain,screen-wiring,hedera-relay-read}`,
+  `fuzz/wallet/spendingPolicy`, `invariant/wallet/{demo-flow-unchanged,no-header-over-policy}`).
+
+**Decisión escogida:** no meter `@privy-io/expo` al `package.json`. Sus peers nativos
+(`react-native-passkeys`, `permissionless`, varios `expo-*`, `@privy-io/expo-native-extensions`,
+`react-native-qrcode-styled`) son riesgo real para el `npm install` del path congelado de Hedera
+en RN 0.86 / Expo 57. El adaptador queda listo con carga perezosa: sin SDK, el modo privy no
+aparece y el flujo demo es bit-idéntico. El humano instala el SDK cuando cree la cuenta Privy.
+
+**Qué NO se verificó, y por qué:**
+- Firma real con la embedded wallet de Privy: sin cuenta Privy. `makePrivySigner.signPayment`
+  lanza `privy_embedded_wallet_signing_not_wired` con un marcador BLOCKED explícito. Smoke y
+  pasos de cableado en `docs/integrations/privy-hedera.md`.
+- Render nativo del selector en dispositivo: sin hardware (igual que el resto del repo). Cubierto
+  por test de estructura (`screen-wiring.spec.ts`) + la lógica de `WalletModeSelector`.
+
+**VERIFY:** `cd app && npm install && npx tsc --noEmit` → 0 · `npx jest` → 68 suites / 300 tests,
+0 fallos (1 skip = test de relay en vivo, opt-in). Sin regresión vs baseline (61 suites / 3 flakes
+bajo carga documentados en la entrada anterior — ahora 0 flakes en full-run). Sin dev servers
+levantados.
+
 ## 2026-09-05 — Bazantic: prerrequisito confirmado, spec de Recipes (worktree `feature-bazantic-recipes`)
 
 **Qué se hizo:**

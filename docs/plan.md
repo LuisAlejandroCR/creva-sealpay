@@ -17,6 +17,41 @@ checklist.
 
 ## Abiertos
 
+- [ ] **2026-09-06 — Privy: capa de wallet aditiva para el pago x402 + `defineChain(296)`
+  (worktree `sponsor-privy-wallet`, rama off `origin/main`, NO pusheada).** Slice C de §10.4.
+  Cubre las 2 pistas de Privy ($2.5k B2B financial product + $2.5k best financial flow) con una
+  integración. **Hecho y verificado en local:**
+  - `defineChain(296)` con viem (`app/features/wallet/privyChain.ts`) + lectura on-chain real
+    contra el Hedera JSON-RPC Relay (Hashio testnet, `https://testnet.hashio.io/api`). Respuesta
+    real: `eth_chainId` = `0x128` (296), `eth_blockNumber` ≈ `40171461`, `eth_getBalance` de
+    `0x…0002` = `33896519248405508330000000000` weibar. Script:
+    `node app/features/wallet/smoke-read-chain.mjs`. Test opt-in:
+    `RUN_HEDERA_RELAY_TEST=1 npx jest hedera-relay-read`.
+  - `usePaymentWallet()` (`app/features/wallet/PrivyWalletProvider.tsx`) con modos `demo` | `privy`.
+    `demo` delega **verbatim** en `buildSignedPaymentHeader` / `readDemoCredentialsFromEnv` sin
+    tocar `hederaPayment.ts`. `privy` aplica una política de gasto (tope mensual + tope por pago,
+    en tinybar) ANTES de construir cualquier header — eso es el "B2B financial product".
+  - Selector de wallet en `QueryScreen` y `VerifyScreen` (default `demo`, se oculta si solo hay
+    una opción). `PrivyWalletProvider` montado en `App.tsx`.
+  - Tests: 7 suites nuevas en `app/test/{unit,fuzz,invariant}/wallet/**`. 3 invariantes:
+    "sin `EXPO_PUBLIC_PRIVY_APP_ID` el modo privy no aparece y el demo es idéntico",
+    "signPayment nunca produce header por un monto que exceda la política",
+    "`hederaPayment.ts` no cambia (git diff vs origin/main vacío)".
+  - VERIFY: `npx tsc --noEmit` 0 · `npx jest` 68 suites / 300 tests, 0 fallos (1 skip opt-in).
+  **Decisión escogida:** NO se agregó `@privy-io/expo` a `package.json` — su set de peers nativos
+  (`react-native-passkeys`, `permissionless`, `expo-crypto/linking/clipboard/application`,
+  `@privy-io/expo-native-extensions`, `react-native-qrcode-styled`) es riesgo real para el
+  `npm install` del path congelado de Hedera. Solo entró `viem` (que Privy ya usa). El adaptador
+  del SDK (`app/features/wallet/privyEmbeddedWallet.ts`) hace `require` perezoso y defensivo: hasta
+  que el humano instale el SDK, `loadPrivyExpo()` devuelve `null` y el modo privy no aparece.
+  **Falta (bloqueado sin cuenta Privy real):** crear la app en el dashboard de Privy, instalar el
+  SDK, y cablear `makePrivySigner` (provisión de la embedded wallet para chain 296 + firma del
+  payload x402 vía el provider EIP-1193). Ver `docs/integrations/privy-hedera.md`. Env vars que
+  el humano debe crear: `EXPO_PUBLIC_PRIVY_APP_ID`, `EXPO_PUBLIC_PRIVY_CLIENT_ID`,
+  `EXPO_PUBLIC_PRIVY_MONTHLY_CAP_TINYBAR`, `EXPO_PUBLIC_PRIVY_PER_PAYMENT_CAP_TINYBAR`,
+  `EXPO_PUBLIC_HEDERA_JSON_RPC_URL` (opcional, default Hashio). `PRIVY_APP_SECRET` es server-side y
+  no se usa en este slice.
+
 - [ ] **2026-09-06 — COORDINACIÓN: `app/features/help/**` reasignado a la sesión "1 UI/UX"
   (`feature-last-screens-parity`).** El humano lo reasignó el 2026-09-06 tras comparar las
   pantallas de Ayuda nativas contra la web y verlas a medio construir. Sale del área

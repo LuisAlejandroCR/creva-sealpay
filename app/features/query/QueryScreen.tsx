@@ -11,7 +11,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Card, Progress, Section } from "./components/VisualPrimitives";
 import { ReportPreviewCard } from "./components/ReportPreviewCard";
 import { PaymentRequired, QueryResult, requestSignal } from "./gatewayClient";
-import { buildSignedPaymentHeader, readDemoCredentialsFromEnv } from "./hederaPayment";
+import { usePaymentWallet } from "../wallet/PrivyWalletProvider";
+import { WalletModeSelector } from "../wallet/WalletModeSelector";
+import { WalletNotConfiguredError } from "../wallet/walletCore";
 import { BackButton } from "../shared/BackButton";
 
 type Phase = "idle" | "loading" | "payment_required" | "paying" | "paid" | "error";
@@ -19,6 +21,7 @@ type Phase = "idle" | "loading" | "payment_required" | "paying" | "paid" | "erro
 const BUSINESS_NAME = "Panaderia La Espiga";
 
 export function QueryScreen({ onVerify, onBack }: { onVerify: (result: QueryResult) => void; onBack?: () => void }) {
+  const { wallet, mode, availableModes, setMode, recordPayment } = usePaymentWallet();
   const [phase, setPhase] = useState<Phase>("idle");
   const [pendingPayment, setPendingPayment] = useState<PaymentRequired | null>(null);
   const [result, setResult] = useState<QueryResult | null>(null);
@@ -48,19 +51,28 @@ export function QueryScreen({ onVerify, onBack }: { onVerify: (result: QueryResu
     setPhase("paying");
     setErrorMessage(null);
     try {
-      const credentials = readDemoCredentialsFromEnv();
-      if (!credentials) {
-        setErrorMessage("No hay una billetera Hedera de demo configurada (EXPO_PUBLIC_HEDERA_DEMO_*).");
+      let paymentHeader: string;
+      try {
+        paymentHeader = await wallet.signPayment(pendingPayment.accepts[0]);
+      } catch (signErr) {
+        if (signErr instanceof WalletNotConfiguredError) {
+          setErrorMessage("No hay una billetera Hedera de demo configurada (EXPO_PUBLIC_HEDERA_DEMO_*).");
+          setPhase("payment_required");
+          return;
+        }
+        setErrorMessage(signErr instanceof Error ? signErr.message : "No se pudo firmar el pago.");
         setPhase("payment_required");
         return;
       }
-      const paymentHeader = await buildSignedPaymentHeader(pendingPayment.accepts[0], credentials);
       const res = await requestSignal({ businessName: BUSINESS_NAME }, paymentHeader);
       if (res.status === 402) {
         setPendingPayment(res);
         setErrorMessage(res.error ?? "El gateway rechazó el pago.");
         setPhase("payment_required");
         return;
+      }
+      if (wallet.mode === "privy") {
+        recordPayment(BigInt(pendingPayment.accepts[0].maxAmountRequired));
       }
       setResult(res);
       setPhase("paid");
@@ -135,6 +147,7 @@ export function QueryScreen({ onVerify, onBack }: { onVerify: (result: QueryResu
                 </Text>
               </View>
               <Text className="text-sm leading-5 text-text/70">Reporte de señales Creva</Text>
+              <WalletModeSelector mode={mode} availableModes={availableModes} onSelect={setMode} />
               {errorMessage ? (
                 <Text className="text-sm leading-5 text-crimson" testID="payment-error">
                   {errorMessage}
