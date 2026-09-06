@@ -2470,3 +2470,40 @@ integrar `feature-last-screens-parity`; off `main` 7638dbb):**
 
 **Dónde queda el pendiente:** commit en el worktree, sin push (instrucción del Main). Reporte del
 commit block al Main; puede ir directo al Solver.
+
+## 2026-09-06 — ScoreScreen con el score real (worktree `feature-scorescreen-real`, off `origin/main` `29b635f`)
+
+**Qué se hizo (resultado verificable):**
+- **Respuesta a la pregunta de investigación (core-directo vs gateway): core-directo.** El score
+  se obtiene golpeando el core con la sesión Clerk, igual que `DashboardScreen`. Evidencia:
+  `app/lib/api.ts:7` (`BASE = process.env.EXPO_PUBLIC_API_URL`), `:312` (`score.get()` →
+  `request<ScoreData>('/score')`), `:89-96` (adjunta el `Bearer <clerk token>` de `sessionSource`,
+  identidad del usuario, nunca estática), `DashboardScreen.tsx:55-69` (patrón de referencia).
+  `gateway/src/index.ts` solo expone `/creva-score/{report,verify,anchor}` (x402 + identidad de
+  servicio). **No se agregó nada al gateway** — el score es por-cuenta y la identidad de servicio
+  devolvería la cuenta equivocada.
+- `app/features/score/ScoreScreen.tsx` reconstruida contra `creva_finance/frontend/app/score/page.tsx`:
+  quitado `scoreValue = 74`; ahora `Promise.allSettled([score.get(), recommendations.get(),
+  crevaScore.disclosure()])` en un `useEffect` con `loading`/`error` reales. Título "Score Creva",
+  gauge `ring` con el valor real, factores ("Qué mide / Cómo vas / Qué lo movería" vía
+  `score-display.ts`), recomendaciones, "Sigue por aquí" (`NEXT_STOPS` portado), disclosure "qué no
+  hace este puntaje", `BackButton` + "Ayuda sobre tu score". Mapa `ScoreBandKey → BandTone` local
+  porque `scoreBand()` de `score-display.ts` devuelve `var(--cr-*)`, inútil en RN.
+- `app/App.tsx`: `ScoreScreen` recibe `onBack`→`home` y `onOpenHelp`→`openHelpArticle("/help/score/como-se-calcula")`.
+- Tests nuevos: `test/unit/score/{structure,render}.spec.ts`, `test/fuzz/score/score-render.fuzz.spec.ts`,
+  `test/invariant/score/score-real-only.invariant.spec.ts`. Invariantes: score core-directo con
+  token de sesión (nunca `getCrevaAccessToken`/estático); ScoreScreen no importa gateway; sin
+  fallback numérico (el gauge solo se renderiza en la rama `scoreValue !== null`). Fuzz: cualquier
+  score de la API se pinta exacto; cualquier rechazo → estado error sin dígitos.
+
+**Qué NO se verificó, y por qué:**
+- Score real contra un core desplegado con sesión Clerk real — sin backend en esta sesión; los
+  tests mockean `score.get()` en la frontera de red.
+- Render nativo lado a lado contra `creva_finance/frontend` — mismo bloqueo `react-native-web`
+  del resto del repo (segunda vista visual, sesión 2). No se afirma paridad visual.
+- `tsc --noEmit` limpio. `jest` full-run: 68/68 suites, 309/309 tests (baseline `29b635f`:
+  64 suites / 295 tests; +5 suites / +14 tests). Un run intermedio marcó `auth/auth-gate` en rojo
+  por el flake de `act(...)` bajo carga; pasa aislado y en el re-run full.
+
+**Dónde queda el pendiente:** commit en el worktree, sin push (instrucción del Main). Blocker de
+ScoreScreen movido a Cerrados en `docs/plan.md` en el mismo lote.
