@@ -21,6 +21,18 @@ import { VerifyScreen } from "./features/verify/VerifyScreen";
 import { DashboardScreen } from "./features/dashboard/DashboardScreen";
 import { ProfileScreen } from "./features/profile/ProfileScreen";
 import { DeleteAccountScreen } from "./features/profile/DeleteAccountScreen";
+import { PersonalDataScreen } from "./features/profile/PersonalDataScreen";
+import { FiscalInfoScreen } from "./features/profile/FiscalInfoScreen";
+import { SecurityScreen } from "./features/profile/SecurityScreen";
+import { MovementsScreen } from "./features/more/MovementsScreen";
+import { StatementsScreen } from "./features/more/StatementsScreen";
+import { NotificationsScreen } from "./features/more/NotificationsScreen";
+import { RegulatoryScreen } from "./features/more/RegulatoryScreen";
+import { ReportScreen } from "./features/more/ReportScreen";
+import { CollateralScreen } from "./features/more/CollateralScreen";
+import { BusinessVerificationScreen } from "./features/more/BusinessVerificationScreen";
+import { CalculatorScreen } from "./features/more/CalculatorScreen";
+import { PrivacyScreen } from "./features/more/PrivacyScreen";
 import { HelpScreen } from "./features/help/HelpScreen";
 import { HelpCategoryScreen } from "./features/help/HelpCategoryScreen";
 import { HelpArticleScreen } from "./features/help/HelpArticleScreen";
@@ -248,27 +260,18 @@ function AppFlow() {
       />
     );
   } else if (step === "profile-details") {
-    screen = (
-      <StubScreen
-        title="Datos personales"
-        icon="profile"
-        body={findArticle("datos", "cambiar-mis-datos")?.article.answer}
-        onBack={() => setStep("profile")}
-      />
-    );
+    screen = <PersonalDataScreen onBack={() => setStep("profile")} />;
   } else if (step === "profile-fiscal") {
-    screen = <StubScreen title="Información fiscal" icon="fiscal" onBack={() => setStep("profile")} />;
+    screen = <FiscalInfoScreen onBack={() => setStep("profile")} />;
   } else if (step === "profile-security") {
+    screen = <SecurityScreen onBack={() => setStep("profile")} />;
+  } else if (step === "profile-delete-account") {
     screen = (
-      <StubScreen
-        title="Seguridad"
-        icon="security"
-        body={findArticle("entrar", "cambiar-contrasena")?.article.answer}
+      <DeleteAccountScreen
         onBack={() => setStep("profile")}
+        onOpenPrivacy={() => openStub("privacy", "profile-delete-account")}
       />
     );
-  } else if (step === "profile-delete-account") {
-    screen = <DeleteAccountScreen onBack={() => setStep("profile")} />;
   } else if (step === "help") {
     screen = (
       <HelpScreen
@@ -303,6 +306,24 @@ function AppFlow() {
         onOpenHelp={() => setStep("help")}
       />
     );
+  } else if (step === "stub" && activeStub === "movements") {
+    screen = <MovementsScreen onBack={() => setStep(previousStep)} />;
+  } else if (step === "stub" && activeStub === "statements") {
+    screen = <StatementsScreen onBack={() => setStep(previousStep)} />;
+  } else if (step === "stub" && activeStub === "notifications") {
+    screen = <NotificationsScreen onBack={() => setStep(previousStep)} />;
+  } else if (step === "stub" && activeStub === "regulatory") {
+    screen = <RegulatoryScreen onBack={() => setStep(previousStep)} />;
+  } else if (step === "stub" && activeStub === "report") {
+    screen = <ReportScreen onBack={() => setStep(previousStep)} />;
+  } else if (step === "stub" && activeStub === "collateral") {
+    screen = <CollateralScreen onBack={() => setStep(previousStep)} />;
+  } else if (step === "stub" && activeStub === "business-verification") {
+    screen = <BusinessVerificationScreen onBack={() => setStep(previousStep)} />;
+  } else if (step === "stub" && activeStub === "calculator") {
+    screen = <CalculatorScreen onBack={() => setStep(previousStep)} />;
+  } else if (step === "stub" && activeStub === "privacy") {
+    screen = <PrivacyScreen onBack={() => setStep(previousStep)} />;
   } else if (step === "stub" && activeStub) {
     const topic = findStubTopic(activeStub);
     screen = (

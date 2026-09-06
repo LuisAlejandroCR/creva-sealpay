@@ -14,6 +14,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
+  setupFiles: ['<rootDir>/jest.setup.js'],
   // @hashgraph/sdk's react-native build (and its @hiero-ledger/cryptography dependency) ships
   // ESM in node_modules like the rest of the RN ecosystem — extend jest-expo's default ignore
   // pattern instead of replacing it, so those packages get babel-transformed too.

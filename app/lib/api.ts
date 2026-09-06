@@ -554,6 +554,19 @@ export const statements = {
     )
   },
 
+  // React Native has no File/Blob from a file picker — expo-document-picker hands back
+  // {uri, name, mimeType} instead, which RN's fetch+FormData accepts directly.
+  uploadNative: (files: { uri: string; name: string; mimeType: string }[]) => {
+    const form = new FormData()
+    files.forEach((file) =>
+      form.append('files', { uri: file.uri, name: file.name, type: file.mimeType } as unknown as Blob),
+    )
+    return requestMultipart<{ uploaded: number; failed: number; results: StatementUploadResult[] }>(
+      '/statements/upload',
+      form,
+    )
+  },
+
   remove: (id: string) => request<{ success: boolean }>(`/statements/${id}`, { method: 'DELETE' }),
 }
 

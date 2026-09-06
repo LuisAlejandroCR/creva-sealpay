@@ -17,6 +17,327 @@ checklist.
 
 ## Abiertos
 
+- [ ] **2026-09-05 — Migración de PWA a app nativa (iOS/Android): replicar cada pantalla y acción
+  de `creva_finance/frontend` en `app/`, uno por uno.** Decisión escogida: **no** un lote — se
+  sigue la misma disciplina que "Paridad móvil, tercera revisión" de abajo (una pantalla por pasada,
+  documentada, sin autocertificar cierre). Worktree/rama: `feature-mobile-native-parity`.
+  **Backlog de rutas del frontend (`creva_finance/frontend/app/**/page.tsx`) contra su pantalla
+  mobile**, para ir tomando una a la vez:
+  - `profile/delete-account` → `DeleteAccountScreen.tsx` — **primer incremento hecho 2026-09-05**
+    (ver más abajo), pendiente de segunda vista.
+  - `credit` → `CreditScreen.tsx` — mobile es intencionalmente mínima (decisión ya registrada,
+    "Crédito son pantallas mínimas reales nuevas"); no replicar el flujo completo de 6 pasos sin
+    reconfirmar que ese es el alcance querido para la migración nativa.
+  - `cards` / `card-create` → `CardScreen.tsx` — mobile es un stub "PRONTO"; mismo caso que Crédito.
+  - `score` → `ScoreScreen.tsx`, `dashboard` → `DashboardScreen.tsx`, `help`/`help/[category]` →
+    `HelpScreen.tsx`/`HelpCategoryScreen.tsx`/`HelpArticleScreen.tsx` — cubiertos por los worktrees
+    Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
+    coordinar (regla de §Colaboración punto 7).
+  - **Todos los stubs de "Más" ya tienen pantalla real** (incrementos 1-13 de abajo):
+    `profile/details`, `profile/fiscal`, `profile/security`, `movements`, `statements`,
+    `notifications`, `regulatory`, `report`, `collateral`, `business-verification`, `calculator` y
+    `privacy`. `StubScreen.tsx` ya no se monta para ninguna clave del backlog original — queda como
+    fallback genérico sin usar. Pendiente de este bloque: la segunda vista visual de las 13
+    pantallas (bloqueo `react-native-web`/NativeWind) y decidir el alcance de `credit`/`card`/`kyc`/
+    `auth` con el humano.
+  - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
+    evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
+
+- [ ] **2026-09-05 — Segundo incremento de la migración: `PersonalDataScreen.tsx` nueva, reemplaza
+  el `StubScreen` genérico de "Datos personales" (`profile/details`).** Puerto real de
+  `creva_finance/frontend/app/profile/details/page.tsx`: nombres/apellidos/teléfono editables vía
+  `profiles.get()`/`profiles.update()` de `app/lib/api.ts` (ya existía el cliente, no se tocó);
+  correo de solo lectura desde la sesión de Clerk (`useUser().primaryEmailAddress`), mismo criterio
+  que el frontend — el backend todavía acepta tokens pre-Clerk que devolverían el correo de otra
+  cuenta. Estados de carga (`ActivityIndicator`), error y "Cambios guardados" replicados. Sin
+  componente `Button` compartido en el proyecto — se siguió la convención ya existente
+  (`Pressable` + `bg-crimson`, ver `QueryScreen.tsx`) en vez de crear una abstracción nueva.
+  `App.tsx`: `step === "profile-details"` ahora monta `PersonalDataScreen` en vez de `StubScreen`.
+  Test nuevo `app/test/unit/profile/personal-data.spec.ts` (mismo patrón de aserciones por fuente
+  que `profile/structure.spec.ts`, sin montar Clerk). `tsc --noEmit` limpio, `npx jest` verde
+  (42/42 suites, 179/179 tests — antes 41/176).
+  **No se verificó:** el resultado nativo/visual — mismo bloqueo de `react-native-web` vs.
+  NativeWind que el resto de esta migración; tampoco se probó el guardado contra un backend real
+  (no hay credenciales/entorno de backend de Creva disponibles desde esta sesión de agente, distinto
+  del frontend Next.js que sí se pudo autenticar). **No autocertificada como cerrada** — falta
+  segunda vista.
+
+- [ ] **2026-09-05 — Tercer incremento de la migración: `FiscalInfoScreen.tsx` nueva, reemplaza el
+  `StubScreen` genérico de "Información fiscal" (`profile/fiscal`).** Puerto real de
+  `creva_finance/frontend/app/profile/fiscal/page.tsx`: tipo de persona (Física/Moral), RFC, razón
+  social, régimen fiscal, estado (catálogo INEGI, `app/lib/mx-states.ts`, ya portado, no se tocó),
+  código postal y dirección — todo vía `profiles.getFiscal()`/`profiles.updateFiscal()` de
+  `app/lib/api.ts` (ya existía, no se tocó). Mismo disclosure "no es asesoría fiscal" que el
+  frontend. **Nuevo:** `app/features/profile/components/FormField.tsx` — `TextField`,
+  `SelectField` y `SegmentedField` compartidos, extraídos porque ya son 2 pantallas (Datos
+  personales y esta) usando el mismo patrón de campo; `PersonalDataScreen.tsx` se refactorizó para
+  reusar `TextField` en vez de mantener su copia local. React Native no tiene `<select>` nativo:
+  `SelectField` es un `Pressable` que expande una lista de opciones en línea — no se agregó ninguna
+  dependencia de picker. `App.tsx`: `step === "profile-fiscal"` ahora monta `FiscalInfoScreen` en
+  vez de `StubScreen`. Test nuevo `app/test/unit/profile/fiscal-info.spec.ts` (mismo patrón de
+  aserciones por fuente). `tsc --noEmit` limpio, `npx jest` verde (43/43 suites, 183/183 tests).
+  **No se verificó:** el resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind) ni
+  el guardado contra el backend real de Creva (sin credenciales de ese backend). El `SelectField`
+  en particular no se probó interactivamente — es una lista expandible simple, no se descarta que
+  necesite ajuste de UX una vez visible (scroll dentro de la lista si el catálogo de estados es
+  largo, por ejemplo) — anotado para la segunda vista. **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Cuarto incremento de la migración: `SecurityScreen.tsx` nueva, reemplaza el
+  `StubScreen` genérico de "Seguridad" (`profile/security`).** Puerto real de
+  `creva_finance/frontend/app/profile/security/page.tsx`: tres cards (cambiar contraseña, tu sesión,
+  tus datos), la primera con acción real vía `auth.forgotPassword()` (`app/lib/api.ts`, ya existía).
+  **Desviación deliberada del "as is" literal:** el frontend lee el correo con `auth.me()` (backend
+  pre-Clerk); esta pantalla lo lee de la sesión de Clerk (`useUser().primaryEmailAddress`), mismo
+  criterio ya aplicado en `PersonalDataScreen.tsx` — un token pre-Clerk puede devolver el correo de
+  otra cuenta, y enviar un enlace de reseteo a la cuenta equivocada es justo el tipo de bug que ese
+  criterio existe para evitar. Test nuevo `app/test/unit/profile/security.spec.ts`. `tsc --noEmit`
+  limpio, `npx jest` verde (44/44 suites, 187/187 tests).
+  **No se verificó:** resultado nativo/visual (mismo bloqueo ya documentado) ni que
+  `auth.forgotPassword()` realmente dispare un correo para una cuenta creada vía Clerk (el endpoint
+  es pre-Clerk; si Clerk gestiona su propio flujo de contraseña por separado, este botón podría no
+  tener efecto real para usuarios Clerk-only — no se investigó más a fondo, es una pregunta de
+  arquitectura de auth más grande que esta sola pantalla). **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Quinto incremento de la migración: `MovementsScreen.tsx` nueva, reemplaza el
+  stub genérico de "Movimientos" en "Más".** Puerto real de
+  `creva_finance/frontend/app/movements/page.tsx`: mezcla movimientos de tarjeta
+  (`transactions.list()`) y de estados de cuenta (`statements.list()` + `statements.entries()`),
+  agrupados por "Hoy/Ayer/Esta semana/Antes", filtrables (Todos/Ingresos/Gastos), con modal de
+  detalle que permite corregir la categoría solo de los movimientos de estado de cuenta
+  (`statements.reclassify()`) y compartir el texto del movimiento (sin datos de cuenta) vía la hoja
+  nativa `Share.share()` de React Native — sin dependencia nueva, es API del framework. Toda la
+  lógica de bucketing/formateo/share-text es la misma del frontend, portada literalmente (mismo
+  criterio "as is" pedido). `App.tsx`: la clave de stub `"movements"` ahora se intercepta antes del
+  `StubScreen` genérico y monta `MovementsScreen`. El modal de detalle usa `Modal` nativo de React
+  Native (no `BottomSheet` del frontend, que es un componente web) — mismo contenido y acciones,
+  presentación adaptada al framework. `SegmentedField`/`SelectField` reusados de
+  `app/features/profile/components/FormField.tsx` para el filtro y el selector de categoría — son
+  controles genéricos, no específicos de perfil, así que reusarlos entre features es la decisión
+  correcta en vez de duplicar. Test nuevo `app/test/unit/more/movements.spec.ts`. `tsc --noEmit`
+  limpio, `npx jest` verde (45/45 suites, 191/191 tests).
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni el
+  modal/share/reclasificación contra datos reales (sin backend de Creva disponible desde esta
+  sesión). El modal usa `rounded-t-3xl` con `bg-bg` — no se confirmó que el contraste sobre
+  `bg-black/40` de fondo se vea bien en modo oscuro, si el proyecto llegara a soportarlo (hoy no lo
+  soporta, ver tema de esta app). **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Sexto incremento de la migración: `StatementsScreen.tsx` nueva, reemplaza el
+  stub genérico de "Estados de cuenta" en "Más". Primera pantalla de esta migración que necesitó
+  dependencias nativas nuevas — confirmado con el humano antes de instalar.** Puerto real de
+  `creva_finance/frontend/app/statements/page.tsx`: gate de términos (una vez, persistido),
+  selector de archivos CSV/Excel/PDF, subida, resultado por archivo, historial con
+  revisar/quitar-con-confirmación, y corrección de categoría por movimiento — todo vía
+  `statements.list()/summary()/entries()/reclassify()/remove()` (`app/lib/api.ts`, ya existían).
+  **Dependencias nuevas instaladas** (`npx expo install`, aprobadas explícitamente en el chat antes
+  de tocar `package.json`): `expo-document-picker` (reemplaza el `<input type="file">` del
+  frontend — no hay equivalente nativo) y `@react-native-async-storage/async-storage` (reemplaza
+  `localStorage` para el flag de términos aceptados).
+  **Nuevo en `app/lib/api.ts`:** `statements.uploadNative()` — variante de `statements.upload()`
+  para el objeto `{uri, name, mimeType}` que devuelve `expo-document-picker`, ya que React Native no
+  tiene `File`/`Blob` de un picker; reusa el mismo `requestMultipart` interno, no se duplicó lógica
+  HTTP. `statements.upload()` original queda intacto para no romper el frontend.
+  **Infraestructura de test nueva:** `app/jest.config.js` ganó `setupFiles`, y `app/jest.setup.js`
+  (nuevo) mockea `@react-native-async-storage/async-storage` con su propio mock oficial de Jest —
+  sin esto, cualquier test que importe algo que toque `AsyncStorage` truena con
+  `NativeModule: AsyncStorage is null` (Jest corre en Node, no en un dispositivo). Esto beneficia a
+  cualquier pantalla futura que use `AsyncStorage`, no solo esta.
+  `StackedBar` del frontend (SVG/CSS) se tradujo a una barra simple con `flex` proporcional — sin
+  librería de gráficos nueva. Test nuevo `app/test/unit/more/statements.spec.ts`. `tsc --noEmit`
+  limpio, `npx jest` verde (46/46 suites, 196/196 tests — un fallo de timeout intermitente en
+  `auth-gate.spec.ts`/`help/search.spec.ts` bajo carga completa, confirmado no relacionado: pasa
+  aislado y en un segundo full-run).
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), la
+  subida real de un archivo contra el backend de Creva (sin credenciales de ese backend), ni que
+  `expo-document-picker` funcione igual en iOS vs. Android (el picker del sistema difiere entre
+  plataformas — no hay dispositivo/simulador disponible desde esta sesión para confirmarlo).
+  **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Decimotercer incremento de la migración: `PrivacyScreen.tsx` nueva, reemplaza
+  el `StubScreen` genérico de "Aviso de privacidad" (`privacy`). Último stub del backlog original.**
+  Puerto real de `creva_finance/frontend/app/privacy/page.tsx`: el aviso de privacidad que exige la
+  LFPDPPP. **Sin API detrás — es texto legal**, caso explícitamente permitido por el criterio de
+  aceptación (documentar por qué no hay API real). El copy va 1:1: las 9 secciones
+  (responsable, datos recopilados, finalidades, transferencia a terceros —Dynerox/Reap/Supabase—,
+  derechos ARCO, seguridad, cookies, cambios, contacto) con las frases enfatizadas conservadas como
+  runs en negrita (`Esa información de identidad nunca se almacena`, `privacidad@finarahub.mx`).
+  `App.tsx`: rama nueva `activeStub === "privacy"` monta `PrivacyScreen`; las entradas que ya
+  llamaban `openStub("privacy", …)` (DeleteAccountScreen, MoreSheet) caen en la pantalla real.
+  Sin dependencias nuevas. Test nuevo `app/test/unit/more/privacy.spec.ts` (verifica que no importa
+  `lib/api` ni usa `useState`/`useEffect`). `tsc --noEmit` limpio; `npx jest` verde (53/53 suites,
+  236/236 tests — antes 52/231).
+  **Desviación deliberada del "as is":** el layout `<section>`/`<h2>`/`<p>`/`<ul>` HTML se tradujo a
+  una estructura de datos (`SECTIONS`) renderizada con `Text`/`View`; el `<strong>` inline se
+  conserva como `<Text className="font-bold">` anidado. `ScreenHeader backToPrevious` → `BackButton`
+  al `previousStep` (mismo patrón que el resto de la migración).
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni que
+  el texto legal esté vigente/actualizado — se copió tal cual del frontend, que es la fuente de
+  verdad. **No autocertificada como cerrada — falta segunda vista.**
+
+- [ ] **2026-09-05 — Duodécimo incremento de la migración: `CalculatorScreen.tsx` nueva, reemplaza
+  el `StubScreen` genérico de "Calculadora" (`calculator`).** Confirmado que **sí tiene API real
+  detrás** (`calculator.get(income?)` de `app/lib/api.ts` → `CalculatorData`, ya existía, no se
+  tocó), a diferencia de lo que anotaba el backlog. Puerto real de
+  `creva_finance/frontend/app/calculator/page.tsx`: utilidad del periodo, barra ingresos/gastos
+  (traducción de `DonutChart` a un `flex` proporcional, sin librería de gráficos), la división
+  sugerida (Salario/Ahorro/Reinversión) con `splitPercent()` sobre los montos que devuelve la API —
+  **nunca se recalcula el porcentaje en el cliente**, es lógica de negocio del backend — y el campo
+  "Prueba otro ingreso" que reenvía `?income=` como override y puede volver a las cifras reales.
+  Sección "De dónde sale cada cifra" con `incomeSources`/`monthlyMargin`. `Progress` de
+  `VisualPrimitives.tsx` reusado para las tres barras; `TextField` compartido para el input.
+  `App.tsx`: rama nueva `activeStub === "calculator"` monta `CalculatorScreen` antes del
+  `StubScreen` genérico. Sin dependencias nuevas. Test nuevo
+  `app/test/unit/more/calculator.spec.ts`. `tsc --noEmit` limpio; `npx jest` verde (52/52 suites,
+  231/231 tests — antes 51/226).
+  **Desviación deliberada del "as is":** `DonutChart` (SVG web) → barra `flex` de dos segmentos;
+  `SPLIT_COLORS` (`var(--cr-*)`) → clases `bg-crimson`/`bg-warning-text`/`bg-success-text`; el
+  `<form onSubmit>` → un botón "Calcular" (no hay submit de formulario nativo).
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni
+  `calculator.get()` contra `/calculator` real (sin credenciales del backend de Creva — forma de la
+  respuesta, y si el override `?income=` se comporta igual, sin confirmar). **No autocertificada
+  como cerrada — falta segunda vista.**
+
+- [ ] **2026-09-05 — Undécimo incremento de la migración: `BusinessVerificationScreen.tsx` nueva,
+  reemplaza el `StubScreen` genérico de "Sello de tu negocio" (`business-verification`).** Puerto
+  real de `creva_finance/frontend/app/business-verification/page.tsx`: busca el negocio en el
+  directorio oficial vía `crevaScore.verify()` de `app/lib/api.ts` (ya existía, no se tocó) — es un
+  POST que gasta cuota, y **como el frontend, busca al abrir cuando el perfil fiscal
+  (`profiles.getFiscal()`) ya tiene nombre + estado**; si no, muestra los campos. `STATUS_COPY`
+  completo (verified/not_listed/ambiguous/unavailable), la frase "Tu puntaje no depende de esto",
+  las filas de procedencia del sello (`badge`), y las notas `matchedBy`/`searchedAs`/`rfcNote`.
+  Campos con `TextField`/`SelectField` compartidos de `app/features/profile/components/FormField.tsx`
+  (estado = catálogo `MX_STATES` ya portado). `App.tsx`: rama nueva
+  `activeStub === "business-verification"` monta la pantalla real antes del `StubScreen` genérico.
+  Sin dependencias nuevas. Test nuevo `app/test/unit/more/business-verification.spec.ts`.
+  `tsc --noEmit` limpio; `npx jest` verde (51/51 suites, 226/226 tests — antes 50/220).
+  **Desviación deliberada del "as is":** los avisos de estado usan tokens `success-*`/`info-*`/
+  `warning-*`/`danger-*` de `tailwind.config.js` en vez de las clases `.alert-*` del frontend (no
+  existen en la app). El enlace final "Ver reglas que te afectan" no se portó — cablear esa
+  navegación cruzada desde un stub necesita plomería en `App.tsx` fuera del alcance de una pantalla.
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni
+  `crevaScore.verify()` / `profiles.getFiscal()` contra el backend real de Creva (sin credenciales —
+  forma de la respuesta y ramas de estado sin confirmar). **No autocertificada como cerrada — falta
+  segunda vista.**
+
+- [ ] **2026-09-05 — Décimo incremento de la migración: `CollateralScreen.tsx` nueva, reemplaza el
+  `StubScreen` genérico de "Tu garantía" (`collateral`).** Puerto real de
+  `creva_finance/frontend/app/collateral/page.tsx`: estado de la garantía, monto confirmado/
+  pendiente, capacidad de gasto y la CLABE SPEI para depósito — todo vía `collateral.get()` de
+  `app/lib/api.ts` (ya existía, no se tocó). Mapa `STATUS_LABELS` y agrupado de CLABE
+  (`formatClabe`) idénticos al frontend. Estado de carga (`ActivityIndicator`), error, y el caso sin
+  `deposit_account` con su empty state y el `authorization_url` externo. `App.tsx`: rama nueva
+  `activeStub === "collateral"` monta `CollateralScreen` antes del `StubScreen` genérico. Sin
+  dependencias nuevas. Test nuevo `app/test/unit/more/collateral.spec.ts`. `tsc --noEmit` limpio;
+  `npx jest` verde (50/50 suites, 220/220 tests — antes 49/214).
+  **Desviaciones deliberadas del "as is":** (1) sin `KycGate` — no existe ese componente en mobile;
+  la app ya enruta por Clerk/SelfieCheck, así que la pantalla se muestra directo (anotado para la
+  segunda vista: confirmar si hace falta un gate equivalente). (2) La CLABE se entrega por
+  `Share.share({ message })` en vez de `navigator.clipboard.writeText` — sin dependencia de
+  portapapeles nueva (no se instaló `expo-clipboard`). (3) "Iniciar verificación" sin
+  `authorization_url` es texto guía en vez de un enlace a `/kyc` — cablear esa ruta desde un stub
+  necesitaría plomería en `App.tsx` fuera del alcance. (4) Avisos con tokens `warning-*`/`danger-*`
+  en vez de `.alert-*`.
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni
+  `collateral.get()` contra `/collateral` real (sin credenciales del backend de Creva — forma de la
+  respuesta y estados posibles sin confirmar). **No autocertificada como cerrada — falta segunda
+  vista.**
+
+- [ ] **2026-09-05 — Noveno incremento de la migración: `ReportScreen.tsx` nueva, reemplaza el
+  `StubScreen` genérico de "Tu reporte" (`report`).** Puerto real de
+  `creva_finance/frontend/app/report/page.tsx`: el reporte se arma con `crevaScore.report()` de
+  `app/lib/api.ts` (ya existía, no se tocó) — **es un POST que gasta cuota de proveedor, así que
+  igual que el frontend está detrás de un botón explícito "Generar mi reporte", nunca se dispara al
+  montar.** Vista previa con el aviso de que consulta el perfil fiscal, vista de resultado con
+  sujeto + fecha, la frase "N de estas M señales son sobre tu negocio", las categorías
+  (`REPORT_CATEGORIES`/`CATEGORY_TITLES`/`CATEGORY_HINTS`/`TONE_LABELS` de `app/lib/report-display.ts`,
+  ya portado, sin tocar), notas, "Qué se consultó", "Lo que este reporte NO dice"
+  (`disclosure.does_not_estimate`) y la card de sello (folio, línea de firma, `does_not_prove`).
+  `App.tsx`: rama nueva `activeStub === "report"` monta `ReportScreen` antes del `StubScreen`
+  genérico. Sin dependencias nuevas. Test nuevo `app/test/unit/more/report.spec.ts`. `tsc --noEmit`
+  limpio; `npx jest` verde (49/49 suites, 214/214 tests — antes 48/208).
+  **Desviaciones deliberadas del "as is":** (1) no se portó `ReportPaper` (la hoja imprimible) ni
+  `window.print()` — son web-only, no hay equivalente nativo sin dependencia nueva; (2) la entrega
+  del archivo sellado va por `Share.share()` con el JSON como `message` en vez de la descarga por
+  `Blob`/`<a download>` del navegador — sin dependencia nueva (no `expo-file-system`); (3)
+  `TONE_COLORS` de `report-display.ts` son strings `var(--cr-*)` inservibles en RN, se mapeó tono →
+  clase Tailwind localmente en la pantalla; (4) los avisos usan tokens `info-*`/`warning-*`/
+  `danger-*` en vez de `.alert-*` del frontend.
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni el
+  POST real contra `/creva-score/report` (sin credenciales del backend de Creva — no se confirmó la
+  forma de la respuesta, ni que `Share.share` con un JSON grande sea utilizable en la práctica en
+  iOS/Android). **No autocertificada como cerrada — falta segunda vista.**
+
+- [ ] **2026-09-05 — Octavo incremento de la migración: `RegulatoryScreen.tsx` nueva, reemplaza el
+  `StubScreen` genérico de "Reglas que te afectan" (`regulatory`).** Puerto real de
+  `creva_finance/frontend/app/regulatory/page.tsx`: el radar regulatorio se lee de
+  `crevaScore.radar()` de `app/lib/api.ts` (ya existía, no se tocó) — `SourceResult<RegulatoryRadar>`,
+  con `radar?.available ? radar.data : null` igual que el frontend. Las alertas se parten en
+  "Novedades publicadas" (`kind === "publication"`) y "Reglas que ya estaban vigentes"
+  (`kind === "standing_rule"`), cada una con su fuente oficial (mapa `SOURCE_LABELS` idéntico),
+  agencia, fecha (`formatLongDay`, ya portado) y `EvidenceLink` al documento. Estado de carga
+  (`ActivityIndicator`), fallback "Revisión no disponible" cuando `data === null`, y pie con fuentes
+  consultadas / fechas no leídas. Se conserva la frase de privacidad "Esta revisión no consulta
+  ningún dato tuyo". `App.tsx`: rama nueva `activeStub === "regulatory"` monta `RegulatoryScreen`
+  antes del `StubScreen` genérico (mismo patrón que Movimientos/Estados de cuenta/Avisos). Sin
+  dependencias nuevas. Test nuevo `app/test/unit/more/regulatory.spec.ts` (aserciones por fuente,
+  patrón de `more/notifications.spec.ts`). `tsc --noEmit` limpio; `npx jest` verde (48/48 suites,
+  208/208 tests — antes 47/202).
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind ya
+  documentado en los incrementos anteriores), ni el radar contra el backend real de Creva /
+  `/creva-score/radar` (sin credenciales de ese backend desde esta sesión — no se confirmó la forma
+  exacta de la respuesta ni que `alert.kind` venga poblado). El banner de privacidad y el fallback
+  usan tokens `info-*`/`warning-*` de `tailwind.config.js` en vez de las clases `.alert-info`/
+  `.alert-warning` del frontend (no existen en la app). **No autocertificada como cerrada — falta
+  segunda vista.**
+
+- [ ] **2026-09-05 — Séptimo incremento de la migración: `NotificationsScreen.tsx` nueva, reemplaza
+  el `StubScreen` genérico de "Avisos" (`notifications`).** Puerto real de
+  `creva_finance/frontend/app/notifications/page.tsx`: la lista de "Avisos" se arma con
+  `buildReminders()` de `app/lib/reminders.ts` (ya portado, no se tocó) alimentado por cuatro APIs
+  reales vía `Promise.allSettled` — `score.get()`, `credit.eligibility()`, `statements.list()` y
+  `statements.summary()` de `app/lib/api.ts` (ya existían, no se tocaron). Subtítulo por conteo de
+  pendientes, estado de carga (`ActivityIndicator`), estado vacío y el bloque "Beneficios y
+  recompensas / Próximamente" con los cuatro socios de lealtad, todo con el mismo copy del frontend.
+  `App.tsx`: nueva rama `activeStub === "notifications"` monta `NotificationsScreen` antes del
+  `StubScreen` genérico (mismo patrón que Movimientos y Estados de cuenta); las tres entradas que ya
+  abrían `openStub("notifications", …)` (Dashboard, Perfil, Más) caen en la pantalla real sin más
+  cableado. Sin dependencias nuevas. Test nuevo `app/test/unit/more/notifications.spec.ts` (mismo
+  patrón de aserciones por fuente que `more/movements.spec.ts`). `tsc --noEmit` limpio; `npx jest`
+  47/47 suites, 202/202 tests aislado — en el full-run bajo carga fallan por timeout
+  `auth/auth-gate.spec.ts` y `help/search.spec.ts` (flakiness ya documentada en el sexto
+  incremento, pasan aisladas: 3/3 suites, 11/11 tests). Antes: 46 suites / 196 tests.
+  **Desviación deliberada del "as is":** (1) las tarjetas de recordatorio son de solo lectura — el
+  frontend las envuelve en `<Link href={reminder.href}>`, pero la app no tiene router de deep-link
+  para seguir esas rutas desde una pantalla de stub; se muestra el CTA como texto. (2) los mosaicos
+  de socios usan el token `surface-2`/`crimson` de Creva en vez del hex de marca de cada socio que
+  el frontend incrusta inline — regla dura de "cero hex nuevo" + "no incrustar medios de terceros".
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind ya
+  documentado en los incrementos anteriores), ni el armado de la lista contra datos reales del
+  backend de Creva (sin credenciales de ese backend desde esta sesión). **No autocertificada como
+  cerrada — falta segunda vista.**
+
+- [ ] **2026-09-05 — Primer incremento de la migración: `DeleteAccountScreen.tsx` ganó paridad real
+  con `/profile/delete-account`, confirmado visualmente vía sesión autenticada real en el
+  frontend.** Screenshots reales tomados a 375×812 con la cuenta de prueba del frontend (login
+  persistido en el navegador, sesión ya autenticada). **Cambios:**
+  - Botón real "Escribir el correo" (`Linking.openURL(mailto:...)`) — mismo `MAILBOX`/`SUBJECT`/
+    `BODY` que `creva_finance/frontend/app/profile/delete-account/page.tsx`, antes la pantalla no
+    tenía ningún canal para iniciar la solicitud (hueco documentado en la auditoría anterior de
+    esta misma pantalla, ver bloque de arriba de "Paridad móvil").
+  - Card "Ten en cuenta" con la advertencia de permanencia (mismo texto que el `note` de
+    `borrar-mi-cuenta` en `help-content.ts`, que ya existía pero no se mostraba en esta pantalla).
+  - Enlace "Aviso de privacidad" que abre el stub `privacy` (`stub-topics.ts`), cableado en
+    `App.tsx` vía `openStub("privacy", "profile-delete-account")` — mismo patrón que el resto de la
+    navegación de `Más`.
+  - `VisualPrimitives.tsx`'s `Card` ganó un prop `tone?: "default" | "highlight"` (usa el token
+    `surface-2` ya existente en `tailwind.config.js`) para la card destacada — no se inventó ningún
+    color nuevo.
+  - `tsc --noEmit` y `npx jest` verdes (41/41 suites, 176/176 tests) después del cambio.
+  **No se verificó:** el resultado nativo (Expo Go / simulador) — sigue bloqueado por el conflicto
+  de versión `react-native-web`/NativeWind ya documentado arriba (`TypeError: Class extends value
+  undefined`), así que no se pudo confirmar visualmente en `app/` mismo, solo por lectura de código
+  y por paridad de texto/wiring contra el frontend ya screenshoteado. **No autocertificada como
+  cerrada** — falta segunda vista antes de mover a Cerrados.
+
 - [ ] **2026-09-05 — `facilitator.ts` no envuelve su `fetch` en try/catch: un facilitador
   caído tumba el proceso del gateway entero, no solo la request.** Sobrevive del bloque de abajo
   (ya resuelto el gap de config que lo disparó): con `FACILITATOR_URL` apuntando a
