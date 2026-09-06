@@ -3,6 +3,8 @@
 // its native peer set would put the frozen Hedera demo path at risk on every `npm install`). Until
 // the human installs it (see docs/integrations/privy-hedera.md), loadPrivyExpo() returns null, so
 // the Privy wallet mode simply never appears and the demo signer is untouched.
+import { Platform } from 'react-native'
+
 import type { PaymentRequirements } from '../query/gatewayClient'
 import { hederaTestnet } from './privyChain'
 
@@ -10,9 +12,16 @@ import { hederaTestnet } from './privyChain'
 const PRIVY_EXPO_MODULE = ['@privy', 'io/expo'].join('-')
 
 export function loadPrivyExpo(): unknown | null {
+  // The Metro web bundler rejects a dynamic require() expression outright, taking the whole
+  // bundle down. Privy's embedded wallet is native-only anyway, so the web preview never needs it.
+  if (Platform.OS === 'web') {
+    return null
+  }
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
-    return require(PRIVY_EXPO_MODULE)
+    // Indirection keeps the Metro parser from seeing a require() call site at all — a bare
+    // dynamic require() takes the whole web bundle down before the guard above can run.
+    const nativeRequire = new Function('name', 'return require(name)') as (n: string) => unknown
+    return nativeRequire(PRIVY_EXPO_MODULE)
   } catch {
     return null
   }
