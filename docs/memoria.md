@@ -1629,3 +1629,39 @@ ya no es un 500 genérico, es un error de validación específico y accionable. 
 
 **Dónde queda el pendiente:** ninguno propio del criterio de aceptación de la pista Hedera — cumplido
 con evidencia verificable on-chain. Pendiente cosmético: la aserción del test de integración.
+
+---
+
+## 2026-09-05 — Paridad sheet "Más" (sexto intento, worktree `feature-more-sheet-parity`)
+
+**Qué se hizo:** render-vs-render del sheet "Más" (web `localhost:3001`, app Expo web
+`localhost:8092`, 375x812). Se reconfirmó el bug transversal `fill` de `react-native-svg` (los 11
+glyphs del sheet salian negros solidos) — esta rama nace de `main` sin el fix de
+`feature-nav-parity-render`; se aplico el mismo cambio de una linea en `Icon.tsx`. `MoreSheet.tsx`:
+`Row` de vertical a horizontal (icono izq + label der, gap 10, min-h 56, pad 10/12, radius 14,
+label 13px/600 alineado izq) espejando `NavCell` de `BottomNav.tsx:131-158`; icono `22/text` ->
+`20/text-secondary` (stroke `#6F675C` medido en la web); titulo de grupo `16/600` -> `10/700
+uppercase tracking-0.08em text-subtle` (`.cr-nav-group-title`); grid `gap-3`->`gap-2`, tarjetas
+`w-[calc(50
+---
+
+## 2026-09-05 — Paridad sheet "Más" (sexto intento, worktree feature-more-sheet-parity)
+
+**Qué se hizo:** render-vs-render del sheet "Más" (web localhost:3001, app Expo web localhost:8092,
+375x812). Se reconfirmó el bug transversal de fill de react-native-svg (los 11 glyphs del sheet
+salian negros solidos) — esta rama nace de main sin el fix de feature-nav-parity-render; se aplico
+el mismo cambio de una linea en Icon.tsx (common -> { viewBox, fill: "none" }). MoreSheet.tsx: Row
+de vertical a horizontal (icono izq + label der, gap 10, min-h 56, pad 10/12, radius 14, label
+13px/600 alineado izq) espejando NavCell de BottomNav.tsx:131-158; icono 22/text -> 20/text-secondary
+(stroke 6F675C medido en la web); titulo de grupo 16/600 -> 10/700 uppercase tracking-0.08em
+text-subtle (.cr-nav-group-title); grid gap-3 -> gap-2, tarjetas w-[calc(50%-4px)], grupo mb-7 -> mb-4;
+titulo de pantalla text-3xl -> text-base + drag-handle. Valores verificados con getComputedStyle
+sobre el sheet web real.
+
+**Qué NO se verificó:** certificacion visual del par antes/despues (humano/Auditor); Expo Go en
+dispositivo fisico; el sheet sigue siendo pantalla completa en la app (no overlay modal) —
+divergencia deliberada ya documentada en la cabecera de MoreSheet.tsx. react-native-web y compania
+se instalaron solo para renderizar, package.json/lock revertidos, no van en el commit.
+
+**Dónde queda el pendiente:** bloque "Paridad movil, tercera revision" en docs/plan.md sigue
+abierto. El fix de Icon.tsx vive ahora en dos ramas sin mergear con el mismo cambio identico.

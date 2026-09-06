@@ -9,7 +9,7 @@
 > antes de tocar nada, y cerrar siempre documentando qué se hizo, qué no se verificó y por qué —
 > es el contexto que usan los demás agentes.
 
-**Última actualización:** 2026-09-05
+**Última actualización:** 2026-09-05 (sheet "Más" — paridad de iconos y layout de tarjeta, sexto intento)
 
 Ver [`brainstorming.md`](../brainstorming.md) §8 y §9 para el análisis completo. Detalle de
 qué-se-hizo/qué-no-se-verificó por sesión: [`docs/memoria.md`](memoria.md). Esta tabla es solo el
@@ -39,6 +39,40 @@ checklist.
   verificación y anclaje; `/score` todavía no está expuesto. Para datos personales
   debe conservarse la identidad Clerk del solicitante: la identidad de servicio
   devolvería el score de otra cuenta. No se ha verificado una sesión real.
+
+  **Actualización `2026-09-05` (sexto intento — sheet "Más" / `MoreSheet.tsx`, worktree
+  `feature-more-sheet-parity`, render-vs-render: `creva_finance/frontend` sheet abierto en
+  `localhost:3001` y `app/` vía Expo web en `localhost:8092`, 375×812).** Se confirmó de nuevo
+  el bug transversal de iconos rellenos de negro (todos los 11 glyphs del sheet salían sólidos):
+  esta rama nace de `main`, que **aún no tiene** el fix `fill="none"` de `Icon.tsx` que vive en
+  `feature-nav-parity-render` sin mergear (lección 13). Se aplicó el **mismo** cambio de una línea
+  aquí (`Icon.tsx` `common` → `{ viewBox, fill: "none" }`) — al mergear ambas ramas el cambio es
+  idéntico. Fixes de `MoreSheet.tsx` contra los valores computados de la web (medidos con
+  `getComputedStyle` sobre el sheet real):
+  1. `Row` era vertical (icono arriba, label centrado, `p-4`, `w-[47%]`); la web (`NavCell`,
+     `BottomNav.tsx:131-158`) es **horizontal**: icono izquierda + label derecha, `gap:10`,
+     `min-height:56`, `padding:10px 12px`, `radius:14`, `border 1px --cr-border`, label `13px/600
+     --cr-text` alineado a la izquierda. Portado 1:1.
+  2. Icono del `Row`: `size={22} color="text"` → `size={20} color="text-secondary"` — la web usa
+     `<svg width="20">` con `stroke: var(--cr-text-secondary)` (`#6F675C`), no el token de texto
+     oscuro.
+  3. Título de grupo: era `text-base font-semibold text-text` (16px/600, capitalización normal);
+     la web (`.cr-nav-group-title`, `globals.css:264`) es `10px/700`, `letter-spacing:0.08em`,
+     `uppercase`, `--cr-text-subtle`, `margin 0 0 8px`. Portado.
+  4. Grid: `gap-3`→`gap-2` (8px), tarjetas `w-[calc(50%-4px)]` para 2 columnas exactas;
+     contenedor de grupo `mb-7`→`mb-4` (16px).
+  5. Título de pantalla: `text-3xl font-bold`→`text-base font-semibold` (la web `<h2>` del
+     `BottomSheet` es `16px/600`), más un drag-handle (40×4, `--cr-border`) que espeja el chrome
+     del sheet web (`BottomSheet.tsx:74-78`).
+  Divergencia deliberada mantenida (ya documentada en la cabecera de `MoreSheet.tsx`): el sheet
+  web es un overlay modal con backdrop; la app lo renderiza como pantalla completa porque su
+  navegación es una máquina de estados sin primitiva de bottom-sheet. Los 11 paths de glyph ya
+  estaban bien citados (`stub-topics.ts` los mapea a los nombres correctos de `Icon.tsx`, que a
+  su vez copian `BottomNav.tsx` NAV_GLYPHS); el problema era solo el `fill` y el layout de la
+  tarjeta. **Verify:** `tsc --noEmit` limpio; `jest unit fuzz invariant` → 41/176 verdes (mismo
+  flake de carga de `auth-gate.spec.ts`, verde en reruns aislados). **Falta:** certificación
+  visual del par antes/después por humano o Auditor; Expo Go en dispositivo físico real (render
+  fue Expo web). Resto del bloque sigue abierto.
 
 - [ ] **Decidir qué parte de `docs/` se vuelve pública.** Ya se pusheó `docs/` completo (más allá
   de lo que exige SDD), revisado por secretos — limpio. Falta decisión formal de mantenerlo así.

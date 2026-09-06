@@ -51,7 +51,11 @@ function resolveColor(token: ThemeColorToken | undefined, fallback: ThemeColorTo
 export function Icon({ name, size = 22, color, filled = false }: IconProps) {
   const stroke = resolveColor(color, "text-secondary");
   const fillColor = filled ? stroke : "none";
-  const common = { viewBox: "0 0 24 24" as const };
+  // fill="none" mirrors the web sources' root <svg fill="none"> (e.g. BottomNav.tsx:25,40,51,153):
+  // react-native-svg otherwise defaults every <Path>/<Rect> to fill="black", which filled the
+  // Score arc, the Tarjeta card and every "Más" sheet glyph solid. Shapes meant to be filled
+  // still override this with their own fill={stroke}/fill={fillColor}.
+  const common = { viewBox: "0 0 24 24", fill: "none" } as const;
 
   switch (name) {
     case "home":
