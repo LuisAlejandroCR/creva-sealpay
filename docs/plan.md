@@ -448,6 +448,94 @@ checklist.
   `credit`/`card` nuevos; `help` x3. `ScoreGauge` como arco/ring web (`4209ea9`) sin comparar pixel
   a pixel contra el de la ref.
 
+- [ ] **2026-09-06 — AUDIT app↔core de `app/lib/api.ts` (worktree `feature-app-core-api-wiring`,
+  off `origin/main` 7638dbb).** Método → endpoint real → auth → ¿existe en el core? → estado en la
+  app. `BASE = EXPO_PUBLIC_API_URL` (core NestJS, Cloud Run). Auth "Clerk" = `Authorization:
+  Bearer <token>` del usuario, inyectado por `AuthGuard` vía `setSessionSource` (`app/lib/api.ts:30`);
+  el `JwtAuthGuard` del core acepta ese token cuando `AUTH_PROVIDER` es `clerk`/`both`
+  (`creva_finance/backend/src/modules/auth/guards/jwt.guard.ts:44-60`). Evidencia de rutas: grep de
+  decoradores en `creva_finance/backend/src/modules/*/*.controller.ts`.
+
+  | Método (`app/lib/api.ts`) | Endpoint real | Auth | ¿Existe en el core? | Estado en la app |
+  |---|---|---|---|---|
+  | `score.get` :312 | `GET /score` | Clerk | Sí — `score.controller.ts:13` (`@Get()`), shape ok vs `score.service.ts:67-75` | **Real** — `DashboardScreen.tsx:13,64` (patrón de referencia) |
+  | `kyc.status` :171 | `GET /kyc/status` | Clerk | Sí — `kyc.controller.ts:28`, shape ok (`kyc/collateral/availability`) vs `kyc.service.ts` | **Real** — `CardScreen.tsx:36`, `CardCreateScreen.tsx:239`, `KycFormScreen`, `NotificationsScreen` |
+  | `kyc.apply` :178 | `POST /kyc/apply` | Clerk | Sí — `kyc.controller.ts:22` | **Real** — `KycFormScreen.tsx:115` |
+  | `credit.eligibility` :463 | `GET /recommendations/credit/eligibility` | Clerk | Sí — `recommendations.controller.ts:25` | **Real** — `CreditScreen.tsx:595`, `NotificationsScreen.tsx:64` |
+  | `credit.recommend` :465 | `POST /recommendations/credit` | Clerk | Sí — `recommendations.controller.ts:30` | **Real** — `CreditScreen.tsx:615` |
+  | `credit.select` :471 | `POST /recommendations/credit/select` | Clerk | Sí — `recommendations.controller.ts:39` | **Real** — `CreditScreen.tsx:631` |
+  | `credit.selections` :477 | `GET /recommendations/credit/selections` | Clerk | Sí — `recommendations.controller.ts:50` | No llamado por ninguna pantalla |
+  | `credit.updateSelection` :479 | `PATCH /recommendations/credit/selections/:id` | Clerk | Sí — `recommendations.controller.ts:55` | **Real** — `CreditScreen.tsx:644` |
+  | `cards.issue` :205 | `POST /cards/issue` | Clerk | Sí — `cards.controller.ts:22` | **Real** — `CardCreateScreen.tsx:222` |
+  | `cards.get` :211 | `GET /cards/:id` | Clerk | Sí — `cards.controller.ts:27`; `spendingLimit` sin verificar vs `VirtualCardRow` | **Real** — `CardScreen.tsx:48` |
+  | `cards.freeze` / `cards.unfreeze` :220-222 | `PATCH /cards/:id/(un)freeze` | Clerk | Sí — `cards.controller.ts:32,37` | **Real** — `CardScreen.tsx:78-79` |
+  | `cards.list` :202 | `GET /cards` | Clerk | **NO** — `CardsController` no expone `@Get()` raíz ni `CardsService.list()` (grep: sin ruta list; el frontend de referencia tiene el mismo hueco, `frontend/app/cards/page.tsx:75`) | Se llamaba y su fallo se leía como "sin tarjetas" — **corregido a estado honesto** `card-list-unavailable` (`CardScreen.tsx`) |
+  | `statements.list` :535 | `GET /statements` | Clerk | Sí — `statements.controller.ts:38` | **Real** — `StatementsScreen.tsx:1608`, `MovementsScreen`, `NotificationsScreen` |
+  | `statements.summary` :537 | `GET /statements/summary` | Clerk | Sí — `statements.controller.ts:43` | **Real** — `StatementsScreen.tsx:1615`, `NotificationsScreen.tsx:66` |
+  | `statements.entries` :539 | `GET /statements/:id/entries` | Clerk | Sí — `statements.controller.ts:48` | **Real** — `StatementsScreen.tsx:1461`, `MovementsScreen.tsx:154` |
+  | `statements.reclassify` :542 | `PATCH /statements/entries/:entryId` | Clerk | Sí — `statements.controller.ts:53` | **Real** — `StatementsScreen.tsx:1478`, `MovementsScreen.tsx:178` |
+  | `statements.upload` / `uploadNative` :548-559 | `POST /statements/upload` (multipart) | Clerk | Sí — `statements.controller.ts:29` | **Real** — `StatementsScreen.tsx:1644` (`uploadNative`) |
+  | `statements.remove` :570 | `DELETE /statements/:id` | Clerk | Sí — `statements.controller.ts:62` | **Real** — `StatementsScreen.tsx:1662` |
+  | `crevaScore.disclosure` :732 | `GET /creva-score/disclosure` | Clerk | Sí — `creva-score.controller.ts:21` | **No llamado** por ninguna pantalla |
+  | `crevaScore.radar` :734 | `GET /creva-score/radar` | Clerk | Sí — `creva-score.controller.ts:26` | **Real** — `RegulatoryScreen.tsx:68` |
+  | `crevaScore.verify` :738 | `POST /creva-score/verification` | Clerk | Sí — `creva-score.controller.ts:32` | **Real** — `BusinessVerificationScreen.tsx:80` |
+  | `crevaScore.report` :744 | `POST /creva-score/report` | Clerk (directo-al-core) | Sí — `creva-score.controller.ts:40` | **Real** — `ReportScreen.tsx:71` (sin body → sujeto = perfil fiscal del usuario) |
+  | `crevaScore.verifyReport` :752 | `POST /creva-score/verify` | Ninguno (ruta pública) | Sí — `report-verification.controller.ts:16` | No usado directo: `verify/sealClient.ts` va por el gateway x402 |
+  | `profiles.get` :227 | `GET /profiles` | Clerk | Sí — `profiles.controller.ts:15` | **Real** — `PersonalDataScreen`, `CreditScreen.tsx:388` |
+  | `profiles.update` :236 | `PUT /profiles` | Clerk | Sí — `profiles.controller.ts:20` | **Real** — `PersonalDataScreen.tsx:61` |
+  | `profiles.getFiscal` :242 | `GET /profiles/fiscal` | Clerk | Sí — `profiles.controller.ts:25` | **Real** — `FiscalInfoScreen`, `CreditRequestForm.tsx:1098` |
+  | `profiles.updateFiscal` :253 | `PUT /profiles/fiscal` | Clerk | Sí — `profiles.controller.ts:30` | **Real** — `FiscalInfoScreen.tsx:74`, `CreditRequestForm.tsx:1149` |
+  | `collateral.get` :187 | `GET /collateral` | Clerk | Sí — `collateral.controller.ts:17` | **Real** — `CollateralScreen.tsx:50` |
+  | `calculator.get` :588 | `GET /calculator` | Clerk | Sí — `calculator.controller.ts:14` | **Real** — `CalculatorScreen.tsx:48` |
+  | `transactions.list` :281 | `GET /transactions` | Clerk | Sí — `transactions.controller.ts:21` | **Real** — `CardScreen.tsx:62`, `MovementsScreen.tsx:145` |
+  | `declarations.latest` :447 | `GET /declarations` | Clerk | Sí — `declarations.controller.ts:14` | **Real** — `CreditRequestForm.tsx:1098` |
+  | `declarations.create` :449 | `POST /declarations` | Clerk | Sí — `declarations.controller.ts:19` | **Real** — `CreditRequestForm.tsx:1155` |
+  | `recommendations.get` :324 | `GET /recommendations` | Clerk | Sí — `recommendations.controller.ts:20` | No llamado |
+  | `auth.sendPhoneCode` / `verifyPhoneCode` :149-155 | `POST /auth/phone/(send-code\|verify)` | Clerk | Sí — `auth.controller.ts:57,67` | **Real** — `CreditScreen.tsx:398-401` |
+  | `auth.me` :141 | `GET /auth/me` | Clerk | Sí — `auth.controller.ts:78` | **Real** — `CreditScreen.tsx:358` |
+  | `auth.forgotPassword` :143 | `POST /auth/forgot-password` | Ninguno | Sí — `auth.controller.ts:51` | **Real** — `CreditScreen.tsx:359`, `SecurityScreen.tsx:30` |
+  | `auth.deleteMe` :166 | `DELETE /auth/me` | Clerk | Sí — `auth.controller.ts:84` | Vía `DeleteAccountScreen` (verificar) |
+  | `auth.register` / `login` / `getOAuthUrl` :129-163 | `/auth/(register\|login\|oauth)` | Ninguno | Sí (pre-Clerk) | **Muerto** — el sign-in real usa `@clerk/clerk-expo` (`SignInScreen`), no estos |
+
+  **Verificado sólo por lectura de código / shape; nada ejercido contra un backend real con una
+  sesión Clerk real** — eso queda como VERIFY pendiente (necesita `EXPO_PUBLIC_API_URL` apuntando a
+  un core con `AUTH_PROVIDER=clerk` y un token de usuario). Cambios de esta pasada: sólo
+  `CardScreen.tsx` (estado honesto para `cards.list`) + su test. Ningún mock reemplazado porque las
+  pantallas en foco (`CreditScreen`, `CardScreen`, `StatementsScreen`) **ya estaban cableadas a la
+  API real** con estados loading/error — la premisa de la tarea quedó atrás del código.
+
+  **Gaps abiertos por endpoint faltante:**
+  - **`GET /cards` (lista) no existe en el core.** `CardsController` sólo expone `issue` / `:id` /
+    `:id/freeze` / `:id/unfreeze`. Tanto `app/lib/api.ts:202` como el frontend de referencia
+    (`creva_finance/frontend/lib/api.ts:211`) asumen la ruta. Decisión: **el core debe añadir
+    `GET /cards` + `CardsService.list(userId)`** (regla #5: no se implementa aquí). Mientras tanto
+    `CardScreen` muestra `card-list-unavailable` en vez de un "sin tarjetas" inventado. `cards.get`
+    necesita un id, así que sin la lista la pantalla de tarjeta no puede resolver "¿cuál es mi
+    tarjeta?" sin un fallback.
+  - **`crevaScore.disclosure` y `crevaScore.report` (directo-al-core) sin consumidor / doble
+    camino.** `disclosure` no lo llama ninguna pantalla. `report` tiene dos rutas vivas: directo al
+    core con token del usuario (`ReportScreen`) y por el gateway x402 con **identidad de servicio**
+    (`QueryScreen` → `gatewayClient.ts`). Ver bloque PASO 3 abajo.
+  - **Shapes sin verificar contra el runtime:** `cards.get().spendingLimit`, y en general todo lo
+    marcado "Real" arriba — el tipo de `app/lib/api.ts` es una aserción, no una verificación.
+
+- [ ] **2026-09-06 — PASO 3: qué endpoint personal necesitaría un proxy Clerk-passthrough en el
+  gateway (diseño, NO implementado en esta pasada).** El `creva-proxy.ts` del gateway
+  (`gateway/src/creva-proxy.ts:18-24`) autentica **como la cuenta de servicio Bazantic**
+  (`getCrevaAccessToken()`), no reenvía el `Authorization` del usuario. Correcto para `/creva-score/
+  verify` (ruta pública) y aceptable para `/creva-score/report` **cuando el sujeto va explícito en
+  el body** (`businessName` + `stateCode`, como en `QueryScreen`). **Problema:** el core
+  (`creva-score.controller.ts:40`) hace `getSealedReport(user.id, dto)` — con la identidad de
+  servicio, un `report` sin body se generaría para el usuario-servicio, no para la persona. Hoy no
+  explota porque `QueryScreen` siempre manda body y `ReportScreen` va directo-al-core con el token
+  del usuario. **Ningún endpoint personal DEBE pasar por el gateway hoy** — todos los de la tabla
+  van directo-al-core con Clerk y funciona. Si en el futuro se quiere que un dato personal (p.ej.
+  `report` del propio negocio del usuario, o `radar`) pase por el gateway para x402, el diseño es:
+  un `proxyToCrevaAsUser(req)` que reenvíe `req.headers.authorization` **tal cual** (nunca
+  `getCrevaAccessToken()`), con su propia ruta gateway y su propio gate x402; la cuenta de servicio
+  queda sólo para rutas sin sujeto-usuario. CONGELADO: no tocar `creva-auth` / `x402-gate` /
+  `facilitator` en esta pasada.
+
 - [ ] **2026-09-05 — `facilitator.ts` no envuelve su `fetch` en try/catch: un facilitador
   caído tumba el proceso del gateway entero, no solo la request.** Sobrevive del bloque de abajo
   (ya resuelto el gap de config que lo disparó): con `FACILITATOR_URL` apuntando a

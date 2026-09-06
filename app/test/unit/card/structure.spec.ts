@@ -21,6 +21,13 @@ describe('CardScreen structure', () => {
     expect(screen).toMatch(/cards\.freeze\(userCard\.id\)/)
   })
 
+  it('shows an honest "could not check" state when cards.list fails — not a fake empty', () => {
+    // GET /cards is not exposed by the core; a failed list must not read as "you have no cards".
+    expect(screen).toMatch(/setListFailed\(true\)/)
+    expect(screen).toContain('card-list-unavailable')
+    expect(screen).toMatch(/listFailed \?/)
+  })
+
   it('branches on kyc + card readiness like the reference', () => {
     expect(screen).toMatch(/result\.kyc\?\.status === "approved"/)
     expect(screen).toContain('Sin tarjetas aún')
