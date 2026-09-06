@@ -6,12 +6,17 @@ import { config } from "./config.js";
 import { proxyToCreva } from "./creva-proxy.js";
 import type { PaymentRequirements } from "./types.js";
 import { createX402Gate } from "./x402-gate.js";
-import { isValidProofPayload, verifyWorldIdProof } from "./world-verify.js";
+import {
+  isValidProofPayload,
+  issueWorldIdSession,
+  verifyWorldIdProof,
+} from "./world-verify.js";
 import {
   anchorReportHash,
   isValidCanonicalHash,
   readArcSignerCredentialsFromEnv,
 } from "./arc-anchor.js";
+import { handleRegulatoryPending } from "./regulatory.js";
 
 export const app = express();
 app.use(helmet());
@@ -62,6 +67,20 @@ const verifyRequirements = (): PaymentRequirements => ({
   extra: facilitatorExtra(),
 });
 
+// Mint a single-use, TTL-bound nonce for one Selfie Check attempt. The client hands the nonce
+// (and signature) to the World verification flow, which returns it inside the proof; the gateway
+// then only accepts a proof carrying a nonce it issued for that action. A 503 here means World
+// is not configured, so the client degrades to identity_unavailable.
+app.get("/onboarding/world-id/session", gatedRouteLimiter, (req, res) => {
+  const action = typeof req.query.action === "string" ? req.query.action : undefined;
+  const session = issueWorldIdSession(action);
+  if (!session) {
+    res.status(503).json({ reason: "world_verify_not_configured" });
+    return;
+  }
+  res.status(200).json(session);
+});
+
 app.post("/onboarding/verify-world-id", gatedRouteLimiter, (req, res) => {
   if (!isValidProofPayload(req.body)) {
     res.status(400).json({ verified: false, reason: "invalid_proof_payload" });
@@ -90,6 +109,13 @@ app.post(
     void proxyToCreva(req, res, "/creva-score/verify", true);
   },
 );
+
+// Read-only feed for a Chainlink CRE workflow: "is there a regulatory norm newer than <since>, and
+// which anchored folios does it touch?". No payment gate — it carries no personal data (the radar
+// scan is identical for every caller) and its only consumer is an automated on-chain job.
+app.get("/regulatory/pending", gatedRouteLimiter, (req, res) => {
+  void handleRegulatoryPending(req, res);
+});
 
 app.post("/creva-score/anchor", gatedRouteLimiter, (req, res) => {
   const canonicalHash = (req.body as { canonicalHash?: unknown })?.canonicalHash;

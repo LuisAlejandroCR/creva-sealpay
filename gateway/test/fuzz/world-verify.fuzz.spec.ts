@@ -32,6 +32,7 @@ describe("POST /onboarding/verify-world-id — arbitrary bodies", () => {
     const arbitraryBody = fc.oneof(
       fc.record(
         {
+          nonce: fc.string(),
           merkle_root: fc.string(),
           nullifier_hash: fc.string(),
           proof: fc.string(),

@@ -2,13 +2,12 @@
 // WebView (works in Expo Go, no Orb and no Dev Client needed) and degrades to an
 // identity_unavailable state when EXPO_PUBLIC_WORLD_APP_ID isn't set.
 import { useAuth } from '@clerk/clerk-expo'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import WebView from 'react-native-webview'
 import type { WebViewNavigation } from 'react-native-webview'
 import { useSelfieCheck } from './useSelfieCheck'
-import { buildSelfieCheckUrl } from './world-config'
 import { BackButton } from '../shared/BackButton'
 
 // Back sits top-left like the other full-screen flows (QueryScreen/VerifyScreen); the message and
@@ -31,14 +30,7 @@ export interface SelfieCheckScreenProps {
 
 export function SelfieCheckScreen({ onVerified, onSkipped, onBack }: SelfieCheckScreenProps) {
   const { isSignedIn } = useAuth()
-  const { result, start, handleCallbackUrl, reset } = useSelfieCheck()
-  const [webviewUrl] = useState(() => {
-    try {
-      return buildSelfieCheckUrl()
-    } catch {
-      return null
-    }
-  })
+  const { result, webviewUrl, start, handleCallbackUrl, reset } = useSelfieCheck()
 
   const handleNavigationChange = (navState: WebViewNavigation) => {
     handleCallbackUrl(navState.url)
@@ -80,7 +72,9 @@ export function SelfieCheckScreen({ onVerified, onSkipped, onBack }: SelfieCheck
           accessibilityRole="button"
           className="rounded-full bg-crimson px-6 py-3"
           disabled={!isSignedIn}
-          onPress={start}
+          onPress={() => {
+            void start()
+          }}
         >
           <Text className="font-semibold text-white">Iniciar Selfie Check</Text>
         </TouchableOpacity>

@@ -2763,3 +2763,88 @@ arrancó ningún server.
 
 **Dónde queda el pendiente:** `docs/integrations/ledger-keyring.md` §"Estado de verificación" y el
 bloque Ledger en `docs/plan.md`. Commit en el worktree, NO pusheado.
+## 2026-09-06 — World Selfie Check: nonce emitido por el servidor (rama `sponsor-world-nonce`, agente local)
+
+**Qué se hizo:**
+- `gateway/src/world-verify.ts` reescrito. Nuevo ciclo de vida de `nonce`: `issueWorldIdSession(action)`
+  acuña un nonce aleatorio (32 bytes hex) de un solo uso, TTL 10 min, atado a la `action`, con firma
+  HMAC (`mintNonceSignature`, costurón para `@worldcoin/idkit-core/signing.signRequest` cuando llegue
+  `WORLD_RP_SIGNING_KEY`). `consumeWorldIdNonce` valida contra un `Map` en memoria (existe / no usado
+  / no expirado / action coincide) y lo marca usado — cualquier fallo devuelve `world_verify_nonce_*`
+  y **no** llama a la API de World. `buildVerifyRequestBody` arma el body v4 legacy 3.0
+  (`protocol_version:"3.0"`, `nonce`, `action`, `allow_legacy_proofs:true`,
+  `responses:[{identifier, merkle_root, nullifier, proof, signal_hash?}]`) según
+  `docs.world.org/api-reference/developer-portal/verify`. `isValidProofPayload` ahora exige `nonce`.
+  Target del fetch: `WORLD_RP_ID` si está, si no `WORLD_APP_ID`.
+- `gateway/src/config.ts`: +`worldRpId`, `worldRpSigningKey`, `worldEnvironment`.
+- `gateway/src/index.ts` (solo rutas de onboarding): +`GET /onboarding/world-id/session` (503 si World
+  no está configurado, para que el cliente degrade).
+- `gateway/.env.example`: +`WORLD_RP_ID`, `WORLD_RP_SIGNING_KEY`, `WORLD_ENVIRONMENT=staging`.
+- App: `world-config.ts` (`buildSelfieCheckUrl(session)`), `world-verify-client.ts`
+  (`fetchWorldIdSession`, `nonce` en el proof), `useSelfieCheck.ts` (`start()` async pide sesión antes
+  del WebView; expone `webviewUrl`; el callback reenvía **solo** `session.nonce`, nunca el de la URL;
+  sin sesión → no llama verify), `SelfieCheckScreen.tsx` (toma `webviewUrl` del hook).
+- Tests: `gateway/test/unit/world-verify.spec.ts` reescrito, `world-verify-route.spec.ts` +
+  `world-verify-nonce.invariant.spec.ts` nuevos, fuzz + `onboarding-never-succeeds-unverified` con
+  `nonce`. App: `useSelfieCheck.spec.ts` + `onboarding-never-succeeds-unverified` reescritos,
+  `client-sends-server-nonce.invariant.spec.ts` nuevo. `scripts/world-verify-smoke.mjs` nuevo.
+
+**Decisión escogida:** nonce emitido por el gateway + URL hospedado de World en el WebView, NO el
+flujo de redirect `id.worldcoin.org/verify` clásico (no transporta ni devuelve nonce). Es la variante
+más simple compatible con Expo Go. El nonce espeja `rp_context.nonce` de World ID 4.0
+(`signRequest(signingKeyHex, action)` → `{ sig, nonce, createdAt, expiresAt }`, doc
+`docs.world.org/world-id/idkit/integrate`).
+
+**Qué NO se verificó, y por qué:**
+- El round-trip real del proof contra `developer.world.org/api/v4/verify/{rp_id}` — bloqueado por la
+  aprobación del World ID Sandbox (pendiente). Sin key/rp_id reales no se confirma el shape exacto de
+  `proof`/`identifier`, si `allow_legacy_proofs` basta, ni los param names del hosted flow. La firma
+  del nonce es HMAC propio hasta entonces.
+- Render nativo / Expo Go en dispositivo físico — sin simulador en esta sesión.
+- `gateway`: `tsc` + `eslint` limpios, `vitest` 55/55 tests reales verdes (1 "Worker exited
+  unexpectedly" de tinypool en Windows, pre-existente — baseline en origin da 2). `app`: `tsc` limpio,
+  `jest unit fuzz invariant --runInBand` 62 suites / 280 tests verdes (en paralelo, 2 suites no
+  relacionadas —help/auth— hacen timeout-flake en Windows; verdes aisladas y en runInBand).
+
+**Dónde queda el pendiente:** bloque "Selfie Check" en `docs/plan.md` (Abiertos). Cierre final =
+`node scripts/world-verify-smoke.mjs proof.json` cuando el Sandbox apruebe. Rama `sponsor-world-nonce`
+commiteada en el worktree, NO pusheada.
+---
+
+## `2026-09-06` — Chainlink: RegulatoryAlertRegistry + /regulatory/pending (GO)
+
+**Qué se hizo:**
+- Contrato `contracts/src/RegulatoryAlertRegistry.sol`: log on-chain de cambios regulatorios sobre
+  folios ya anclados. Implementa `AutomationCompatibleInterface` (`checkUpkeep`/`performUpkeep`,
+  interfaz vendida inline, sin dependencia externa). `reportPending(normId, folios[])` gateado por
+  `reporter` immutable; `performUpkeep` revierte salvo que el payload sea byte-idéntico a lo que
+  `checkUpkeep` devolvería (compara `keccak256`), luego emite `RegulatoryFlag` por folio y marca
+  `normFlagged[normId]`. `setForwarder` una sola vez por el reporter.
+- Suite `contracts/test/RegulatoryAlertRegistry.t.sol`: 12 tests unit+fuzz+invariant. Invariante
+  central: performUpkeep solo cambia estado con el payload exacto de checkUpkeep; toda norma
+  marcada pasó antes por reportPending. `AttestationRegistry` intacto (7 tests, sin regresión).
+- `contracts/script/DeployRegulatoryAlertRegistry.s.sol`: reusa `ARC_SIGNER_PRIVATE_KEY`.
+- `gateway/src/regulatory.ts` + ruta `GET /regulatory/pending` en `index.ts` (solo la ruta nueva).
+  Lee `/creva-score/radar` del core + `folioAttestations` del subgraph, deriva
+  `normId = keccak256("<source>|<external_id>")`, filtra por `since`. Try/catch total.
+- Tests gateway: unit + fuzz + invariant (`regulatory-pending-never-crashes`: 200 siempre + nunca
+  filtra el access token). Total gateway 23 archivos / 66 tests verde.
+- `gateway/.env.example`: `REGULATORY_ALERT_REGISTRY_ADDRESS`, `REGULATORY_REPORTER`.
+- `docs/integrations/chainlink-automation.md` (nuevo). `contracts/README.md`, `docs/plan.md`
+  barridos en el mismo lote.
+
+**Decisión escogida:** GO para la pista Upgrade ($500). El prerrequisito ("contrato on-chain real")
+lo resolvió `AttestationRegistry` (`f9457c8`). Servicio Chainlink usado: CRE (workflow cron), en la
+lista textual de la pista. El cambio de estado on-chain es `normFlagged` + eventos `RegulatoryFlag`.
+CRE Confidential Workflows ($2k): evaluado y descartado sin forzar — el path radar→folios es no
+sensible por diseño (invariante del core `radar-carries-no-personal-data`).
+
+**Qué NO se verificó, y por qué:**
+- El workflow CRE real y el registro del Upkeep: necesitan la cuenta del humano (no crear cuenta
+  Chainlink). Pasos exactos documentados en el doc de integración.
+- El endpoint contra el `/creva-score/radar` real: probado solo con radar mockeado. El token de
+  servicio podría no satisfacer el `JwtAuthGuard` del core; si falla, degrada a `radarError`.
+- Deploy a testnet: no hecho. Demo corrió en anvil local (evidencia en el doc de integración).
+
+**Dónde queda el pendiente:** bloque cerrado en `docs/plan.md` con la lista para el humano
+(deploy Sepolia + registrar Upkeep + `setForwarder`).

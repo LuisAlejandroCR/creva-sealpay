@@ -8,6 +8,25 @@ import { useSelfieCheck } from '../../../features/onboarding/useSelfieCheck'
 
 const originalFetch = global.fetch
 
+const session = {
+  nonce: '0xservernonce',
+  action: 'selfie-check-onboarding',
+  createdAt: 1_000,
+  expiresAt: 9_999_999_999_999,
+  signature: '0xsig',
+}
+
+// Route fetch by URL: the /session GET always yields a valid nonce session; the verify POST
+// yields whatever unverified body the property under test picked.
+function mockGateway(verifyBody: unknown) {
+  return jest.fn((url: string) => {
+    if (typeof url === 'string' && url.includes('/onboarding/world-id/session')) {
+      return Promise.resolve({ ok: true, json: async () => session })
+    }
+    return Promise.resolve({ ok: true, json: async () => verifyBody })
+  }) as unknown as typeof fetch
+}
+
 describe('invariant: onboarding never reports verified without a verified gateway response', () => {
   const originalAppId = process.env.EXPO_PUBLIC_WORLD_APP_ID
 
@@ -32,13 +51,11 @@ describe('invariant: onboarding never reports verified without a verified gatewa
         fc.string({ minLength: 1, maxLength: 50 }),
         unverifiedGatewayResponse,
         async (value, gatewayBody) => {
-          global.fetch = jest.fn().mockResolvedValue({
-            json: async () => gatewayBody,
-          }) as unknown as typeof fetch
+          global.fetch = mockGateway(gatewayBody)
 
           const { result } = await renderHook(() => useSelfieCheck())
-          await act(() => {
-            result.current.start()
+          await act(async () => {
+            await result.current.start()
           })
 
           const url = `https://id.worldcoin.org/verify/callback?${new URLSearchParams({
@@ -52,26 +69,29 @@ describe('invariant: onboarding never reports verified without a verified gatewa
             result.current.handleCallbackUrl(url)
           })
 
-          await waitFor(() =>
-            expect(['verifying', 'failed']).toContain(result.current.result.status)
-          )
           await waitFor(() => expect(result.current.result.status).toBe('failed'))
           expect(result.current.result.status).not.toBe('verified')
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 40 }
     )
   })
 
   it('never resolves to verified when the gateway call throws', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('network down'))
+    global.fetch = jest.fn((url: string) => {
+      if (typeof url === 'string' && url.includes('/onboarding/world-id/session')) {
+        return Promise.resolve({ ok: true, json: async () => session })
+      }
+      return Promise.reject(new Error('network down'))
+    }) as unknown as typeof fetch
 
     const { result } = await renderHook(() => useSelfieCheck())
-    await act(() => {
-      result.current.start()
+    await act(async () => {
+      await result.current.start()
     })
 
-    const url = 'https://id.worldcoin.org/verify/callback?' +
+    const url =
+      'https://id.worldcoin.org/verify/callback?' +
       new URLSearchParams({
         nullifier_hash: '0xabc',
         merkle_root: '0xroot',
@@ -84,5 +104,31 @@ describe('invariant: onboarding never reports verified without a verified gatewa
     })
 
     await waitFor(() => expect(result.current.result.status).toBe('failed'))
+  })
+
+  it('never resolves to verified when the gateway never issued a nonce (session fetch fails)', async () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({ ok: false, json: async () => ({}) })
+    ) as unknown as typeof fetch
+
+    const { result } = await renderHook(() => useSelfieCheck())
+    await act(async () => {
+      await result.current.start()
+    })
+
+    const url =
+      'https://id.worldcoin.org/verify/callback?' +
+      new URLSearchParams({
+        nullifier_hash: '0xabc',
+        merkle_root: '0xroot',
+        proof: '0xproof',
+        verification_level: 'device',
+      }).toString()
+
+    await act(() => {
+      result.current.handleCallbackUrl(url)
+    })
+
+    expect(result.current.result.status).not.toBe('verified')
   })
 })

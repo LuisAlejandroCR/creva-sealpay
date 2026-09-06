@@ -501,19 +501,41 @@ checklist.
   Go sobre el iPhone físico donde se vio el bug — no hay simulador/dispositivo disponible desde esta
   sesión de agente.
 
-- [ ] **Selfie Check: verificación server-side real agregada, falta confirmar el payload v4 contra
+- [ ] **Selfie Check: nonce server-side cerrado en código contra la spec v4; falta ejercer contra
   sandbox real.** `gateway/src/world-verify.ts` llama a la Developer Portal API de World con
-  `WORLD_API_KEY`; el WebView ya no decide `verified` por su cuenta. Bloqueo preciso: la API v4
-  espera un `nonce` que el flujo de redirect WebView no produce — el mapeo a `protocol_version:
-  "3.0"` es mejor esfuerzo, sin ejercer contra sandbox real (mismo criterio que Hedera: no gastar
-  cuota real sin confirmar con el humano). Falta también Expo Go real en dispositivo físico.
+  `WORLD_API_KEY`; el WebView ya no decide `verified` por su cuenta.
+  **Actualización `2026-09-06` (rama `sponsor-world-nonce`):** el gap del `nonce` se cerró en
+  código. **Decisión escogida:** nonce emitido por el gateway (espeja `rp_context.nonce` de World
+  ID 4.0 — `signRequest(signingKeyHex, action)` → `{ sig, nonce, createdAt, expiresAt }`, doc
+  `docs.world.org/world-id/idkit/integrate`). Flujo: `GET /onboarding/world-id/session` acuña un
+  nonce de un solo uso con TTL 10 min y lo ata a la `action`; el cliente abre el WebView con ese
+  nonce; en el callback el cliente reenvía **solo** el nonce emitido (nunca uno inyectado en la
+  URL); `POST /onboarding/verify-world-id` valida el nonce contra el ledger en memoria (existe /
+  no gastado / no expirado / action coincide) **antes** de tocar la API de World, lo marca usado,
+  y arma el body v4 `protocol_version:"3.0"` (`{ nonce, action, allow_legacy_proofs:true,
+  responses:[{ identifier, merkle_root, nullifier, proof, signal_hash? }] }`, doc
+  `docs.world.org/api-reference/developer-portal/verify`). Se descartó el flujo de redirect
+  `id.worldcoin.org/verify` clásico porque no transporta ni devuelve un nonce; el URL hospedado
+  con params `nonce/signature/created_at/expires_at` es la variante más simple que Expo soporta
+  (solo WebView, sin Dev Client). **Firma del nonce:** hoy es un HMAC propio (sin deps nuevas)
+  porque sin Sandbox no hay `WORLD_RP_SIGNING_KEY` ni `rp_id` reales — `mintNonceSignature` es el
+  costurón para cambiar a `@worldcoin/idkit-core/signing` cuando lleguen. Tests: `gateway` unit +
+  fuzz + invariant (2 invariantes duras: el cliente/WebView nunca marca `verified` por su cuenta;
+  un nonce que no coincide con el emitido siempre se rechaza y nunca llega a World) y `app`
+  unit + invariant equivalentes. **Qué NO se pudo verificar sin el Sandbox:** el round-trip real
+  del proof contra `developer.world.org/api/v4/verify/{rp_id}` (shape de `proof`/`identifier`
+  exactos, si `allow_legacy_proofs` basta, si el hosted flow acepta esos param names). Script de
+  humo listo: `node scripts/world-verify-smoke.mjs [proof.json]` con el gateway corriendo — paso 1
+  (sesión) siempre corre, paso 2 (verificación + replay) corre con un proof real de IDKit.
   **Actualización `2026-09-05`:** enrollment al World ID Sandbox solicitado para
   `bankingluisalejandro@gmail.com`, iOS (TestFlight) y Android (Google Play internal test) — ambas
   solicitudes en estado "pending", aprobación por correo de Tools for Humanity todavía no llega.
   Primer intento de contacto rebotó (`sandbox.access@toolsforhumanity.org` no resuelve; dominio
-  real es `toolsforhumanity.com`), reenviado a la dirección correcta. Bloquea este bloque y el de
-  "Riesgo Expo Go" de abajo hasta que llegue la aprobación — nada más que avanzar aquí mientras se
-  espera.
+  real es `toolsforhumanity.com`), reenviado a la dirección correcta. Bloquea el cierre final de
+  este bloque y el de "Riesgo Expo Go" de abajo hasta que llegue la aprobación — con el nonce ya
+  en código, lo único que falta aquí es correr el script de humo. Vars nuevas para el humano en
+  `gateway/.env`: `WORLD_RP_ID`, `WORLD_RP_SIGNING_KEY`, `WORLD_ENVIRONMENT` (ver
+  `gateway/.env.example`).
 
 - [ ] **Publicación en App Store / Play Store — después del evento.** Decisión escogida: la
   revisión de iOS consumiría la ventana que queda. Se demuestra con Expo Go + video durante el
@@ -583,16 +605,6 @@ checklist.
   296 custom no queda configurado y probado contra el Hedera JSON-RPC Relay real, no podemos
   avanzar** con este bloque.
 
-- [ ] **Chainlink — $3,000, 2 pistas (Confidential Workflows CRE $2k + Upgrade $500).** Encaje
-  débil, solo vigilar (`brainstorming.md` líneas 113-116): la pista de $500 exige que la
-  integración **produzca un cambio de estado onchain** — *"simply displaying Chainlink data in a
-  frontend is not sufficient"* — y Creva hoy no tiene contratos propios (el bloque Arc de arriba
-  cambiaría eso). La de $2k (Confidential Workflows, CRE) todavía no publica requisitos.
-  Prerrequisito antes de comprometer: (1) que el bloque Arc cierre y deje un contrato/evento
-  onchain real que Chainlink pueda leer o disparar, y (2) que CRE publique los requisitos de
-  Confidential Workflows y se confirmen compatibles con la tesis de privacidad de Creva. **Si
-  ninguno de los dos prerrequisitos se cumple para el 09/14 (ver Q&A del dashboard), no podemos
-  avanzar** con Chainlink y el bloque se descarta sin penalidad — es el fit más débil del lote.
 
 ## Variables de entorno por patrocinador — falta configurar
 
@@ -609,7 +621,7 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
 | Bazantic | `BAZANTIC_GATEWAY_URL`, `BAZANTIC_MCP_TOKEN` | `gateway/.env` | Signup en Bazantic — **confirmar que existe**, no está indexado públicamente hoy |
 | Ledger | Config del Key Ring CLI (no es una env var de app, es estado local del CLI: `~/.ledger/` o similar) | Máquina del agente que firma, no `.env` del repo | `wallet-cli ring` del Ledger Agent Stack |
 | Privy | `PRIVY_APP_ID`, `PRIVY_APP_SECRET`, RPC URL de Hedera para `defineChain(296, ...)` | `gateway/.env` o `app/.env` | Dashboard de Privy |
-| Chainlink | Por definir — CRE aún no publica requisitos de Confidential Workflows | — | Vigilar publicación, no crear cuenta todavía |
+| Chainlink | `REGULATORY_ALERT_REGISTRY_ADDRESS`, `REGULATORY_REPORTER` (opcional) | `gateway/.env` | `REGULATORY_ALERT_REGISTRY_ADDRESS` sale del deploy de `RegulatoryAlertRegistry`; `REGULATORY_REPORTER` es la dirección del consumer de Chainlink Functions (default: el signer). El Upkeep se registra en automation.chain.link con la cuenta del humano — pasos en `docs/integrations/chainlink-automation.md` |
 
 **Ninguna de estas API keys/private keys se pega en el chat** — el humano las coloca directo en el
 `.env` que corresponda; una dirección pública o un tx hash sí son seguros de compartir por chat.
@@ -688,6 +700,24 @@ declaran las de Hedera/World actuales; lo nuevo por patrocinador:
     deploy que el bloque abierto de attestation); render nativo (sesión 2). La rama de attestation
     está basada en `9dfdd57`, `main` en `7638dbb` — el Solver reconcilia la divergencia al mergear
     ambas juntas.
+- [x] `2026-09-06` — **Chainlink — GO. `RegulatoryAlertRegistry` + `/regulatory/pending` + workflow
+  CRE que produce cambio de estado on-chain (pista Upgrade $500).** El prerrequisito ("un contrato
+  on-chain real de Creva") lo resolvió el bloque de attestation (`AttestationRegistry`, `f9457c8`).
+  Entregado: contrato `contracts/src/RegulatoryAlertRegistry.sol` con `checkUpkeep`/`performUpkeep`
+  (interfaz Automation) + suite Foundry unit+fuzz+invariant verde (12 tests nuevos, 19 en total, sin
+  regresión en `AttestationRegistry`); invariante clave "performUpkeep solo cambia estado si
+  checkUpkeep devolvió true con ese mismo payload". Endpoint read-only `GET /regulatory/pending` en
+  `gateway/src/regulatory.ts` (radar del core + folios del subgraph, try/catch total) + tests
+  unit/fuzz/invariant. Demo local anvil del ciclo `reportPending → checkUpkeep → performUpkeep` con
+  los eventos `RegulatoryFlag` y `normFlagged=true` verificados on-chain — evidencia en
+  `docs/integrations/chainlink-automation.md`. Decisión escogida: **CRE Confidential Workflows ($2k)
+  evaluado y descartado sin forzar** — el path de datos radar→folios es deliberadamente no sensible
+  (invariante `radar-carries-no-personal-data` en el core), un TEE handler ahí sería teatro.
+  Pendiente para el humano: desplegar a Sepolia, registrar el Upkeep en automation.chain.link,
+  fijar el forwarder (pasos exactos en el doc de integración). NO verificado: el workflow CRE real
+  contra Chainlink (necesita cuenta del humano); el endpoint contra el `/creva-score/radar` real
+  (probado solo con radar mockeado — el token de servicio puede no satisfacer el `JwtAuthGuard` del
+  core, degradaría a `radarError` sin tumbar nada).
 
 - [x] `2026-09-06` — **Integración de la familia de paridad móvil a `main` (Solver, worktree
   `integration-mobile-parity`): 5 ramas mergeadas `--no-ff`, VERIFY completo verde. Verificado por
