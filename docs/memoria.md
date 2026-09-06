@@ -2001,3 +2001,38 @@ privacidad, KYC, auth.
 **Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Undécimo incremento de la
 migración..."). Backlog restante de stubs: Calculadora, Aviso de privacidad. Fuera de stubs:
 Crédito, Tarjeta, KYC, auth (requieren reconfirmar alcance con el humano).
+
+## 2026-09-05 — Migración PWA→nativa, duodécimo incremento: `CalculatorScreen.tsx` (Solver, cloud)
+
+**Qué se hizo:**
+- Confirmado que la Calculadora **sí tiene API real detrás** (`calculator.get(income?)` →
+  `CalculatorData` en `app/lib/api.ts`, ya existía, sin tocar) — el backlog anotaba que había que
+  revisar si estaba respaldada; lo está.
+- Construida `CalculatorScreen.tsx` (`app/features/more/`), puerto de
+  `creva_finance/frontend/app/calculator/page.tsx`: utilidad del periodo, barra ingresos/gastos, la
+  división sugerida con `splitPercent()` sobre los montos de la API (**nunca se recalcula el
+  porcentaje en el cliente**), el campo "Prueba otro ingreso" que reenvía `?income=` como override
+  y puede volver a las cifras reales, y la sección "De dónde sale cada cifra".
+- `Progress` de `VisualPrimitives.tsx` reusado para las 3 barras; `TextField` compartido para el
+  input.
+- `App.tsx`: rama nueva `activeStub === "calculator"` monta la pantalla real antes del `StubScreen`
+  genérico.
+- Test nuevo `app/test/unit/more/calculator.spec.ts`. Sin dependencias nuevas.
+
+**Desviación deliberada del "as is":**
+- `DonutChart` (SVG web) → barra `flex` de dos segmentos, sin librería de gráficos.
+- `SPLIT_COLORS` (`var(--cr-*)`) → clases `bg-crimson`/`bg-warning-text`/`bg-success-text`.
+- `<form onSubmit>` → botón "Calcular" (no hay submit de formulario nativo).
+
+**Qué NO se verificó, y por qué:**
+- Resultado visual/nativo — mismo bloqueo `react-native-web`/NativeWind de los incrementos
+  anteriores.
+- `calculator.get()` contra `/calculator` real — sin credenciales del backend de Creva; forma de la
+  respuesta y comportamiento del override `?income=` sin confirmar.
+- `tsc --noEmit` limpio. `npx jest` full-run verde: 52/52 suites, 231/231 tests (baseline previo:
+  51 suites / 226 tests).
+- No se cerró como definitiva — falta segunda vista.
+
+**Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Duodécimo incremento de la
+migración..."). **Backlog de stubs restante: solo `privacy` (Aviso de privacidad).** Fuera de
+stubs: Crédito, Tarjeta, KYC, auth — requieren reconfirmar alcance con el humano.

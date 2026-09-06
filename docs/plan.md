@@ -33,11 +33,10 @@ checklist.
     `HelpScreen.tsx`/`HelpCategoryScreen.tsx`/`HelpArticleScreen.tsx` — cubiertos por los worktrees
     Codex activos (`codex/mobile-parity-dashboard`, `codex/mobile-parity-help`), no re-tomar sin
     coordinar (regla de §Colaboración punto 7).
-  - Sin pantalla mobile todavía: `calculator`, `privacy` — hoy son `StubScreen.tsx` genéricos en
-    mobile; migrarlos a pantallas reales 1:1 es el grueso de este bloque. `profile/details`,
-    `profile/fiscal`, `profile/security`, `movements`, `statements`, `notifications`, `regulatory`,
-    `report`, `collateral` y `business-verification` ya no están en esta lista: ver los incrementos
-    de abajo.
+  - Sin pantalla mobile todavía: `privacy` — hoy es un `StubScreen.tsx` genérico en mobile.
+    `profile/details`, `profile/fiscal`, `profile/security`, `movements`, `statements`,
+    `notifications`, `regulatory`, `report`, `collateral`, `business-verification` y `calculator`
+    ya no están en esta lista: ver los incrementos de abajo.
   - `kyc`/`kyc/success`, `login`/`register`/`sign-in`/`sign-up`, `welcome`, `auth/callback` — no
     evaluados todavía contra su equivalente mobile (`SignInScreen.tsx`, `SelfieCheckScreen.tsx`).
 
@@ -149,6 +148,29 @@ checklist.
   `expo-document-picker` funcione igual en iOS vs. Android (el picker del sistema difiere entre
   plataformas — no hay dispositivo/simulador disponible desde esta sesión para confirmarlo).
   **No autocertificada como cerrada.**
+
+- [ ] **2026-09-05 — Duodécimo incremento de la migración: `CalculatorScreen.tsx` nueva, reemplaza
+  el `StubScreen` genérico de "Calculadora" (`calculator`).** Confirmado que **sí tiene API real
+  detrás** (`calculator.get(income?)` de `app/lib/api.ts` → `CalculatorData`, ya existía, no se
+  tocó), a diferencia de lo que anotaba el backlog. Puerto real de
+  `creva_finance/frontend/app/calculator/page.tsx`: utilidad del periodo, barra ingresos/gastos
+  (traducción de `DonutChart` a un `flex` proporcional, sin librería de gráficos), la división
+  sugerida (Salario/Ahorro/Reinversión) con `splitPercent()` sobre los montos que devuelve la API —
+  **nunca se recalcula el porcentaje en el cliente**, es lógica de negocio del backend — y el campo
+  "Prueba otro ingreso" que reenvía `?income=` como override y puede volver a las cifras reales.
+  Sección "De dónde sale cada cifra" con `incomeSources`/`monthlyMargin`. `Progress` de
+  `VisualPrimitives.tsx` reusado para las tres barras; `TextField` compartido para el input.
+  `App.tsx`: rama nueva `activeStub === "calculator"` monta `CalculatorScreen` antes del
+  `StubScreen` genérico. Sin dependencias nuevas. Test nuevo
+  `app/test/unit/more/calculator.spec.ts`. `tsc --noEmit` limpio; `npx jest` verde (52/52 suites,
+  231/231 tests — antes 51/226).
+  **Desviación deliberada del "as is":** `DonutChart` (SVG web) → barra `flex` de dos segmentos;
+  `SPLIT_COLORS` (`var(--cr-*)`) → clases `bg-crimson`/`bg-warning-text`/`bg-success-text`; el
+  `<form onSubmit>` → un botón "Calcular" (no hay submit de formulario nativo).
+  **No se verificó:** resultado nativo/visual (mismo bloqueo `react-native-web`/NativeWind), ni
+  `calculator.get()` contra `/calculator` real (sin credenciales del backend de Creva — forma de la
+  respuesta, y si el override `?income=` se comporta igual, sin confirmar). **No autocertificada
+  como cerrada — falta segunda vista.**
 
 - [ ] **2026-09-05 — Undécimo incremento de la migración: `BusinessVerificationScreen.tsx` nueva,
   reemplaza el `StubScreen` genérico de "Sello de tu negocio" (`business-verification`).** Puerto
