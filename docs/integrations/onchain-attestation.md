@@ -50,7 +50,7 @@ pasa ese mismo valor a `/creva-score/anchor` como `canonicalHash`. Los dos lados
 único `bytes32`. Para que el `trustSignal` se mueva de verdad, `REGISTRY_ADDRESS` en `gateway/.env`
 debe apuntar al registry que el subgraph indexa (ver nota de red abajo).
 
-## Despliegue (pasos del humano)
+## Despliegue (pasos externos)
 
 ### 1. Contrato
 

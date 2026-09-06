@@ -14,11 +14,11 @@
 > `procedures/knowledge/` va anonimizado.
 
 **Proyecto:** `ETHOnline 2026`
-**Arrancó:** `2026-08-31` · **Última actividad:** `2026-09-04` · **Estado:** ⏳ activo — solicitud enviada, en revisión
+**Arrancó:** `2026-08-31` · **Última actividad:** `2026-09-06` · **Estado:** ⏳ activo — solicitud enviada, en revisión
 **Fecha límite:** `2026-09-16` (evento: 4–16 sep 2026)
 **Alias calendario:** ETHOnline, ETHGlobal
 **URL:** <https://ethglobal.com/events/ethonline2026>
-**Última actualización de este archivo:** `2026-09-04`
+**Última actualización de este archivo:** `2026-09-06`
 
 ---
 
@@ -57,6 +57,9 @@ que ya existe como respuesta firmada. Ver [brainstorming.md](brainstorming.md).
   usa spec-driven development — rompe la regla genérica de `procedures/00_Files/agent_contract.md`
   de que `docs/` siempre es privado. Documentado como excepción explícita en `AGENTS.md` de esta
   carpeta en vez de dejarlo como una contradicción implícita entre dos documentos.
+- `2026-09-06` — **Publicar docs no significa publicar lógica.** El repo público puede mostrar el
+  SDD, el gateway y la app; la lógica privada de Creva, fórmulas, credenciales e infraestructura
+  siguen fuera por diseño.
 
 ## 2. ¿Qué costó más de lo esperado, y por qué?
 

@@ -9,118 +9,41 @@
 > o `gateway/` se refieren a lo que hoy es `frontend/` / `backend/` (el log histórico no se
 > reescribió). `creva_finance/frontend/app/…` (proyecto hermano) no cambia.
 
+## 2026-09-06 — Limpieza de estilo en Markdown
+
+**Qué se hizo:** se compactaron bloques largos de `docs/plan.md` y sesiones recientes de `docs/memoria.md`.
+**Qué NO se verificó:** no se corrieron builds ni tests; fue sólo documentación.
+**Pendiente:** mantener futuras entradas en 3-5 líneas y escribir decisiones como tomadas/escogidas.
+
+## 2026-09-06 — README raíz como guía del repo
+
+**Qué se hizo:** `README.md` conserva el foco de entrada raíz: contexto, orden de lectura, carpetas y pendientes.
+**Qué NO se verificó:** no se corrieron builds ni tests; fue resolución de conflicto en Markdown.
+**Pendiente:** el detalle operativo sigue en `docs/plan.md`.
+
 ## 2026-09-06 — Rename de carpetas: `app/` → `frontend/`, `gateway/` → `backend/` (Solver, worktree `integration-rename`)
 
-**Qué se hizo:** `git mv app frontend` + `git mv gateway backend` sobre `origin/main` (rename fresco,
-no el merge de la rama vieja `chore-rename-frontend-backend`, basada en un `main` de hace ~20
-commits). Barrido de rutas en `.gitignore`, `frontend/package.json` + `backend/package.json` (campo
-`name`), `README.md`, `AGENTS.md`, `brainstorming.md`, `docs/plan.md`, `scripts/world-verify-smoke.mjs`.
-Protegidas las rutas `creva_finance/frontend/app/…` del proyecto hermano. La palabra "gateway" como
-nombre del servicio x402 se mantuvo (término de producto, no ruta). Comentarios de código con rutas
-viejas (`// app/features/…`) NO se barrieron — ruido, no rompe nada.
-
-**Qué NO se verificó:** deploy / CI (no hay). Comentarios de código con paths viejos siguen.
-
-**Dónde queda el pendiente:** bloque en `docs/plan.md`. Sesión 6 (migración de auth al backend)
-estaba bloqueada esperando esto.
+**Qué se hizo:** `app/` pasó a `frontend/` y `gateway/` a `backend/`; se barrieron rutas en config,
+docs y scripts sin tocar las rutas históricas de `creva_finance`.
+**Qué NO se verificó:** deploy/CI; quedan comentarios viejos de ruta en código.
+**Pendiente:** ninguno funcional del rename; los pendientes siguen en `docs/plan.md`.
 
 ## 2026-09-06 — The Graph load-bearing: AttestationRegistry + subgraph + trustSignal on-chain (worktree `agent-add968ba3a6440026`)
 
-**Qué se hizo.** Se construyó el mecanismo donde un dato on-chain mueve una salida real de
-`/creva-score/verify` (brainstorming.md §10.5, slice D de §10.4):
-
-- `contracts/` (Foundry, sin deps pesadas): `AttestationRegistry.sol` con
-  `attest(bytes32 folioHash)` → `event Attested(bytes32 indexed folioHash, address indexed
-  attester, uint256 timestamp)`. `attestationCount` es un espejo de conveniencia; el subgraph
-  deriva los attesters distintos de los logs. `script/Deploy.s.sol` lee `ARC_SIGNER_PRIVATE_KEY`
-  (misma clave que el ancla, sin secreto nuevo). `test/AttestationRegistry.t.sol`: 5 unit/fuzz +
-  2 invariant (`invariant_untouchedFolioStaysZero`, `invariant_countMatchesHandlerCalls`).
-- `subgraph/`: `schema.graphql` (`FolioAttestation`, `Attestation`), `subgraph.yaml` (network
-  `sepolia`, address placeholder desde `networks.json`), `src/mapping.ts` (fold de `Attested`;
-  `distinctAttesters` solo crece con una dirección nueva), `README.md` con el comando exacto de
-  `graph deploy` para el humano.
-- `gateway/src/arc-anchor.ts`: `anchorReportHash` ahora recibe `registryAddress` y llama
-  `new ethers.Contract(...).attest(canonicalHash)` en vez de la tx valor-0 auto-dirigida. La
-  invariante dura (`/^0x[0-9a-fA-F]{64}$/` antes de construir provider/wallet/contrato) intacta;
-  el check de registry va DESPUÉS del de hash para no romperla. `ArcAnchorResult` gana
-  `registryAddress`, `folioHash`, `attester`, `blockNumber`.
-- `gateway/src/creva-proxy.ts`: `proxyToCreva(..., enrichOnchainVerify=true)` para `/verify`.
-  Tras la respuesta 2xx JSON del core, deriva `folioHash` de `expected_digest` (0x-prefijado,
-  minúsculas), consulta el subgraph (`folioAttestation(id)`, `AbortSignal.timeout(4000)`) y
-  agrega `onchain: { attestationCount, distinctAttesters, lastAttestedAt, trustSignal }`.
-  `trustSignal` vía `trustSignalFor()` en `types.ts` (`>=2` corroborated, `>=1` attested, else
-  unattested). Cualquier fallo (sin `SUBGRAPH_URL`, hash no derivable, HTTP != 200, timeout,
-  JSON basura) → `onchain: null` + `onchainError`, core intacto, sin throw (try/catch, lección
-  de `facilitator.ts`).
-- `gateway/src/config.ts`: `registryAddress`, `subgraphUrl` (solo lectura de env).
-  `gateway/.env.example`: `REGISTRY_ADDRESS`, `SUBGRAPH_URL` con placeholder.
-- `gateway/src/index.ts`: `/verify` pasa `true`; `/anchor` pasa `config.registryAddress`.
-- Tests gateway nuevos: `test/unit/attestation-enrichment.spec.ts`,
-  `test/fuzz/attestation-enrichment.fuzz.spec.ts`,
-  `test/invariant/onchain-never-overrides-core-verdict.invariant.spec.ts` (propiedades a/b/c).
-  Ajustados `test/unit/x402-gate.spec.ts` (verify ahora trae bloque `onchain`),
-  `test/unit/arc-anchor.spec.ts` + `test/invariant/arc-anchor-hash-required.invariant.spec.ts` +
-  `test/integration/live-arc-anchor.spec.ts` (5º arg `registryAddress`).
-- `app/features/verify/components/VerifyReportCard.tsx`: prop opcional `onchain?: OnchainTrust |
-  null`, tipo + `TRUST_COPY` (una línea de copy por estado, tono neutral/warning/success)
-  declarados local (lib/api.ts es de otro dueño); sección "Respaldo on-chain" solo si `onchain`
-  viene. Test `app/test/unit/verify/onchain-trust-signal.spec.ts`.
-
-**Decisión escogida.** Atestiguar por el digest del reporte, no por `keccak256(folio)` — ancla y
-verificación comparten un `bytes32` sin acoplar el gateway a internals del core. El subgraph
-indexa la instancia de Sepolia porque Subgraph Studio no soporta Arc testnet; el registry de Arc
-queda para la narrativa de la pista Arc.
-
-**Qué NO se verificó y por qué.** (1) Deploy real a Arc testnet / Sepolia — no hay `.env` ni
-claves ni deploy key en el worktree del agente; el humano corre `forge script` y `graph deploy`
-(comandos exactos en `docs/integrations/onchain-attestation.md` y `subgraph/README.md`).
-(2) Indexación real del subgraph y ciclo end-to-end `/verify` antes/después contra el core real —
-mismo bloqueo. (3) La demostración del mecanismo se hizo en anvil local (2 cuentas → count 2, 2
-logs `Attested`) + la invariante del gateway (0→unattested, 2→corroborated); falta la corrida en
-testnet con el subgraph indexando. (4) Wiring de `VerifyScreen`/`sealClient`/`lib/api.ts` para
-propagar `onchain` al `VerifyReportCard` — esos archivos están fuera del POSEES de este worktree.
-(5) Los 2 flakes de `app` (`auth-gate`, `help/search`) bajo full-run: ya documentados, no
-relacionados.
-
-**Dónde queda el pendiente.** Bloque abierto en `docs/plan.md` (`2026-09-06 — The Graph, forma
-load-bearing`).
+**Qué se hizo:** se agregó `AttestationRegistry`, subgraph y enriquecimiento `onchain.trustSignal`
+para `/creva-score/verify`; el core verdict queda intacto si el subgraph falla.
+**Decisión escogida:** atestiguar por digest del reporte, no por `keccak256(folio)`.
+**Qué NO se verificó:** deploy a Arc/Sepolia, indexación real y ciclo `/verify` end-to-end.
+**Pendiente:** ver `docs/plan.md` y `docs/integrations/onchain-attestation.md`.
 
 ## 2026-09-06 — Privy: wallet aditiva para el pago x402 + `defineChain(296)` (worktree `sponsor-privy-wallet`)
 
-**Qué se hizo:**
-- Slice C de §10.4. Todo el código nuevo en `app/features/wallet/**`; puntos de contacto mínimos
-  en `QueryScreen.tsx`, `VerifyScreen.tsx` (solo el selector de wallet + `wallet.signPayment`) y
-  `App.tsx` (montar `PrivyWalletProvider`). `hederaPayment.ts` intacto (invariante con git diff).
-- `privyChain.ts`: `defineChain({ id: 296, … rpcUrls: [Hashio testnet] })` con viem. Lectura
-  on-chain real por esa config vía `smoke-read-chain.mjs`: chainId `0x128`, block `~40171461`,
-  balance de `0x…0002` `33896519248405508330000000000` weibar. `onchainRead.ts` expone la misma
-  lectura con `createPublicClient` para el test opt-in.
-- `spendingPolicy.ts` (puro): tope mensual + tope por pago en tinybar, `assertWithinPolicy` corre
-  antes de firmar. `walletCore.ts`: `resolveAvailableModes` / `createPaymentWallet` con inyección
-  de deps (demo = `buildSignedPaymentHeader`, privy = signer + política). `PrivyWalletProvider.tsx`
-  + `usePaymentWallet()` cablean las fuentes reales; hook con fallback demo-only sin provider.
-- `privyEmbeddedWallet.ts`: único punto que toca el SDK de Privy, con `require` perezoso. `viem`
-  agregado a `package.json` (lo usa Privy igual). `@privy-io/expo` NO agregado — ver decisión.
-- Tests: 7 suites (`unit/wallet/{spendingPolicy,walletCore,privyChain,screen-wiring,hedera-relay-read}`,
-  `fuzz/wallet/spendingPolicy`, `invariant/wallet/{demo-flow-unchanged,no-header-over-policy}`).
-
-**Decisión escogida:** no meter `@privy-io/expo` al `package.json`. Sus peers nativos
-(`react-native-passkeys`, `permissionless`, varios `expo-*`, `@privy-io/expo-native-extensions`,
-`react-native-qrcode-styled`) son riesgo real para el `npm install` del path congelado de Hedera
-en RN 0.86 / Expo 57. El adaptador queda listo con carga perezosa: sin SDK, el modo privy no
-aparece y el flujo demo es bit-idéntico. El humano instala el SDK cuando cree la cuenta Privy.
-
-**Qué NO se verificó, y por qué:**
-- Firma real con la embedded wallet de Privy: sin cuenta Privy. `makePrivySigner.signPayment`
-  lanza `privy_embedded_wallet_signing_not_wired` con un marcador BLOCKED explícito. Smoke y
-  pasos de cableado en `docs/integrations/privy-hedera.md`.
-- Render nativo del selector en dispositivo: sin hardware (igual que el resto del repo). Cubierto
-  por test de estructura (`screen-wiring.spec.ts`) + la lógica de `WalletModeSelector`.
-
-**VERIFY:** `cd app && npm install && npx tsc --noEmit` → 0 · `npx jest` → 68 suites / 300 tests,
-0 fallos (1 skip = test de relay en vivo, opt-in). Sin regresión vs baseline (61 suites / 3 flakes
-bajo carga documentados en la entrada anterior — ahora 0 flakes en full-run). Sin dev servers
-levantados.
+**Qué se hizo:** se agregó wallet mode `demo|privy`, `defineChain(296)` con lectura real a Hashio,
+política de gasto previa a firma y tests de wallet.
+**Decisión escogida:** no instalar `@privy-io/expo` todavía; el adaptador queda perezoso y el modo
+Privy no aparece sin SDK/config.
+**Qué NO se verificó:** firma real con embedded wallet ni render nativo del selector.
+**VERIFY:** `tsc` limpio; Jest 68 suites / 300 tests.
 
 ## 2026-09-05 — Bazantic: prerrequisito confirmado, spec de Recipes (worktree `feature-bazantic-recipes`)
 
@@ -139,7 +62,7 @@ levantados.
 - **Creación de las 3 Recipes en el dashboard de Bazantic** — requiere la sesión autenticada de la
   cuenta personal de Bazantic; ningún agente de este repo la tiene ni debe tenerla.
 - **Una llamada MCP real pagada** con el crédito de prueba (~0.30 USDC) — depende de que las
-  Recipes existan primero, y de la decisión del humano de cuándo gastar ese crédito (mismo criterio
+  Recipes existan primero, y de la decisión tomada de cuándo gastar ese crédito (mismo criterio
   ya aplicado a Hedera testnet y World ID).
 - **El servidor MCP de `creva-score` no se tocó** — vive en un proyecto hermano
   (`creva_finance` / `IA Hackathon - Creva score`), fuera del área de este `AGENTS.md` y de este
@@ -158,7 +81,7 @@ del servidor MCP standalone — vienen de auto-importar la spec OpenAPI pública
 lectura). El DTO real (`VerifyBusinessDto`) es más angosto que el de la tool MCP: solo
 `businessName`/`stateCode`, sin `holderName` ni `rfc`. Descubrimiento nuevo, no verificado antes:
 las tres rutas están detrás de `JwtAuthGuard` — Bazantic necesita un JWT de un usuario de Creva
-además de su propia API key, y decidir de dónde sale ese JWT es una decisión del humano, no
+además de su propia API key, y decidir de dónde sale ese JWT es una decisión tomada, no
 resuelta todavía. `docs/integrations/bazantic-recipes.md` actualizado con los nombres, schemas y
 este bloqueo nuevo.
 
@@ -1553,7 +1476,7 @@ verifique y ejecute.
 
 **Qué NO se verificó, y por qué:**
 - **No se ejerció un llamado real contra el sandbox de World.** Se decidió no gastar cuota real de
-  la API sin confirmar primero con el humano — mismo criterio aplicado al bloqueo de credenciales
+  la API sin confirmar primero con el equipo — mismo criterio aplicado al bloqueo de credenciales
   de Hedera. Todo lo probado usa un mock de `fetch`.
 - **La forma exacta del payload real para un proof de WebView no está confirmada.** La API v4
   documentada espera un `nonce` (y, para protocolo 4.0, `issuer_schema_id`/`session_id`) que el
@@ -1562,7 +1485,7 @@ verifique y ejecute.
   documentación pública, no un contrato confirmado — la API real podría rechazarlo por un campo
   faltante (`nonce`) que ningún mock local puede detectar. Este es el bloqueo real y preciso que
   reemplaza al genérico "falta ejercer el sandbox real" — ver actualización en `docs/plan.md`.
-  Cuando exista una llamada real confirmada con el humano, o el MCP `worldcoin-developer-portal`
+  Cuando exista una llamada real confirmada con el equipo, o el MCP `worldcoin-developer-portal`
   esté disponible (requiere reiniciar la sesión para cargar sus tools), corresponde volver a este
   archivo y a `world-verify.ts` para ajustar el payload según la respuesta real.
 - No se montó `SelfieCheckScreen` contra un dispositivo real ni Expo Go — sigue siendo el mismo
@@ -1609,7 +1532,7 @@ el detalle preciso del nuevo bloqueo (forma del payload v4 sin confirmar contra 
   firma de patrocinador en `/settle` — no reclamarlo de antemano al firmar.
 
 **Qué NO se verificó, y por qué:**
-- No se reintentó el pago — restricción explícita del humano (un solo intento real).
+- No se reintentó el pago — restricción explícita (un solo intento real).
 - No se corrigió `hedera-signer.ts` — fuera de `[POSEES]` de este bloque (test de integración +
   docs solamente); el archivo es interfaz pública compartida, decisión de otro rol. Reportado por
   mensaje directo a la sesión Auditor (`local_b559b1a0-...`) que lo escribió.
@@ -1633,14 +1556,14 @@ causa probable: `TransactionId` mal asignado en `hedera-signer.ts`". Sigue sin t
   documentando el mismo bloque desde ángulos distintos), resuelto a favor de la versión que refleja
   el estado más reciente (causa real encontrada, corregida, reintento en curso). `npm install`
   corrido de nuevo para traer `dotenv`.
-- **Segundo intento real, autorizado explícitamente por el humano tras el fix:** mismo resultado
+- **Segundo intento real, autorizado explícitamente tras el fix:** mismo resultado
   exacto — HTTP 402, `error: "facilitator_verify_http_500"`, sin `X-PAYMENT-RESPONSE`, sin tx hash.
   El fix de `dotenv`/defaults no era la causa real del 500 (mi test de integración ya cargaba
   `.env` manualmente en el proceso desde el primer intento, así que ese gap específico no explicaba
   mi fallo original — pero confirmar el fix igual era necesario para descartar la hipótesis).
 
 **Qué NO se verificó, y por qué:**
-- No se reintentó una tercera vez — restricción explícita del humano (un intento por autorización).
+- No se reintentó una tercera vez — restricción explícita (un intento por autorización).
 - No se investigó una causa alternativa del 500 más allá de lo ya descartado (`TransactionId`,
   carga de `.env`/defaults) — pendiente de que alguien con acceso a los logs del lado del
   facilitador (Bazantic/BlockyDevs) diagnostique del otro lado, o de inspeccionar con más detalle
@@ -1673,7 +1596,7 @@ descartadas, causa real del 500 todavía sin identificar. Sigue sin tx hash.
   {transaction}}`.
 - Mergeado `main` (`bab1e9b`) a este worktree — conflicto en `docs/plan.md` (mismo bloque narrado
   desde ambos lados), resuelto combinando ambos hallazgos. `npm install` corrido de nuevo.
-- Decisión escogida por el humano para validar el mecanismo sin depender de encontrar una cuenta
+- Decisión escogida para validar el mecanismo sin depender de encontrar una cuenta
   Hedera real ajena: usar `HEDERA_PAYER_ACCOUNT_ID` (`0.0.10119469`) también como `PAY_TO_ADDRESS`
   (autopago). Escrito directamente al `.env` del worktree vía script que lee y reescribe el valor
   sin nunca imprimirlo.
@@ -1686,7 +1609,7 @@ descartadas, causa real del 500 todavía sin identificar. Sigue sin tx hash.
   (a) el autopago (`payTo` = cuenta del payer) es degenerado para el facilitador, (b) desajuste
   real entre `paymentRequirements.amount` (`REPORT_PRICE_ATOMIC=10000000`) y lo que
   `TransferTransaction`/`Hbar.fromTinybars` codifica en `hedera-signer.ts`.
-- No se hizo un cuarto intento — restricción del humano, autorización explícita requerida cada vez.
+- No se hizo un cuarto intento — restricción explícita, autorización explícita requerida cada vez.
 - No se confirmó si el balance de Bazantic cambió (el 402 con error de validación probablemente no
   cobra, pero no se verificó el dashboard después de este intento).
 
@@ -1703,7 +1626,7 @@ ya no es un 500 genérico, es un error de validación específico y accionable. 
   requerido, para ningún valor. No es un bug de `hedera-signer.ts`; el autopago es matemáticamente
   incompatible con ese esquema de validación. Sin cambio de código, documentado y pusheado
   (`main` `58287b7`).
-- Decisión escogida por el humano: en vez de pedir una cuenta Hedera real externa, usar la propia
+- Decisión escogida: en vez de pedir una cuenta Hedera real externa, usar la propia
   cuenta ya fondeada (`HEDERA_PAYER_ACCOUNT_ID`) para crear y fondear una segunda cuenta on-chain
   vía `AccountCreateTransaction` del SDK (`@hashgraph/sdk`) — no requiere una credencial nueva, solo
   la llave del payer que ya estaba en `.env`.
@@ -1718,7 +1641,7 @@ ya no es un 500 genérico, es un error de validación específico y accionable. 
   intentando forzar el script suelto por otra vía.)
 - `PAY_TO_ADDRESS` actualizado a `0.0.10374017` en el `.env` del worktree (reescrito por script,
   valor nunca impreso).
-- **Cuarto intento real, autorizado explícitamente por el humano ("yes, go ahead" cubriendo tanto
+- **Cuarto intento real, autorizado explícitamente ("yes, go ahead" cubriendo tanto
   la creación de cuenta como el pago resultante):** HTTP 401 del gateway — pero
   `X-PAYMENT-RESPONSE` trae `transaction: "0.0.7162784@1788585962.768194628"` con
   `network: "hedera:testnet"`. El 401 es del proxy a la API real de Creva (rechaza el body vacío
@@ -1819,7 +1742,7 @@ Ramas seguras de borrar del remoto (mergeadas + obsoletas): las 13 listadas arri
 ## 2026-09-05 — Migración PWA→nativa, segundo incremento: `PersonalDataScreen.tsx` (Solver, local)
 
 **Qué se hizo:**
-- Confirmado con el humano el ritmo: una pantalla por pasada, verificada, no un lote — se sigue
+- Confirmado con el equipo el ritmo: una pantalla por pasada, verificada, no un lote — se sigue
   la misma disciplina que ya usaba "Paridad móvil, tercera revisión".
 - Construida `PersonalDataScreen.tsx` (nueva), puerto real de
   `creva_finance/frontend/app/profile/details/page.tsx`: nombres/apellidos/teléfono editables vía
@@ -1939,7 +1862,7 @@ Sello de tu negocio, Reglas que te afectan, Tu reporte, Avisos, Aviso de privaci
 ## 2026-09-05 — Migración PWA→nativa, sexto incremento: `StatementsScreen.tsx` (Solver, local)
 
 **Qué se hizo:**
-- Confirmado con el humano antes de tocar `package.json` (primera vez en esta migración que hacía
+- Confirmado con el equipo antes de tocar `package.json` (primera vez en esta migración que hacía
   falta): se instalaron `expo-document-picker` y `@react-native-async-storage/async-storage`.
 - Construida `StatementsScreen.tsx`, puerto de `creva_finance/frontend/app/statements/page.tsx`:
   gate de términos persistido, selector/subida de archivos, resultado por archivo, historial con
@@ -2152,7 +2075,7 @@ privacidad, KYC, auth.
 
 **Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Undécimo incremento de la
 migración..."). Backlog restante de stubs: Calculadora, Aviso de privacidad. Fuera de stubs:
-Crédito, Tarjeta, KYC, auth (requieren reconfirmar alcance con el humano).
+Crédito, Tarjeta, KYC, auth (requieren reconfirmar alcance con el equipo).
 
 ## 2026-09-05 — Migración PWA→nativa, duodécimo incremento: `CalculatorScreen.tsx` (Solver, cloud)
 
@@ -2187,7 +2110,7 @@ Crédito, Tarjeta, KYC, auth (requieren reconfirmar alcance con el humano).
 
 **Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Duodécimo incremento de la
 migración..."). **Backlog de stubs restante: solo `privacy` (Aviso de privacidad).** Fuera de
-stubs: Crédito, Tarjeta, KYC, auth — requieren reconfirmar alcance con el humano.
+stubs: Crédito, Tarjeta, KYC, auth — requieren reconfirmar alcance con el equipo.
 
 ## 2026-09-05 — Migración PWA→nativa, decimotercer incremento: `PrivacyScreen.tsx` (Solver, cloud)
 
@@ -2222,7 +2145,7 @@ stubs: Crédito, Tarjeta, KYC, auth — requieren reconfirmar alcance con el hum
 **Dónde queda el pendiente:** bloque nuevo en `docs/plan.md` ("Decimotercer incremento de la
 migración..."). **Backlog de stubs: agotado.** Pendiente del bloque de paridad móvil: la segunda
 vista visual de las 13 pantallas (bloqueo `react-native-web`/NativeWind). Fuera de stubs: Crédito,
-Tarjeta, KYC, auth — requieren reconfirmar alcance con el humano.
+Tarjeta, KYC, auth — requieren reconfirmar alcance con el equipo.
 
 Contexto de integración (2026-09-06): la sesión "3 Solver" tiene la familia de ramas de paridad
 móvil (incluida `feature-mobile-native-parity`) en HOLD hasta un go/no-go explícito del humano —
@@ -2380,7 +2303,7 @@ decidir qué se hace con `codex/mobile-parity-*`.
 
 **Qué se hizo:**
 - Rama nueva `feature-last-screens-parity` off `main` 93616fa. Alcance (auth+kyc+credit+card)
-  aprobado por el humano el 2026-09-06 tras preguntarle — un mensaje del Main orchestrator no
+  aprobado el 2026-09-06 tras preguntarle — un mensaje del Main orchestrator no
   contaba como su aprobación para una regla del prompt que exigía confirmación humana.
 - `auth`: `SignInScreen.tsx` ya era un formulario `@clerk/clerk-expo` hecho a mano (la fuente
   `creva_finance/frontend/app/sign-in/[[...sign-in]]/page.tsx` envuelve el widget hosted `<SignIn>`
@@ -2408,7 +2331,7 @@ decidir qué se hace con `codex/mobile-parity-*`.
 ## 2026-09-06 — Migración PWA→nativa, últimas 4 pantallas: `kyc` + fix de `MoreSheet` (Solver, cloud)
 
 **Qué se hizo:**
-- **Decisión del humano (2026-09-06):** portar el form de `kyc/page.tsx` como pantalla nueva
+- **Decisión tomada (2026-09-06):** portar el form de `kyc/page.tsx` como pantalla nueva
   `KycFormScreen`, insertada como paso 2 del onboarding **después** de `SelfieCheckScreen`, NO
   reemplazando World Selfie Check (que es integración de patrocinador y no se toca).
 - `KycFormScreen.tsx` (`app/features/onboarding/`): form nombre/apellido/CURP/email/teléfono →
@@ -2551,18 +2474,18 @@ el humano el 2026-09-06):**
 - `tsc --noEmit` limpio. `jest` full-run: 61 suites / 276 tests. Baseline tras `credit`: 60 / 270.
 
 **Business form (5º ítem del Main orchestrator):** NO construido. El bloque en `docs/plan.md` pide
-confirmación explícita del humano; el humano autorizó "seguir con las pantallas pendientes" de
+confirmación explícita; se autorizó "seguir con las pantallas pendientes" de
 forma general pero no respondió a ese ítem en concreto — se deja intacto. Un mensaje de peer no
 cuenta como su aprobación.
 
 **Dónde queda el pendiente:** las 4 pantallas del lote aprobado (auth, kyc, credit, card) + las 3
 de Ayuda + el fix de MoreSheet están hechas y pusheadas en `feature-last-screens-parity`. Falta:
-(1) confirmación del humano para el business form; (2) segunda vista visual de todo (sesión 2);
+(1) confirmación del equipo para el business form; (2) segunda vista visual de todo (sesión 2);
 (3) que el Main orchestrator integre la rama.
 
 ## 2026-09-06 — `QueryScreen` business-data form (Solver, cloud) — rama `feature-query-business-form`
 
-**Qué se hizo (aprobado por el humano, despachado por el Main orchestrator como rama aparte tras
+**Qué se hizo (aprobado, despachado por el Main orchestrator como rama aparte tras
 integrar `feature-last-screens-parity`; off `main` 7638dbb):**
 - `QueryScreen.tsx` tenía `const BUSINESS_NAME = "Panaderia La Espiga"` hardcodeado y lo mandaba a
   `requestSignal` en `triggerQuery` y en el reintento de `pay`. Reemplazado por un campo de nombre
@@ -2696,7 +2619,7 @@ con el gap `GET /cards`, el código muerto y la duda de `JwtAuthGuard`↔Clerk.
 
 ## 2026-09-06 — Estado "backend pendiente" para el gap de auth Clerk↔core (Solver, cloud) — `feature-backend-pending-state`
 
-**Decisión escogida (humano, relayed por Main):** mientras el core desplegado no acepte el token
+**Decisión escogida:** mientras el core desplegado no acepte el token
 de Clerk (ver veredicto de auth — falta `AUTH_PROVIDER=both` + config), la app degrada a UN estado
 honesto y consistente por sección, no a un spinner infinito ni a un 401 crudo.
 
@@ -2866,7 +2789,7 @@ sensible por diseño (invariante del core `radar-carries-no-personal-data`).
   servicio podría no satisfacer el `JwtAuthGuard` del core; si falla, degrada a `radarError`.
 - Deploy a testnet: no hecho. Demo corrió en anvil local (evidencia en el doc de integración).
 
-**Dónde queda el pendiente:** bloque cerrado en `docs/plan.md` con la lista para el humano
+**Dónde queda el pendiente:** bloque cerrado en `docs/plan.md` con la lista operativa
 (deploy Sepolia + registrar Upkeep + `setForwarder`).
 
 ## 2026-09-06 — AUDIT + wiring de la capa app↔core (`app/lib/api.ts`) (worktree `feature-app-core-api-wiring`)
