@@ -3048,3 +3048,19 @@ verificación end-to-end contra backend real; shapes sin ejercer.
 conserva: cubre el 404 de `GET /cards` que NO es un 401 unlinked (`isBackendUnlinked(err)` es
 falso). Catch resuelto a `if (isBackendUnlinked(err)) setBackendPending(true); else
 setListFailed(true)`. Rama rebaseada sobre `origin/main` f430d33; entregada a Solver.
+
+## 2026-09-06 — Sesión Main: deploy de contratos Sepolia + subgraph BLOCKED
+
+- Desplegados por el humano a Sepolia (deployer `0x57a647948fD20a8Aa51A1B76049245A74001d7fB`):
+  `AttestationRegistry` = `0xd1463a75aad032659323262ade7906b41c18cc1b` (bloque 11650277),
+  `RegulatoryAlertRegistry` = `0x74279997d3ab2859bebc4cf0ff0623b11611c98f` (bloque 11650279).
+  Ambos con receipt status 0x1. Reporter de RegulatoryAlertRegistry = deployer (default).
+- Cableado por Main: `REGISTRY_ADDRESS` + `REGULATORY_ALERT_REGISTRY_ADDRESS` en `backend/.env`;
+  `subgraph/networks.json` + `subgraph/subgraph.yaml` (address + startBlock 11650277). Commits
+  `a81f7e4` (subgraph) sobre `05d925a`.
+- **BLOCKED: deploy del subgraph.** Subgraph Studio devuelve "failed to connect / failed to fetch"
+  al firmar el login → no hay deploy key. Docs de The Graph confirman que la firma de wallet es
+  obligatoria, no hay ruta CLI-only. Mensaje de soporte redactado para Discord/foro. Fallback
+  documentado: Alchemy Subgraphs (no cuenta para la pista). `SUBGRAPH_URL` sigue placeholder.
+- VERIFY de esta sesión: merges de sesión 6 (slices 1+2 → 292625c, 721de0f) y sesión 7
+  (ui-parity-pass → 05d925a) con backend tsc/eslint/vitest y frontend tsc/jest in-band verdes.

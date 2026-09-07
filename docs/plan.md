@@ -53,8 +53,18 @@ checklist.
 - [ ] **2026-09-06 — The Graph load-bearing.** Código completo: `AttestationRegistry`, subgraph
   y enriquecimiento `onchain.trustSignal` en `/creva-score/verify`; la app ya consume el campo.
   Local verificado: `forge test`, `graph build`, backend `tsc`/`eslint`/Vitest y tests de verify.
-  Pendiente operativo: deploy a Arc/Sepolia, configurar `REGISTRY_ADDRESS`/`SUBGRAPH_URL`, desplegar
-  subgraph y grabar demo real con 2 attests + `/verify`.
+  - Hecho `2026-09-06`: `AttestationRegistry` desplegado a Sepolia en
+    `0xd1463a75aad032659323262ade7906b41c18cc1b` (tx `0x98a5a454…d195ba`, bloque 11650277);
+    `RegulatoryAlertRegistry` en `0x74279997d3ab2859bebc4cf0ff0623b11611c98f` (tx `0x1f208552…07322f`,
+    bloque 11650279). `REGISTRY_ADDRESS` + `REGULATORY_ALERT_REGISTRY_ADDRESS` en `backend/.env`;
+    `subgraph/networks.json` + `subgraph.yaml` apuntados (startBlock 11650277). Commit `a81f7e4`.
+  - **BLOCKED — deploy del subgraph a Studio.** El subgraph compila y está listo para
+    `graph deploy`, pero Subgraph Studio devuelve "failed to connect / failed to fetch" en el paso
+    de firmar el mensaje de login, así que no se puede obtener el deploy key. Sin login CLI-only
+    disponible (confirmado en docs de The Graph). Mensaje de soporte enviado a Discord/foro.
+    Fallback si Studio no responde: desplegar a Alchemy Subgraphs (no cuenta para la pista de
+    The Graph) y anotarlo en la entrega. Pendiente al desbloquear: `SUBGRAPH_URL` real en
+    `backend/.env` y demo con 2 attests + `/verify` enriquecido.
 
 - [ ] **2026-09-06 — Paridad móvil: segunda vista visual pendiente.** Las pantallas y fixes de
   paridad ya están mergeados a `main` y verificados por código/tests.
